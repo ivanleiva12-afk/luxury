@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Proyecto Chic — Servicios</title>
+  <meta name="description" content="Venta de servicios profesionales. Calidad, rapidez y atención personalizada." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <!-- Age Gate -->
+  <div id="age-gate" class="agegate" aria-modal="true" role="dialog" aria-labelledby="agegate-title" aria-describedby="agegate-desc">
+    <div class="agegate-overlay" aria-hidden="true"></div>
+    <div class="agegate-modal">
+      <div class="agegate-icon" aria-hidden="true">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2l7 3v6c0 5-3.5 8.5-7 9-3.5-.5-7-4-7-9V5l7-3z" stroke="#D4AF37" stroke-width="1.8" fill="none" stroke-linejoin="round"/>
+          <path d="M12 7v5" stroke="#D4AF37" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="12" cy="14" r="1.2" fill="#D4AF37"/>
+        </svg>
+      </div>
+      <h2 id="agegate-title" class="agegate-title">Verificación de Edad</h2>
+      <p id="agegate-desc" class="agegate-desc">Los servicios ofrecidos en este sitio son exclusivamente para mayores de 18 años. Por favor, confirma tu edad para continuar.</p>
+      <div class="agegate-actions">
+        <button id="agegate-accept" class="btn-age btn-age-accept" type="button">SOY MAYOR DE 18</button>
+        <button id="agegate-decline" class="btn-age btn-age-decline" type="button">SOY MENOR DE 18</button>
+      </div>
+      <p class="agegate-status" aria-live="polite"></p>
+      <p class="agegate-legal">Al continuar, confirmas que tienes la edad legal en tu jurisdicción</p>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="logo" href="#inicio" aria-label="Inicio">
+        <img src="assets/logo-premium.png.png" alt="Logo" />
+      </a>
+      <nav class="site-nav" aria-label="Principal">
+        <ul>
+          <li><a class="nav-link" href="#servicios">Servicios</a></li>
+          <li><a class="nav-link" href="foro.html">Experiencias</a></li>
+          <li><a class="nav-link interactive" href="#contact-modal">Contacto</a></li>
+          <li><a class="btn-foro" href="comunidad.html">Foro</a></li>
+          <li><a class="nav-cta interactive" href="#login-modal">Publicate</a></li>
+        </ul>
+      </nav>
+      <button class="nav-toggle" aria-label="Abrir menú" aria-expanded="false">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Featured Section / Destacados -->
+    <section id="featured-section" class="featured-section">
+      <div class="container">
+        <div class="passione-nera-header">
+          <div class="decorative-line left"></div>
+          <h2 class="passione-title">Passione Nera</h2>
+          <div class="decorative-line right"></div>
+        </div>
+        <p class="featured-subtitle">Las experiencias más exclusivas</p>
+        
+        <div class="featured-carousel-wrapper">
+          <div class="featured-carousel" id="featured-carousel">
+            <!-- Las tarjetas destacadas se cargarán aquí vía JavaScript -->
+          </div>
+          
+          <button class="featured-nav featured-nav-prev" id="featured-prev" aria-label="Anterior">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <button class="featured-nav featured-nav-next" id="featured-next" aria-label="Siguiente">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+          
+          <div class="featured-dots" id="featured-dots">
+            <!-- Los dots se generarán vía JavaScript -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stories Section -->
+    <section id="stories-section" class="stories-section">
+      <div class="stories-container">
+        <h2 class="stories-title">Historias</h2>
+        <div id="stories-carousel" class="stories-carousel">
+          <!-- Las historias se cargarán aquí vía JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Stories Viewer Modal -->
+    <div id="stories-modal" class="stories-modal" role="dialog" aria-hidden="true">
+      <div class="stories-overlay"></div>
+      <div class="stories-viewer">
+        <!-- Header con info del usuario -->
+        <div class="stories-header">
+          <div class="stories-progress" id="stories-progress"></div>
+          <div class="stories-user-info">
+            <img id="stories-user-avatar" class="stories-user-avatar" src="" alt="Avatar" />
+            <div class="stories-user-details">
+              <div class="stories-user-name" id="stories-user-name">Usuario</div>
+              <div class="stories-user-time" id="stories-user-time">Hace 2h</div>
+            </div>
+          </div>
+          <button class="stories-close-btn" aria-label="Cerrar historias">×</button>
+        </div>
+
+        <!-- Contenido de la historia -->
+        <div class="stories-content" id="stories-content"></div>
+
+        <!-- Botón Contáctame -->
+        <button class="stories-contact-btn" id="stories-contact-btn">Contáctame</button>
+
+        <!-- Navegación -->
+        <button class="stories-nav stories-nav-prev" aria-label="Historia anterior">‹</button>
+        <button class="stories-nav stories-nav-next" aria-label="Historia siguiente">›</button>
+      </div>
+    </div>
+
+    <!-- Experiencias Section -->
+    <section id="experiencias" class="section">
+      <div class="container experiencias-container">
+        <div class="section-header">
+          <h2 class="section-title">Experiencias Premium</h2>
+          <p class="section-subtitle">Descubre las publicaciones más exclusivas</p>
+        </div>
+        
+        <div class="filters-sticky" id="filters-sticky">
+          <div class="filters-row-compact">
+            <div class="filter-block">
+              <div class="filter-label">Ubicación</div>
+              <select id="filter-location" class="filter-select">
+                <option value="">Todas</option>
+                <option value="Santiago Centro">Centro</option>
+                <option value="Providencia">Providencia</option>
+                <option value="Las Condes">Las Condes</option>
+                <option value="Vitacura">Vitacura</option>
+                <option value="Ñuñoa">Ñuñoa</option>
+                <option value="La Reina">La Reina</option>
+                <option value="Lo Barnechea">Lo Barnechea</option>
+              </select>
+            </div>
+
+            <div class="filter-block">
+              <div class="filter-label">Disponibilidad</div>
+              <div class="pill-group" id="filter-availability" role="group" aria-label="Disponibilidad">
+                <button type="button" class="pill" data-value="Disponible ahora">Ahora</button>
+                <button type="button" class="pill" data-value="Programar">Programar</button>
+                <button type="button" class="pill" data-value="24/7">24/7</button>
+              </div>
+            </div>
+
+            <div class="filter-block">
+              <div class="filter-label">Categorías</div>
+              <div class="pill-group" id="filter-category-chips" role="group" aria-label="Categorías">
+                <button type="button" class="pill" data-value="VIP">VIP</button>
+                <button type="button" class="pill" data-value="Premium">Premium</button>
+                <button type="button" class="pill" data-value="Elite">Elite</button>
+                <button type="button" class="pill" data-value="Estándar">Estándar</button>
+              </div>
+            </div>
+
+            <div class="filter-block">
+              <div class="filter-label">Servicios</div>
+              <div class="pill-group" id="filter-services" role="group" aria-label="Servicios">
+                <button type="button" class="pill" data-value="in-call">In-call</button>
+                <button type="button" class="pill" data-value="out-call">Out-call</button>
+                <button type="button" class="pill" data-value="travel">Travel</button>
+              </div>
+            </div>
+
+            <div class="filter-block search-block">
+              <div class="filter-label">Búsqueda</div>
+              <input type="search" id="filter-search" placeholder="Buscar..." list="names-datalist" />
+              <datalist id="names-datalist"></datalist>
+            </div>
+
+            <div class="filter-block">
+              <div class="filter-label">Ordenar</div>
+              <select id="filter-sort" class="filter-select">
+                <option value="recent">Reciente</option>
+                <option value="price-desc">$ Mayor</option>
+                <option value="price-asc">$ Menor</option>
+                <option value="popular">Popular</option>
+              </select>
+            </div>
+
+            <button id="currency-toggle" class="currency-btn" aria-label="Cambiar moneda">
+              <span class="currency-label">CLP</span>
+            </button>
+          </div>
+
+          <div class="filters-meta">
+            <div class="active-chips" id="active-chips"></div>
+            <div class="filters-counter" id="filters-counter">Mostrando 0 de 0 servicios</div>
+            <button id="reset-filters" class="btn-reset-filters" type="button">Limpiar filtros</button>
+          </div>
+        </div>
+
+        <div id="experiencias-grid" class="experiencias-grid">
+          <!-- Las tarjetas se cargarán aquí vía JavaScript -->
+        </div>
+
+        <div id="skeleton-loader" class="skeleton-loader">
+          <!-- Skeletons se generarán vía JavaScript -->
+        </div>
+
+        <button id="load-more-btn" class="btn cta-gold load-more-btn" style="display: none;">Cargar más</button>
+      </div>
+    </section>
+    
+    <!-- Testimonials Section -->
+    <section id="testimonials-section" class="testimonials-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Testimonios</h2>
+          <p class="section-subtitle">Lo que dicen nuestros clientes</p>
+        </div>
+
+        <div class="testimonials-slider" id="testimonials-slider">
+          <button class="ts-nav ts-prev" aria-label="Anterior">&#10094;</button>
+          <div class="ts-track" id="ts-track"></div>
+          <button class="ts-nav ts-next" aria-label="Siguiente">&#10095;</button>
+        </div>
+        <div class="ts-dots" id="ts-dots" role="tablist" aria-label="Navegación de testimonios"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <a class="logo" href="#inicio">
+          <img src="assets/logo-premium.png.png" alt="Logo" />
+        </a>
+        <p class="footer-copy">© <span id="year"></span> Proyecto Chic. Todos los derechos reservados.</p>
+      </div>
+      <div class="footer-links">
+        <a href="#servicios">Servicios</a>
+        <a href="#nosotros">Nosotros</a>
+        <a href="#contacto">Contacto</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="login-modal" aria-modal="true" role="dialog" aria-labelledby="login-title" aria-hidden="true">
+    <div class="login-overlay"></div>
+    <div class="login-container">
+      <button id="login-close" class="login-close" aria-label="Cerrar modal">&times;</button>
+      <h2 id="login-title" class="login-title">Ingresa tu cuenta</h2>
+      <form id="login-form" class="login-form">
+        <div class="login-field">
+          <label for="login-email" class="login-label">Correo</label>
+          <input id="login-email" type="email" name="email" placeholder="tu@email.com" required />
+        </div>
+        <div class="login-field">
+          <label for="login-password" class="login-label">Contraseña</label>
+          <input id="login-password" type="password" name="password" placeholder="••••••••" required />
+        </div>
+        <div class="login-checkbox">
+          <input id="login-remember" type="checkbox" name="remember" />
+          <label for="login-remember">Recordar cuenta</label>
+        </div>
+        <button type="submit" class="btn cta-gold">Ingresar</button>
+      </form>
+      <p class="login-signup">¿No tienes cuenta? <a href="#" id="login-signup-link">Crear cuenta</a></p>
+    </div>
+  </div>
+
+  <!-- Contact Modal -->
+  <div id="contact-modal" class="contact-modal" aria-modal="true" role="dialog" aria-labelledby="contact-title" aria-hidden="true">
+    <div class="contact-overlay"></div>
+    <div class="contact-container">
+      <button id="contact-close" class="contact-close" aria-label="Cerrar modal">&times;</button>
+      <h2 id="contact-title" class="contact-title">Contáctanos</h2>
+      <p class="contact-subtitle">Cuéntanos sobre tu proyecto y te respondemos en 24h</p>
+      <form id="contact-form" class="contact-form">
+        <div class="contact-field">
+          <label for="contact-nombre" class="contact-label">Nombre *</label>
+          <input id="contact-nombre" type="text" name="nombre" placeholder="Tu nombre completo" required />
+        </div>
+        <div class="contact-field">
+          <label for="contact-email" class="contact-label">Correo *</label>
+          <input id="contact-email" type="email" name="email" placeholder="tu@email.com" required />
+        </div>
+        <div class="contact-field">
+          <label for="contact-telefono" class="contact-label">Teléfono (opcional)</label>
+          <input id="contact-telefono" type="tel" name="telefono" placeholder="+56 9 0000 0000" />
+        </div>
+        <div class="contact-field">
+          <label for="contact-mensaje" class="contact-label">Mensaje *</label>
+          <textarea id="contact-mensaje" name="mensaje" placeholder="Cuéntanos sobre tu proyecto..." rows="5" required></textarea>
+        </div>
+        <div class="contact-field">
+          <label for="contact-archivos" class="contact-label">Adjuntar archivos (opcional)</label>
+          <input id="contact-archivos" type="file" name="archivos" multiple accept="image/*,.pdf,.doc,.docx" />
+          <p class="contact-hint">Puedes adjuntar imágenes, PDF o documentos</p>
+        </div>
+        <div class="contact-actions">
+          <button type="button" id="contact-cancel" class="btn contact-cancel">Cancelar</button>
+          <button type="submit" class="btn cta-gold">Enviar mensaje</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detail-modal" class="detail-modal" aria-modal="true" role="dialog" aria-hidden="true">
+    <div class="detail-overlay" data-close="detail"></div>
+    <div class="detail-container">
+      <button class="detail-close" id="detail-close" aria-label="Cerrar">×</button>
+
+      <div class="detail-grid">
+        <div class="detail-gallery">
+          <div class="detail-main-media" id="detail-main-media"></div>
+          <div class="detail-thumbs" id="detail-thumbs"></div>
+          <div class="detail-counter" id="detail-counter">0/0</div>
+        </div>
+
+        <div class="detail-info">
+          <div class="detail-header">
+            <div class="detail-title-row">
+              <h3 id="detail-title" class="detail-title"></h3>
+              <span class="detail-badge" id="detail-badge">Verificado</span>
+            </div>
+            <div class="detail-meta" id="detail-meta"></div>
+          </div>
+
+          <div class="detail-price-row">
+            <div class="detail-price" id="detail-price"></div>
+            <button id="detail-currency-toggle" class="currency-btn" type="button"><span class="currency-label">CLP</span></button>
+          </div>
+
+          <div class="detail-description" id="detail-description"></div>
+
+          <ul class="detail-features" id="detail-features"></ul>
+
+          <div class="detail-section">
+            <h4>Ubicación & Horarios</h4>
+            <div class="detail-meta-block" id="detail-location"></div>
+            <div class="detail-meta-block" id="detail-hours"></div>
+            <div class="detail-meta-block" id="detail-languages"></div>
+            <div class="detail-map" id="detail-map">Mapa de zona referencial</div>
+          </div>
+
+          <div class="detail-section">
+            <h4>Contacto</h4>
+            <div class="detail-actions">
+              <a id="detail-whatsapp" class="btn cta-gold" target="_blank" rel="noopener">WhatsApp</a>
+              <a id="detail-telegram" class="btn ghost" target="_blank" rel="noopener">Telegram</a>
+              <a id="detail-call" class="btn ghost">Llamar</a>
+            </div>
+            <form id="detail-form" class="detail-form">
+              <input type="text" id="detail-form-name" placeholder="Tu nombre" required />
+              <input type="tel" id="detail-form-phone" placeholder="Tu teléfono" />
+              <textarea id="detail-form-msg" rows="3" placeholder="Consulta rápida" required></textarea>
+              <button type="submit" class="btn cta-gold">Enviar consulta</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cursor personalizado -->
+  <div id="cursor" class="cursor" aria-hidden="true"></div>
+</body>
+</html>

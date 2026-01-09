@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Foro de la Comunidad — Proyecto Chic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="comunidad.css" />
+  <link rel="icon" href="assets/logo-premium.png.png" type="image/png" />
+  <script defer src="comunidad.js"></script>
+</head>
+<body>
+  <!-- Hero del Foro -->
+  <section class="foro-hero">
+    <h1 class="foro-hero-title">💬 Foro de la Comunidad</h1>
+    <p class="foro-hero-subtitle">Comparte experiencias, opiniones y recomendaciones</p>
+  </section>
+
+  <!-- Navegación con Tabs -->
+  <section class="foro-nav-container">
+    <div class="foro-tabs">
+      <button class="foro-tab active" data-tab="todos">Todos</button>
+      <button class="foro-tab" data-tab="populares">Populares</button>
+      <button class="foro-tab" data-tab="recientes">Recientes</button>
+      <button class="foro-tab" data-tab="sin-responder">Sin Responder</button>
+    </div>
+    <button class="btn-nuevo-tema" id="btn-nuevo-tema">➕ Crear Nuevo Tema</button>
+  </section>
+
+  <!-- Barra de Búsqueda -->
+  <section class="foro-search-container">
+    <div class="foro-search-wrapper">
+      <svg class="foro-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <circle cx="11" cy="11" r="8" stroke="#D4AF37" stroke-width="2"/>
+        <path d="M21 21l-4.35-4.35" stroke="#D4AF37" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <input type="text" class="foro-search-input" placeholder="Buscar temas o usuarios..." id="foro-search" />
+    </div>
+  </section>
+
+  <!-- Lista de Temas -->
+  <main class="foro-main">
+    <div class="foro-threads-list" id="threads-list">
+      <!-- Los temas se cargarán dinámicamente aquí -->
+    </div>
+    
+    <div class="foro-empty" id="foro-empty" style="display: none;">
+      <div class="foro-empty-icon">💬</div>
+      <p class="foro-empty-text">Aún no hay temas en el foro</p>
+      <button class="btn-nuevo-tema-secondary">Crear el primer tema</button>
+    </div>
+  </main>
+
+  <!-- Modal: Crear Nuevo Tema -->
+  <div class="modal-overlay" id="modal-crear-tema" style="display: none;">
+    <div class="modal-container modal-crear">
+      <button class="modal-close" id="modal-close">×</button>
+      <h2 class="modal-title">Crear Nuevo Tema</h2>
+      <p class="modal-subtitle">Comparte tu experiencia u opinión con la comunidad</p>
+      
+      <form id="form-crear-tema" class="foro-form">
+        <!-- Seleccionar Creadora -->
+        <div class="form-group">
+          <label for="tema-creadora">¿Sobre qué creadora quieres hablar?</label>
+          <select id="tema-creadora" class="form-input" required>
+            <option value="">Selecciona una creadora</option>
+          </select>
+        </div>
+
+        <!-- Título -->
+        <div class="form-group">
+          <label for="tema-titulo">Título del tema</label>
+          <div class="input-with-counter">
+            <input type="text" id="tema-titulo" class="form-input" placeholder="Ej: ¿Alguien ha contactado a...?" maxlength="100" required />
+            <span class="char-counter"><span id="titulo-counter">0</span>/100</span>
+          </div>
+        </div>
+
+        <!-- Descripción/Contenido -->
+        <div class="form-group">
+          <label for="tema-contenido">Contenido del tema</label>
+          <div class="input-with-counter">
+            <textarea id="tema-contenido" class="form-textarea" placeholder="Comparte tu experiencia, opinión o pregunta..." maxlength="2000" required></textarea>
+            <span class="char-counter"><span id="contenido-counter">0</span>/2000</span>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div class="form-group">
+          <label for="tema-tags">Etiquetas (opcional)</label>
+          <div class="tags-container">
+            <input type="text" id="tema-tags" class="form-input" placeholder="Presiona Enter para agregar" />
+            <div class="tags-list" id="tags-list"></div>
+          </div>
+          <small class="form-hint">Máximo 5 etiquetas</small>
+        </div>
+
+        <!-- Categoría -->
+        <div class="form-group">
+          <label>Categoría</label>
+          <div class="categoria-chips">
+            <label class="chip-option">
+              <input type="radio" name="categoria" value="opinion" required />
+              <span class="chip-label">💬 Opinión</span>
+            </label>
+            <label class="chip-option">
+              <input type="radio" name="categoria" value="pregunta" />
+              <span class="chip-label">❓ Pregunta</span>
+            </label>
+            <label class="chip-option">
+              <input type="radio" name="categoria" value="recomendacion" />
+              <span class="chip-label">⭐ Recomendación</span>
+            </label>
+            <label class="chip-option">
+              <input type="radio" name="categoria" value="advertencia" />
+              <span class="chip-label">⚠️ Advertencia</span>
+            </label>
+            <label class="chip-option">
+              <input type="radio" name="categoria" value="experiencia" />
+              <span class="chip-label">📝 Experiencia</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="modal-footer">
+          <button type="button" class="btn-cancelar" id="btn-cancelar-tema">Cancelar</button>
+          <button type="submit" class="btn-publicar">Publicar Tema</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Vista de Tema Individual -->
+  <div class="modal-overlay" id="modal-tema-view" style="display: none;">
+    <div class="modal-container modal-thread">
+      <button class="modal-close" id="modal-thread-close">×</button>
+      
+      <!-- Breadcrumb -->
+      <nav class="thread-breadcrumb">
+        <a href="#" class="breadcrumb-link">Foro</a>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-current" id="breadcrumb-creadora">...</span>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-current" id="breadcrumb-titulo">...</span>
+      </nav>
+
+      <div id="thread-content">
+        <!-- El contenido del tema se cargará aquí -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Botón Flotante Volver -->
+  <a href="index.html" class="btn-volver-home" aria-label="Volver al inicio">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </a>
+
+  <!-- Cursor personalizado -->
+  <div id="cursor" class="cursor" aria-hidden="true"></div>
+</body>
+</html>

@@ -1,0 +1,30 @@
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+.history/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Dependencies
+node_modules/
+
+# Build output
+build/
+dist/
+.out/
+.next/
+
+# Env files
+.env
+.env.*
+
+# Python server caches (if any)
+__pycache__/
+*.pyc
