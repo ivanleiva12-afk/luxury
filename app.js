@@ -291,7 +291,7 @@ async function updateNavigation() {
         e.preventDefault();
         await DataService.removeCurrentUser();
         // Redirigir a la página principal
-        window.location.href = 'index.html';
+        window.location.href = 'home';
       });
       navUl.appendChild(logoutItem);
     }
@@ -540,7 +540,7 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
       await DataService.setCurrentUser(approvedUser);
       closeModal();
       form.reset();
-      window.location.href = 'perfil-clienta.html';
+      window.location.href = 'profile';
       return;
     }
     
@@ -590,7 +590,7 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
         await DataService.setCurrentUser(currentUser);
         closeModal();
         form.reset();
-        window.location.href = 'perfil-clienta.html';
+        window.location.href = 'profile';
       } else if (pendingUser.status === 'pendiente') {
         console.log('⏳ Usuario en estado pendiente');
         alert('⏳ Tu cuenta está pendiente de aprobación.\n\nNuestro equipo está revisando tu solicitud. Te contactaremos pronto por WhatsApp.\n\n💡 Tip: Puedes revisar el panel de admin para aprobar tu cuenta manualmente.');
@@ -641,7 +641,7 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
       form.reset();
       
       // Redirigir al panel de la clienta
-      window.location.href = 'perfil-clienta.html';
+      window.location.href = 'profile';
     } else {
       alert('No se encontró una cuenta con ese correo. ¿Ya te registraste?');
     }
@@ -650,7 +650,7 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
   signupLink?.addEventListener('click', (e) => {
     e.preventDefault();
     closeModal();
-    window.location.href = 'registro.html';
+    window.location.href = 'register';
   });
 })();
 
@@ -728,7 +728,7 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
     await DataService.savePasswordRecoveryRequests(recoveryRequests);
     
     // URL de recuperación
-    const recoveryUrl = `${window.location.origin}/reset-password.html?token=${recoveryToken}&email=${encodeURIComponent(email)}`;
+    const recoveryUrl = `${window.location.origin}/reset?token=${recoveryToken}&email=${encodeURIComponent(email)}`;
     
     // Intentar enviar email usando AWS SES
     const emailConfig = await DataService.getEmailConfig() || {};
@@ -849,7 +849,7 @@ window.openMentionedThreads = async (profileName, profileEmail) => {
   // Guardar los IDs de posts a mostrar (temporal en localStorage para navegación)
   localStorage.setItem('filterMentionPostIds', JSON.stringify(postIds));
   localStorage.setItem('filterMentionName', profileName);
-  window.location.href = `salaoscura.html?filter=mentions&name=${encodeURIComponent(profileName)}`;
+  window.location.href = `salon?filter=mentions&name=${encodeURIComponent(profileName)}`;
 };
 
 // Obtener likes del usuario (guardados en AWS)

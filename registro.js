@@ -1834,7 +1834,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           </p>
         </div>
         <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-          <a href="index.html" class="btn cta-gold" style="display: inline-block; padding: 16px 40px; font-size: 16px; text-decoration: none;">
+          <a href="home" class="btn cta-gold" style="display: inline-block; padding: 16px 40px; font-size: 16px; text-decoration: none;">
             Volver al Inicio
           </a>
         </div>

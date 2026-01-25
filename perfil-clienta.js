@@ -103,8 +103,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           Si crees que esto es un error o deseas más información, contáctanos por WhatsApp.
         </p>
         <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
-          <a href="index.html" style="background: linear-gradient(135deg, #D4AF37, #B8860B); color: #0A0A0A; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">← Volver al Inicio</a>
-          <button onclick="DataService.removeCurrentUser().then(() => window.location.href='index.html');" style="background: rgba(255,255,255,0.1); color: #fff; padding: 14px 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; font-weight: 600;">Cerrar Sesión</button>
+          <a href="home" style="background: linear-gradient(135deg, #D4AF37, #B8860B); color: #0A0A0A; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">← Volver al Inicio</a>
+          <button onclick="DataService.removeCurrentUser().then(() => window.location.href='home');" style="background: rgba(255,255,255,0.1); color: #fff; padding: 14px 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; font-weight: 600;">Cerrar Sesión</button>
         </div>
       </div>
     `;
@@ -467,7 +467,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('logout-btn')?.addEventListener('click', async () => {
     if (confirm('¿Segura que quieres cerrar sesión?')) {
       await DataService.removeCurrentUser();
-      window.location.href = 'index.html';
+      window.location.href = 'home';
     }
   });
 
@@ -2724,7 +2724,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               Te mencionaron en: <strong style="color: #D4AF37;">"${mention.postTitle || 'Publicación'}"</strong>
             </div>
             <div style="display: flex; gap: 8px;">
-              <a href="salaoscura.html?post=${mention.postId}" class="mencion-thread" style="display: inline-flex; align-items: center; gap: 6px; color: #D4AF37; text-decoration: none; font-size: 13px; font-weight: 600;" onclick="markMentionAsRead('${userEmail}', ${index})">
+              <a href="salon?post=${mention.postId}" class="mencion-thread" style="display: inline-flex; align-items: center; gap: 6px; color: #D4AF37; text-decoration: none; font-size: 13px; font-weight: 600;" onclick="markMentionAsRead('${userEmail}', ${index})">
                 <span>Ver hilo completo</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </a>

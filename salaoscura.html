@@ -1228,7 +1228,7 @@
   <!-- Header -->
   <header class="foro-header">
     <div class="foro-header-inner">
-      <a href="index.html" class="foro-logo">
+      <a href="home" class="foro-logo">
         <img src="assets/logo-premium.png" alt="Logo" onerror="this.style.display='none'" />
         <span class="foro-logo-text">Sala Oscura</span>
       </a>
@@ -1373,9 +1373,9 @@
     <div class="foro-footer-inner">
       <p class="foro-footer-copy">© <span id="year"></span> Sala Oscura. Todos los derechos reservados.</p>
       <div class="foro-footer-links">
-        <a href="index.html" class="foro-footer-link">Inicio</a>
-        <a href="servicios.html" class="foro-footer-link">Servicios</a>
-        <a href="nosotros.html" class="foro-footer-link">Nosotros</a>
+        <a href="home" class="foro-footer-link">Inicio</a>
+        <a href="services" class="foro-footer-link">Servicios</a>
+        <a href="about" class="foro-footer-link">Nosotros</a>
       </div>
     </div>
   </footer>
@@ -2106,7 +2106,7 @@
         localStorage.removeItem('salaOscuraCurrentUser');
       }
       // Redirigir a página principal
-      window.location.href = 'index.html';
+      window.location.href = 'home';
     }
 
     // ========================================
@@ -2944,7 +2944,7 @@
       
       if (user && user.id) {
         // Redirigir a la página principal con el perfil
-        window.location.href = `index.html?profile=${user.id}`;
+        window.location.href = `home?profile=${user.id}`;
       } else {
         alert('Perfil no encontrado');
       }
@@ -2999,5 +2999,6 @@
   </script>
   <script src="config.js"></script>
   <script src="api.js"></script>
+  <script src="url-handler.js"></script>
 </body>
 </html>

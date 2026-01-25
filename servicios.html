@@ -1,8 +1,3 @@
-codigo aws logs get-log-events \
-  --log-group-name /aws/lambda/salaoscura-api \
-  --log-stream-name "NOMBRE_DEL_STREAM" \
-  --limit 50 \
-  --profile salaoscura --region us-east-1<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
@@ -14,6 +9,7 @@ codigo aws logs get-log-events \
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+  <script src="url-handler.js"></script>
   <script defer src="app.js"></script>
   <style>
     .servicios-container { width: var(--container); margin: 0 auto; padding: 60px 32px; }
@@ -46,7 +42,7 @@ codigo aws logs get-log-events \
 <body>
   <header class="site-header">
     <div class="container header-inner">
-      <a class="logo" href="index.html" aria-label="Inicio">
+      <a class="logo" href="home" aria-label="Inicio">
         <img src="assets/logo-premium.png.png" alt="Logo" />
       </a>
       <nav class="site-nav" aria-label="Principal">
@@ -85,14 +81,14 @@ codigo aws logs get-log-events \
   <footer class="site-footer">
     <div class="container footer-inner">
       <div>
-        <a class="logo" href="index.html">
+        <a class="logo" href="home">
           <img src="assets/logo-premium.png" alt="Logo" />
         </a>
         <p class="footer-copy">© <span id="year"></span> Sala Oscura. Todos los derechos reservados.</p>
       </div>
       <div class="footer-links">
-        <a id="footer-servicios-link" href="servicios.html">Servicios</a>
-        <a id="footer-nosotros-link" href="nosotros.html">Nosotros</a>
+        <a id="footer-servicios-link" href="services">Servicios</a>
+        <a id="footer-nosotros-link" href="about">Nosotros</a>
       </div>
     </div>
   </footer>
@@ -155,7 +151,7 @@ codigo aws logs get-log-events \
         </div>
         <button type="submit" class="btn cta-gold">Ingresar</button>
       </form>
-      <p class="login-signup">¿No tienes cuenta? <a href="registro.html" id="login-signup-link">Crear cuenta</a></p>
+      <p class="login-signup">¿No tienes cuenta? <a href="register" id="login-signup-link">Crear cuenta</a></p>
     </div>
   </div>
 

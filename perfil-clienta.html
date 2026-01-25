@@ -11,16 +11,20 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="perfil-clienta.css" />
   <link rel="icon" href="assets/logo-premium.png" type="image/png" />
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="url-handler.js"></script>
+  <script defer src="perfil-clienta.js"></script>
 </head>
 <body>
   <header class="site-header">
     <div class="container header-inner">
-      <a class="logo" href="index.html" aria-label="Inicio">
+      <a class="logo" href="home" aria-label="Inicio">
         <img src="assets/logo-premium.png" alt="Logo" />
       </a>
       <nav class="site-nav" aria-label="Principal">
         <ul>
-          <li><a class="btn-foro" href="salaoscura.html">Sala Oscura</a></li>
+          <li><a class="btn-foro" href="salon">Sala Oscura</a></li>
           <li><button class="nav-cta nav-logout-btn" id="logout-btn">Cerrar Sesión</button></li>
         </ul>
       </nav>
@@ -893,7 +897,7 @@
   <footer class="site-footer">
     <div class="container footer-inner">
       <div>
-        <a class="logo" href="index.html">
+        <a class="logo" href="home">
           <img src="assets/logo-premium.png.png" alt="Logo" />
         </a>
         <p class="footer-copy">© <span id="year"></span> Sala Oscura. Todos los derechos reservados.</p>
