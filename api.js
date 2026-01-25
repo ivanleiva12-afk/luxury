@@ -481,7 +481,25 @@ if (typeof DataService === 'undefined') {
   async saveSalaOscuraThreads(threads) {
     return await this.setConfig('salaOscuraThreads', threads);
   },
+
+  // ═══════════════════════════════════════════════════════════
+  // USUARIOS DEL FORO
+  // ═══════════════════════════════════════════════════════════
   
+  async getForumUsers() {
+    return await this.getConfig('forumUsers') || [];
+  },
+  
+  async saveForumUsers(users) {
+    return await this.setConfig('forumUsers', users);
+  },
+  
+  async addForumUser(user) {
+    const users = await this.getForumUsers();
+    users.push(user);
+    return await this.saveForumUsers(users);
+  },
+
   async getPasswordRecoveryRequests() {
     return await this.getConfig('passwordRecoveryRequests') || [];
   },

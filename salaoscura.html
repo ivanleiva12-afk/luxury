@@ -1660,9 +1660,9 @@
     // ========================================
     // INICIALIZACIÓN
     // ========================================
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('year').textContent = new Date().getFullYear();
-      initTestUsers();
+      await initTestUsers();
       initRatingButtons();
       updateUI();
       
@@ -1838,55 +1838,44 @@
     });
 
     // ========================================
-    // USUARIOS DE PRUEBA
+    // INICIALIZACIÓN DE DATOS DE PRUEBA EN AWS
     // ========================================
-    function initTestUsers() {
-      // Usuario de prueba
-      const usuarios = JSON.parse(localStorage.getItem('salaOscuraUsuarios') || '[]');
-      if (!usuarios.find(u => u.email === 'demo@demo.com')) {
-        usuarios.push({
-          id: 1,
-          nombre: 'DemoUser',
-          email: 'demo@demo.com',
-          edad: 25,
-          password: '123456',
-          fechaRegistro: new Date().toISOString()
-        });
-        localStorage.setItem('salaOscuraUsuarios', JSON.stringify(usuarios));
-      }
+    async function initTestUsers() {
+      try {
+        // Verificar usuario de prueba en AWS
+        const usuarios = await DataService.getForumUsers();
+        if (!usuarios.find(u => u.email === 'demo@demo.com')) {
+          await DataService.addForumUser({
+            id: 1,
+            nombre: 'DemoUser',
+            email: 'demo@demo.com',
+            edad: 25,
+            password: '123456',
+            fechaRegistro: new Date().toISOString()
+          });
+          console.log('✅ Usuario de prueba creado en AWS');
+        }
 
-      // Escort de prueba
-      const escorts = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
-      if (!escorts.find(e => e.email === 'escort@demo.com')) {
-        escorts.push({
-          id: 2,
-          name: 'Luna Bella',
-          displayName: 'Luna Bella',
-          email: 'escort@demo.com',
-          status: 'aprobado',
-          fechaRegistro: new Date().toISOString()
-        });
-        localStorage.setItem('pendingRegistros', JSON.stringify(escorts));
-      }
-
-      // Posts de ejemplo
-      const posts = JSON.parse(localStorage.getItem('salaOscuraPosts') || '[]');
-      if (posts.length === 0) {
-        const ejemploPosts = [
-          {
-            id: Date.now(),
-            autorId: 2,
-            autorNombre: 'Luna Bella',
-            autorTipo: 'escort',
-            categoria: 'general',
-            titulo: '¡Bienvenidos a Sala Negra!',
-            contenido: 'Hola a todos, soy Luna Bella. Encantada de formar parte de esta comunidad. Estoy disponible para citas y me encanta conocer gente nueva. ¡Espero que disfruten el foro!',
-            rating: 0,
-            fecha: new Date().toISOString(),
-            respuestas: [],
-            likes: 5,
-            likedBy: []
-          },
+        // Los escorts ya están en pendingRegistros desde el registro principal
+        
+        // Verificar posts de ejemplo en AWS
+        const posts = await DataService.getSalaOscuraThreads();
+        if (posts.length === 0) {
+          const ejemploPosts = [
+            {
+              id: Date.now(),
+              autorId: 2,
+              autorNombre: 'Demo Escort',
+              autorTipo: 'escort',
+              categoria: 'general',
+              titulo: '¡Bienvenidos a Sala Negra!',
+              contenido: 'Hola a todos, soy parte de este espacio. Encantada de formar parte de esta comunidad. Estoy disponible para citas y me encanta conocer gente nueva. ¡Espero que disfruten el foro!',
+              rating: 0,
+              fecha: new Date().toISOString(),
+              respuestas: [],
+              likes: 5,
+              likedBy: []
+            },
           {
             id: Date.now() + 1,
             autorId: 1,
@@ -1902,9 +1891,13 @@
             likedBy: []
           }
         ];
-        localStorage.setItem('salaOscuraPosts', JSON.stringify(ejemploPosts));
+        await DataService.saveSalaOscuraThreads(ejemploPosts);
+        console.log('✅ Posts de ejemplo creados en AWS');
       }
+    } catch (error) {
+      console.error('Error inicializando datos de prueba:', error);
     }
+  }
 
     // ========================================
     // MODALES
@@ -1978,59 +1971,66 @@
     // ========================================
     // AUTENTICACIÓN
     // ========================================
-    function handleLogin(e) {
+    async function handleLogin(e) {
       e.preventDefault();
       const email = document.getElementById('login-email').value.trim().toLowerCase();
       const password = document.getElementById('login-password').value;
 
-      if (loginType === 'escort') {
-        // Buscar en registros de escorts (pendingRegistros)
-        const escorts = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
-        const escort = escorts.find(e => e.email && e.email.toLowerCase() === email);
-        
-        if (escort) {
-          // Login exitoso como escort
-          currentUser = {
-            id: escort.id,
-            tipo: 'escort',
-            nombre: escort.displayName || escort.artisticName || escort.name || 'Escort',
-            email: escort.email,
-            foto: escort.avatar || null,
-            datos: escort
-          };
-          localStorage.setItem('salaOscuraCurrentUser', JSON.stringify(currentUser));
-          closeModal('login');
-          updateUI();
-          loadPosts();
-          alert('¡Bienvenida! Has iniciado sesión como Escort.');
+      try {
+        if (loginType === 'escort') {
+          // Buscar en registros de escorts (AWS)
+          const escorts = await DataService.getPendingRegistros();
+          const escort = escorts.find(e => e.email && e.email.toLowerCase() === email);
+          
+          if (escort) {
+            // Login exitoso como escort
+            currentUser = {
+              id: escort.id,
+              tipo: 'escort',
+              nombre: escort.displayName || escort.artisticName || escort.name || 'Escort',
+              email: escort.email,
+              foto: escort.avatar || null,
+              datos: escort
+            };
+            // Guardar sesión actual en localStorage (solo la sesión actual)
+            localStorage.setItem('salaOscuraCurrentUser', JSON.stringify(currentUser));
+            closeModal('login');
+            updateUI();
+            loadPosts();
+            alert('¡Bienvenida! Has iniciado sesión como Escort.');
+          } else {
+            alert('No se encontró una cuenta de escort con ese correo. Asegúrate de usar el correo con el que te registraste.');
+          }
         } else {
-          alert('No se encontró una cuenta de escort con ese correo. Asegúrate de usar el correo con el que te registraste.');
+          // Buscar en usuarios del foro (AWS)
+          const usuarios = await DataService.getForumUsers();
+          const usuario = usuarios.find(u => u.email.toLowerCase() === email && u.password === password);
+          
+          if (usuario) {
+            currentUser = {
+              id: usuario.id,
+              tipo: 'usuario',
+              nombre: usuario.nombre,
+              email: usuario.email,
+              edad: usuario.edad
+            };
+            // Guardar sesión actual en localStorage (solo la sesión actual)
+            localStorage.setItem('salaOscuraCurrentUser', JSON.stringify(currentUser));
+            closeModal('login');
+            updateUI();
+            loadPosts();
+            alert('¡Bienvenido! Has iniciado sesión.');
+          } else {
+            alert('Correo o contraseña incorrectos.');
+          }
         }
-      } else {
-        // Buscar en usuarios del foro
-        const usuarios = JSON.parse(localStorage.getItem('salaOscuraUsuarios') || '[]');
-        const usuario = usuarios.find(u => u.email.toLowerCase() === email && u.password === password);
-        
-        if (usuario) {
-          currentUser = {
-            id: usuario.id,
-            tipo: 'usuario',
-            nombre: usuario.nombre,
-            email: usuario.email,
-            edad: usuario.edad
-          };
-          localStorage.setItem('salaOscuraCurrentUser', JSON.stringify(currentUser));
-          closeModal('login');
-          updateUI();
-          loadPosts();
-          alert('¡Bienvenido! Has iniciado sesión.');
-        } else {
-          alert('Correo o contraseña incorrectos.');
-        }
+      } catch (error) {
+        console.error('Error en login:', error);
+        alert('Error de conexión. Por favor intenta nuevamente.');
       }
     }
 
-    function handleRegister(e) {
+    async function handleRegister(e) {
       e.preventDefault();
       const nombre = document.getElementById('reg-nombre').value.trim();
       const email = document.getElementById('reg-email').value.trim().toLowerCase();
@@ -2048,42 +2048,53 @@
         return;
       }
 
-      // Verificar si el email ya existe en usuarios del foro
-      const usuarios = JSON.parse(localStorage.getItem('salaOscuraUsuarios') || '[]');
-      if (usuarios.find(u => u.email.toLowerCase() === email)) {
-        alert('Este correo ya está registrado como usuario del foro.');
-        return;
+      try {
+        // Verificar si el email ya existe en usuarios del foro (AWS)
+        const usuarios = await DataService.getForumUsers();
+        if (usuarios.find(u => u.email.toLowerCase() === email)) {
+          alert('Este correo ya está registrado como usuario del foro.');
+          return;
+        }
+
+        // Verificar si el email ya existe como escort (AWS)
+        const escorts = await DataService.getPendingRegistros();
+        if (escorts.find(e => e.email && e.email.toLowerCase() === email)) {
+          alert('Este correo ya está registrado como escort. Usa la opción "Soy Escort" para iniciar sesión.');
+          return;
+        }
+
+        // Crear nuevo usuario
+        const nuevoUsuario = {
+          id: Date.now(),
+          nombre,
+          email,
+          edad,
+          password,
+          fechaRegistro: new Date().toISOString()
+        };
+
+        // Guardar en AWS
+        await DataService.addForumUser(nuevoUsuario);
+
+        // Login automático
+        currentUser = {
+          id: nuevoUsuario.id,
+          tipo: 'usuario',
+          nombre: nuevoUsuario.nombre,
+          email: nuevoUsuario.email,
+          edad: nuevoUsuario.edad
+        };
+        // Guardar sesión actual en localStorage (solo la sesión actual)
+        localStorage.setItem('salaOscuraCurrentUser', JSON.stringify(currentUser));
+
+        closeModal('register');
+        updateUI();
+        loadPosts();
+        alert('¡Cuenta creada exitosamente! Ya puedes participar en el foro.');
+      } catch (error) {
+        console.error('Error en registro:', error);
+        alert('Error de conexión. Por favor intenta nuevamente.');
       }
-
-      // Verificar si el email ya existe como escort
-      const escorts = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
-      if (escorts.find(e => e.email && e.email.toLowerCase() === email)) {
-        alert('Este correo ya está registrado como escort. Usa la opción "Soy Escort" para iniciar sesión.');
-        return;
-      }
-
-      // Crear nuevo usuario
-      const nuevoUsuario = {
-        id: Date.now(),
-        nombre,
-        email,
-        edad,
-        password,
-        fechaRegistro: new Date().toISOString()
-      };
-
-      usuarios.push(nuevoUsuario);
-      localStorage.setItem('salaOscuraUsuarios', JSON.stringify(usuarios));
-
-      // Login automático
-      currentUser = {
-        id: nuevoUsuario.id,
-        tipo: 'usuario',
-        nombre: nuevoUsuario.nombre,
-        email: nuevoUsuario.email,
-        edad: nuevoUsuario.edad
-      };
-      localStorage.setItem('salaOscuraCurrentUser', JSON.stringify(currentUser));
 
       closeModal('register');
       updateUI();
@@ -2183,7 +2194,7 @@
     // ========================================
     // POSTS
     // ========================================
-    function loadPosts(filter = 'todos') {
+    async function loadPosts(filter = 'todos') {
       currentFilter = filter;
       
       // Si es zona clientas, verificar que sea escort
@@ -2199,14 +2210,16 @@
           return;
         }
       }
-      
-      const posts = JSON.parse(localStorage.getItem('salaOscuraPosts') || '[]');
-      
-      let filteredPosts = posts;
-      if (filter === 'todos') {
-        // REGLA: En vista general, EXCLUIR posts de Zona Clientas (zona aislada)
-        filteredPosts = posts.filter(p => p.categoria !== 'zonaclientas');
-      } else {
+
+      try {
+        // Cargar posts desde AWS
+        const posts = await DataService.getSalaOscuraThreads();
+        
+        let filteredPosts = posts;
+        if (filter === 'todos') {
+          // REGLA: En vista general, EXCLUIR posts de Zona Clientas (zona aislada)
+          filteredPosts = posts.filter(p => p.categoria !== 'zonaclientas');
+        } else {
         filteredPosts = posts.filter(p => p.categoria === filter);
       }
 
@@ -2250,6 +2263,12 @@
         'zonaclientas': '👠 Zona Clientas'
       };
       document.getElementById('section-title').textContent = titles[filter] || 'Publicaciones';
+      
+      } catch (error) {
+        console.error('Error cargando posts:', error);
+        const postsList = document.getElementById('posts-list');
+        postsList.innerHTML = '<div style="text-align: center; color: #888; padding: 40px;">Error cargando posts. Intenta recargar la página.</div>';
+      }
     }
 
     // Renderizar post en modo compacto (lista) o expandido (detalle)
@@ -2553,7 +2572,7 @@
       document.getElementById('post-rating').value = promedio;
     }
 
-    function handleNewPost(e) {
+    async function handleNewPost(e) {
       e.preventDefault();
       
       if (!currentUser) {
@@ -2571,19 +2590,21 @@
         return;
       }
       
-      // Recoger calificaciones detalladas
-      const ratings = {
-        habitacion: parseInt(document.getElementById('rating-habitacion').value) || 0,
-        chica: parseInt(document.getElementById('rating-chica').value) || 0,
-        servicio: parseInt(document.getElementById('rating-servicio').value) || 0,
-        higiene: parseInt(document.getElementById('rating-higiene').value) || 0,
-        trato: parseInt(document.getElementById('rating-trato').value) || 0,
-        precio: parseInt(document.getElementById('rating-precio').value) || 0
-      };
-      
-      const rating = parseFloat(document.getElementById('post-rating').value) || 0;
+      try {
+        // Recoger calificaciones detalladas
+        const ratings = {
+          habitacion: parseInt(document.getElementById('rating-habitacion').value) || 0,
+          chica: parseInt(document.getElementById('rating-chica').value) || 0,
+          servicio: parseInt(document.getElementById('rating-servicio').value) || 0,
+          higiene: parseInt(document.getElementById('rating-higiene').value) || 0,
+          trato: parseInt(document.getElementById('rating-trato').value) || 0,
+          precio: parseInt(document.getElementById('rating-precio').value) || 0
+        };
+        
+        const rating = parseFloat(document.getElementById('post-rating').value) || 0;
 
-      const posts = JSON.parse(localStorage.getItem('salaOscuraPosts') || '[]');
+        // Cargar posts desde AWS
+        const posts = await DataService.getSalaOscuraThreads();
 
       const nuevoPost = {
         id: Date.now(),
@@ -2602,7 +2623,7 @@
       };
 
       posts.unshift(nuevoPost);
-      localStorage.setItem('salaOscuraPosts', JSON.stringify(posts));
+      await DataService.saveSalaOscuraThreads(posts);
 
       // Extraer y guardar menciones
       extractAndSaveMentions(contenido, nuevoPost.id, titulo, currentUser.nombre);
@@ -2624,6 +2645,11 @@
       loadPosts(currentFilter);
       updateCategoryCounts();
       alert('¡Publicación creada exitosamente!');
+      
+      } catch (error) {
+        console.error('Error creando post:', error);
+        alert('Error al crear la publicación. Por favor intenta nuevamente.');
+      }
     }
 
     // ========================================
