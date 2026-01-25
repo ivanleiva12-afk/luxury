@@ -3300,6 +3300,7 @@ async function testCorreo() {
   console.log('Test email config:', config);
 }
 
+// Admin Panel - Luxury1 - Updated 2026-01-25
 // Event listeners para configuración de correo
 document.getElementById('correo-provider')?.addEventListener('change', (e) => {
   updateProviderConfig(e.target.value);
