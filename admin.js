@@ -748,58 +748,84 @@ window.rejectRegistro = async (id) => {
 };
 
 window.confirmInterview = async (id) => {
+  console.log('🔄 Iniciando confirmInterview para ID:', id);
+  
   const reg = registros.find(r => r.id === id);
-  if (reg) {
-    reg.interviewStatus = 'confirmada';
-    await DataService.updateRegistro(reg.id, reg);
-    renderRegistros();
-    
-    // Formatear fecha para el mensaje
-    const fechaEntrevista = reg.interviewDate || 'próximamente';
-    const horaEntrevista = reg.interviewTime || 'a confirmar';
-    
-    // Crear mensaje precargado para WhatsApp
-    const mensaje = `¡Hola ${reg.displayName}! 👋
-
-` +
-      `Somos el equipo de *SalaOscura* ✨
-
-` +
-      `Te confirmamos tu entrevista para el día *${fechaEntrevista}* a las *${horaEntrevista}*.
-
-` +
-      `📍 La entrevista será por videollamada.
-` +
-      `⏰ Por favor, conéctate 5 minutos antes.
-` +
-      `📱 Ten a mano tu documento de identidad.
-
-` +
-      `Si necesitas reagendar, por favor avísanos con anticipación.
-
-` +
-      `¡Te esperamos! 💎`;
-    
-    // Limpiar número de WhatsApp (quitar espacios, guiones, etc.)
-    let phoneNumber = (reg.whatsapp || '').replace(/[\s\-\(\)\.]/g, '');
-    // Si empieza con +, quitarlo para la URL
-    if (phoneNumber.startsWith('+')) {
-      phoneNumber = phoneNumber.substring(1);
-    }
-    // Si no tiene código de país y empieza con 9, asumir Chile (+56)
-    if (phoneNumber.startsWith('9') && phoneNumber.length === 9) {
-      phoneNumber = '56' + phoneNumber;
-    }
-    
-    // Abrir WhatsApp Web con el mensaje precargado
-    const whatsappUrl = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(mensaje)}`;
-    window.open(whatsappUrl, '_blank');
-    
-    alert(`📅 Entrevista confirmada para "${reg.displayName}"\n\n` +
-      `📆 Fecha: ${fechaEntrevista}\n` +
-      `🕐 Hora: ${horaEntrevista}\n\n` +
-      `Se abrió WhatsApp Web para enviar el mensaje de confirmación.`);
+  if (!reg) {
+    console.error('❌ No se encontró registro con ID:', id);
+    alert('❌ Error: No se encontró el registro');
+    return;
   }
+  
+  console.log('✅ Registro encontrado:', reg.displayName);
+  
+  reg.interviewStatus = 'confirmada';
+  await DataService.updateRegistro(reg.id, reg);
+  renderRegistros();
+  
+  console.log('📱 Preparando mensaje de WhatsApp...');
+  
+  // Formatear fecha para el mensaje
+  const fechaEntrevista = reg.interviewDate || 'próximamente';
+  const horaEntrevista = reg.interviewTime || 'a confirmar';
+  
+  // Crear mensaje precargado para WhatsApp
+  const mensaje = `¡Hola ${reg.displayName}! 👋
+
+` +
+    `Somos el equipo de *Sala Negra* ✨
+
+` +
+    `Te confirmamos tu entrevista para el día *${fechaEntrevista}* a las *${horaEntrevista}*.
+
+` +
+    `📍 La entrevista será por videollamada.
+` +
+    `⏰ Por favor, conéctate 5 minutos antes.
+` +
+    `📱 Ten a mano tu documento de identidad.
+
+` +
+    `Si necesitas reagendar, por favor avísanos con anticipación.
+
+` +
+    `¡Te esperamos! 💎`;
+    
+  // Limpiar número de WhatsApp (quitar espacios, guiones, etc.)
+  let phoneNumber = (reg.whatsapp || '').replace(/[\s\-\(\)\.]/g, '');
+  console.log('📞 Número original:', reg.whatsapp);
+  console.log('📞 Número limpio:', phoneNumber);
+  
+  // Si empieza con +, quitarlo para la URL
+  if (phoneNumber.startsWith('+')) {
+    phoneNumber = phoneNumber.substring(1);
+  }
+  // Si no tiene código de país y empieza con 9, asumir Chile (+56)
+  if (phoneNumber.startsWith('9') && phoneNumber.length === 9) {
+    phoneNumber = '56' + phoneNumber;
+  }
+  
+  console.log('📞 Número final para WhatsApp:', phoneNumber);
+  
+  // Abrir WhatsApp Web con el mensaje precargado
+  const whatsappUrl = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(mensaje)}`;
+  console.log('🌐 URL de WhatsApp:', whatsappUrl);
+  
+  // Intentar abrir WhatsApp Web
+  try {
+    window.open(whatsappUrl, '_blank');
+    console.log('✅ WhatsApp Web abierto correctamente');
+  } catch (error) {
+    console.error('❌ Error abriendo WhatsApp Web:', error);
+    alert('❌ Error: No se pudo abrir WhatsApp. Por favor, revisa el bloqueador de pop-ups.');
+    return;
+  }
+  
+  alert(`📅 Entrevista confirmada para "${reg.displayName}"\n\n` +
+    `📆 Fecha: ${fechaEntrevista}\n` +
+    `🕐 Hora: ${horaEntrevista}\n\n` +
+    `Se abrió WhatsApp Web para enviar el mensaje de confirmación.`);
+};
 };
 
 // Add fadeOut animation
