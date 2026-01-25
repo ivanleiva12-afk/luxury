@@ -129,14 +129,13 @@ if (cursor) {
 if (loginBtn) {
   loginBtn.addEventListener('click', async () => {
     console.log('Login button clicked'); // Debug
-    console.log('Password input value:', passwordInput.value);
-    console.log('ADMIN_PASSWORD:', ADMIN_PASSWORD);
+    console.log('Verificando contraseña de admin...');
     
     // Asegurar que la clave esté cargada
     if (!ADMIN_PASSWORD) {
       console.log('Cargando clave admin...');
       await loadAdminPassword();
-      console.log('Clave admin después de cargar:', ADMIN_PASSWORD);
+      console.log('Clave admin cargada correctamente');
     }
     
     if (passwordInput.value === ADMIN_PASSWORD) {

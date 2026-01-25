@@ -427,7 +427,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Intentar guardar
       await DataService.savePendingRegistros(existingRegistros);
       
-      console.log('💾 Registro guardado exitosamente:', registro);
+      // Log censurado sin información sensible
+      const registroForLog = { ...registro };
+      delete registroForLog.password;
+      delete registroForLog.idDocumentData; // También ocultar datos binarios largos
+      delete registroForLog.verificationSelfieData;
+      delete registroForLog.profilePhotosData;
+      
+      console.log('💾 Registro guardado exitosamente (ID:', registro.id, ')');
+      console.log('📋 Datos del registro (censurados):', registroForLog);
       showSuccessMessage();
       
     } catch (error) {

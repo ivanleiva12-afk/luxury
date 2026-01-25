@@ -558,8 +558,7 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
       // Verificar contraseña
       if (pendingUser.password !== password) {
         console.error('❌ Contraseña incorrecta en usuario pendiente');
-        console.log('🔍 Password guardado:', pendingUser.password);
-        console.log('🔍 Password ingresado:', password);
+        console.log('🔍 Verificando contraseña guardada vs ingresada...');
         alert('❌ Contraseña incorrecta. Por favor verifica tus credenciales.');
         return;
       }
