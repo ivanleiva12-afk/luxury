@@ -1000,7 +1000,7 @@ const validateFormData = (data) => {
   return errors;
 };
 
-publicacionForm.addEventListener('submit', (e) => {
+publicacionForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   // Verificar si el perfil está aprobado (no permitir edición)
