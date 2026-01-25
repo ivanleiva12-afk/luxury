@@ -21,10 +21,17 @@ async function loadAdminPassword() {
 async function loadRegistrosFromAPI() {
   try {
     registros = await DataService.getPendingRegistros();
-    console.log('Registros cargados desde AWS:', registros.length);
+    console.log('✅ Registros cargados desde AWS:', registros.length);
   } catch (error) {
-    console.error('Error cargando registros:', error);
+    console.error('❌ Error cargando registros desde AWS:', error);
+    
+    // Verificar si es un error de CORS
+    if (error.message && error.message.includes('Failed to fetch')) {
+      console.warn('🔧 Error de CORS detectado. Verifica la configuración del backend AWS.');
+    }
+    
     registros = [];
+    console.log('⚠️ Continuando con 0 registros por error de conectividad');
   }
 }
 
@@ -3318,8 +3325,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Inicializar datos por defecto si no existen
   await initializeDefaultData();
   
-  // Inicializar planes por defecto si no existen
-  await initializePlansData();
-  
-  console.log('Admin panel inicializado completamente');
+  // Los planes se inicializan automáticamente en loadPlans() si no existen
+  console.log('✅ Admin panel inicializado completamente');
 });
