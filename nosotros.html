@@ -10,10 +10,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
-  <script src="config.js?v=20260125b"></script>
-  <script src="api.js?v=20260125b"></script>
-  <script src="url-handler.js?v=20260125b"></script>
-  <script defer src="app.js?v=20260125b"></script>
+  <script src="config.js?v=20260125d"></script>
+  <script src="api.js?v=20260125d"></script>
+  <script src="url-handler.js?v=20260125d"></script>
+  <script defer src="app.js?v=20260125d"></script>
   <style>
     .nosotros-container { width: var(--container); margin: 0 auto; padding: 60px 32px; }
     .nosotros-header { margin-bottom: 60px; margin-top: 40px; }
@@ -263,14 +263,36 @@
 
   <script>
     // Cargar datos de nosotros
-    function loadNosotros() {
-      const data = JSON.parse(localStorage.getItem('nosotros') || '{"active": true, "nombre": "", "email": "", "telefono": "", "whatsapp": "", "direccion": "", "legal": ""}');
-      
-      if (!data.active) {
-        document.querySelector('.nosotros-section').innerHTML = '<div class="nosotros-container"><div style="text-align: center; padding: 80px 32px;"><h2 style="color: var(--text);">Sección no disponible</h2><p style="color: var(--muted);">Esta sección está temporalmente desactivada.</p></div></div>';
-        return;
-      }
+    async function loadNosotros() {
+      try {
+        const data = await DataService.getNosotrosConfig();
+        
+        if (!data || !data.active) {
+          document.querySelector('.nosotros-section').innerHTML = '<div class="nosotros-container"><div style="text-align: center; padding: 80px 32px;"><h2 style="color: var(--text);">Sección no disponible</h2><p style="color: var(--muted);">Esta sección está temporalmente desactivada.</p></div></div>';
+          return;
+        }
 
+        loadNosotrosData(data);
+      } catch (error) {
+        console.error('Error cargando información de nosotros:', error);
+        // Mostrar datos por defecto si hay error
+        const defaultData = {
+          active: true,
+          nombre: "Sala Negra",
+          email: "contacto@salanegra.com",
+          telefono: "+56 9 1234 5678",
+          whatsapp: "+56 9 1234 5678",
+          direccion: "Santiago, Chile",
+          legal: "Empresa dedicada a servicios de lujo y exclusivos.",
+          info: []
+        };
+        loadNosotrosData(defaultData);
+      }
+    }
+    
+    function loadNosotrosData(data) {
+
+    function loadNosotrosData(data) {
       // Cargar datos de contacto
       const grid = document.getElementById('nosotros-grid');
       const cards = [];

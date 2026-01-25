@@ -243,22 +243,34 @@ if (typeof DataService === 'undefined') {
   
   async getContactMessages() {
     try {
-      return await this.fetchApi('/messages') || [];
+      // Intentar primero el endpoint específico
+      const result = await this.fetchApi('/messages');
+      if (result && Array.isArray(result)) {
+        return result;
+      }
+      // Si falla, usar configuración genérica
+      return await this.getConfig('contactMessages') || [];
     } catch (error) {
       console.error('Error obteniendo mensajes:', error);
-      return [];
+      // Fallback a configuración genérica
+      return await this.getConfig('contactMessages') || [];
     }
   },
   
   async addContactMessage(message) {
     try {
-      return await this.fetchApi('/messages', {
+      // Intentar primero el endpoint específico
+      const result = await this.fetchApi('/messages', {
         method: 'POST',
         body: JSON.stringify(message)
       });
+      return result;
     } catch (error) {
-      console.error('Error enviando mensaje:', error);
-      throw error;
+      console.error('Error enviando mensaje, usando fallback:', error);
+      // Fallback: usar configuración genérica
+      const messages = await this.getConfig('contactMessages') || [];
+      messages.unshift(message);
+      return await this.setConfig('contactMessages', messages);
     }
   },
   

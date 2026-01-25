@@ -9,10 +9,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
-  <script src="config.js?v=20260125c"></script>
-  <script src="api.js?v=20260125c"></script>
-  <script src="url-handler.js?v=20260125c"></script>
-  <script defer src="app.js?v=20260125c"></script>
+  <script src="config.js?v=20260125d"></script>
+  <script src="api.js?v=20260125d"></script>
+  <script src="url-handler.js?v=20260125d"></script>
+  <script defer src="app.js?v=20260125d"></script>
   <script>
     // Debug: verificar carga de scripts
     console.log('🔄 Servicios.html cargando...');
@@ -166,15 +166,43 @@
   </div>
 
   <script>
-    // Cargar datos de servicios y FAQ
-    function loadServicios() {
-      const servicios = JSON.parse(localStorage.getItem('servicios') || '{"active": true, "servicios": [], "faq": []}');
-      
-      if (!servicios.active) {
-        document.querySelector('.servicios-section').innerHTML = '<div class="servicios-container"><div style="text-align: center; padding: 80px 32px;"><h2 style="color: var(--text);">Sección no disponible</h2><p style="color: var(--muted);">Esta sección está temporalmente desactivada.</p></div></div>';
-        return;
+    // Cargar datos de servicios y FAQ desde AWS
+    async function loadServicios() {
+      try {
+        const servicios = await DataService.getServiciosConfig();
+        
+        if (!servicios || !servicios.active) {
+          document.querySelector('.servicios-section').innerHTML = '<div class="servicios-container"><div style="text-align: center; padding: 80px 32px;"><h2 style="color: var(--text);">Sección no disponible</h2><p style="color: var(--muted);">Esta sección está temporalmente desactivada.</p></div></div>';
+          return;
+        }
+        
+        loadServiciosData(servicios);
+      } catch (error) {
+        console.error('Error cargando servicios:', error);
+        // Mostrar servicios por defecto si hay error
+        const defaultServicios = {
+          active: true,
+          servicios: [
+            {
+              nombre: "Luxury & Exclusive",
+              descripcion: "Servicio de exclusividad total sin límites",
+              duracion: "1-2 horas",
+              precio: "149.990",
+              incluye: "Atención personalizada\nExclusividad total\nFlexibilidad de horarios\nAmbiente privado"
+            }
+          ],
+          faq: [
+            {
+              pregunta: "¿Cómo funciona el servicio?",
+              respuesta: "Nuestro servicio se adapta completamente a tus necesidades y preferencias."
+            }
+          ]
+        };
+        loadServiciosData(defaultServicios);
       }
-
+    }
+    
+    function loadServiciosData(servicios) {
       // Cargar servicios
       const grid = document.getElementById('servicios-grid');
       if (servicios.servicios && servicios.servicios.length > 0) {
@@ -212,9 +240,32 @@
 
       // Actualizar año del footer
       document.getElementById('year').textContent = new Date().getFullYear();
+      } catch (error) {
+        console.error('Error cargando servicios:', error);
+        // Mostrar servicios por defecto si hay error
+        const defaultServicios = {
+          active: true,
+          servicios: [
+            {
+              nombre: "Luxury & Exclusive",
+              descripcion: "Servicio de exclusividad total sin límites",
+              duracion: "1-2 horas",
+              precio: "149.990",
+              incluye: "Atención personalizada\nExclusividad total\nFlexibilidad de horarios\nAmbiente privado"
+            }
+          ],
+          faq: [
+            {
+              pregunta: "¿Cómo funciona el servicio?",
+              respuesta: "Nuestro servicio se adapta completamente a tus necesidades y preferencias."
+            }
+          ]
+        };
+        loadServiciosData(defaultServicios);
+      }
     }
-
-    // Cargar servicios cuando se carga la página
+    
+    function loadServiciosData(servicios) {
     document.addEventListener('DOMContentLoaded', loadServicios);
   </script>
 </body>
