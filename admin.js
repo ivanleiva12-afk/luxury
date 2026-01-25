@@ -833,7 +833,6 @@ window.confirmInterview = async (id) => {
     `🕐 Hora: ${horaEntrevista}\n\n` +
     `Se abrió WhatsApp Web para enviar el mensaje de confirmación.`);
 };
-};
 
 // Add fadeOut animation
 if (!document.querySelector('style[data-admin]')) {
