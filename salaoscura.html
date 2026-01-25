@@ -2674,82 +2674,92 @@
       openModal('reply');
     }
 
-    function handleReply(e) {
+    async function handleReply(e) {
       e.preventDefault();
       
       const postId = parseInt(document.getElementById('reply-post-id').value);
       const contenido = document.getElementById('reply-content').value.trim();
 
-      const posts = JSON.parse(localStorage.getItem('salaOscuraPosts') || '[]');
-      const post = posts.find(p => p.id === postId);
+      try {
+        const posts = await DataService.getSalaOscuraThreads();
+        const post = posts.find(p => p.id === postId);
 
-      if (post) {
-        // Verificar si es Zona Clientas y el usuario no es escort
-        if (post.categoria === 'zonaclientas' && currentUser.tipo !== 'escort') {
-          alert('⚠️ Acceso restringido\n\nSolo las Escorts pueden responder en Zona Clientas.');
-          return;
-        }
-        
-        if (!post.respuestas) post.respuestas = [];
-        
-        const replyId = Date.now();
-        post.respuestas.push({
-          id: replyId,
-          autorId: currentUser.id,
-          autorNombre: currentUser.nombre,
-          autorTipo: currentUser.tipo,
-          contenido,
-          fecha: new Date().toISOString()
-        });
+        if (post) {
+          // Verificar si es Zona Clientas y el usuario no es escort
+          if (post.categoria === 'zonaclientas' && currentUser.tipo !== 'escort') {
+            alert('⚠️ Acceso restringido\n\nSolo las Escorts pueden responder en Zona Clientas.');
+            return;
+          }
+          
+          if (!post.respuestas) post.respuestas = [];
+          
+          const replyId = Date.now();
+          post.respuestas.push({
+            id: replyId,
+            autorId: currentUser.id,
+            autorNombre: currentUser.nombre,
+            autorTipo: currentUser.tipo,
+            contenido,
+            fecha: new Date().toISOString()
+          });
 
-        localStorage.setItem('salaOscuraPosts', JSON.stringify(posts));
-        
-        // Extraer y guardar menciones
-        extractAndSaveMentions(contenido, postId, post.titulo, currentUser.nombre);
-        
-        document.getElementById('reply-form').reset();
-        closeModal('reply');
-        
-        // Si estamos viendo un hilo específico, mantenerlo abierto
-        if (currentFilter === 'hilo') {
-          showSpecificPost(postId);
-        } else {
-          loadPosts(currentFilter);
+          await DataService.saveSalaOscuraThreads(posts);
+          
+          // Extraer y guardar menciones
+          extractAndSaveMentions(contenido, postId, post.titulo, currentUser.nombre);
+          
+          document.getElementById('reply-form').reset();
+          closeModal('reply');
+          
+          // Si estamos viendo un hilo específico, mantenerlo abierto
+          if (currentFilter === 'hilo') {
+            showSpecificPost(postId);
+          } else {
+            await loadPosts(currentFilter);
+          }
         }
+      } catch (error) {
+        console.error('Error al responder post:', error);
+        alert('Error de conexión. Por favor intenta nuevamente.');
       }
     }
 
-    function darLike(postId) {
+    async function darLike(postId) {
       if (!currentUser) {
         alert('Debes iniciar sesión para dar like.');
         return;
       }
 
-      const posts = JSON.parse(localStorage.getItem('salaOscuraPosts') || '[]');
-      const post = posts.find(p => p.id === postId);
+      try {
+        const posts = await DataService.getSalaOscuraThreads();
+        const post = posts.find(p => p.id === postId);
 
-      if (post) {
-        // Inicializar array de likes si no existe
-        if (!post.likedBy) {
-          post.likedBy = [];
+        if (post) {
+          // Inicializar array de likes si no existe
+          if (!post.likedBy) {
+            post.likedBy = [];
+          }
+          
+          // Crear identificador único del usuario
+          const userLikeId = `${currentUser.tipo}_${currentUser.id}`;
+          
+          // Verificar si ya dio like
+          if (post.likedBy.includes(userLikeId)) {
+            // Quitar like (toggle)
+            post.likedBy = post.likedBy.filter(id => id !== userLikeId);
+            post.likes = Math.max(0, (post.likes || 1) - 1);
+          } else {
+            // Dar like
+            post.likedBy.push(userLikeId);
+            post.likes = (post.likes || 0) + 1;
+          }
+          
+          await DataService.saveSalaOscuraThreads(posts);
+          await loadPosts(currentFilter);
         }
-        
-        // Crear identificador único del usuario
-        const userLikeId = `${currentUser.tipo}_${currentUser.id}`;
-        
-        // Verificar si ya dio like
-        if (post.likedBy.includes(userLikeId)) {
-          // Quitar like (toggle)
-          post.likedBy = post.likedBy.filter(id => id !== userLikeId);
-          post.likes = Math.max(0, (post.likes || 1) - 1);
-        } else {
-          // Dar like
-          post.likedBy.push(userLikeId);
-          post.likes = (post.likes || 0) + 1;
-        }
-        
-        localStorage.setItem('salaOscuraPosts', JSON.stringify(posts));
-        loadPosts(currentFilter);
+      } catch (error) {
+        console.error('Error al dar like:', error);
+        alert('Error de conexión. Por favor intenta nuevamente.');
       }
     }
 
@@ -2999,22 +3009,31 @@
       }
     }
 
-    // Guardar mención en localStorage
-    function saveMention(userEmail, mentionData) {
-      const mentions = JSON.parse(localStorage.getItem('salaOscuraMentions') || '{}');
-      
-      if (!mentions[userEmail]) {
-        mentions[userEmail] = [];
+    // Guardar mención en AWS
+    async function saveMention(userEmail, mentionData) {
+      try {
+        const mentions = await DataService.getForumMentions();
+        
+        if (!mentions[userEmail]) {
+          mentions[userEmail] = [];
+        }
+        
+        mentions[userEmail].unshift(mentionData);
+        await DataService.saveForumMentions(mentions);
+      } catch (error) {
+        console.error('Error guardando mención:', error);
       }
-      
-      mentions[userEmail].unshift(mentionData);
-      localStorage.setItem('salaOscuraMentions', JSON.stringify(mentions));
     }
 
-    // Obtener menciones de un usuario
-    function getMentionsForUser(email) {
-      const mentions = JSON.parse(localStorage.getItem('salaOscuraMentions') || '{}');
-      return mentions[email] || [];
+    // Obtener menciones de un usuario desde AWS
+    async function getMentionsForUser(email) {
+      try {
+        const mentions = await DataService.getForumMentions();
+        return mentions[email] || [];
+      } catch (error) {
+        console.error('Error obteniendo menciones:', error);
+        return [];
+      }
     }
 
     // Inicializar sistema de menciones al cargar

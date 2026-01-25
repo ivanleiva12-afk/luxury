@@ -500,6 +500,18 @@ if (typeof DataService === 'undefined') {
     return await this.saveForumUsers(users);
   },
 
+  // ═══════════════════════════════════════════════════════════
+  // MENCIONES DEL FORO
+  // ═══════════════════════════════════════════════════════════
+  
+  async getForumMentions() {
+    return await this.getConfig('forumMentions') || {};
+  },
+  
+  async saveForumMentions(mentions) {
+    return await this.setConfig('forumMentions', mentions);
+  },
+
   async getPasswordRecoveryRequests() {
     return await this.getConfig('passwordRecoveryRequests') || [];
   },
