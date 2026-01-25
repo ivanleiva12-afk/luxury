@@ -9,10 +9,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
-  <script src="config.js?v=20260125e"></script>
-  <script src="api.js?v=20260125e"></script>
-  <script src="url-handler.js?v=20260125e"></script>
-  <script defer src="app.js?v=20260125e"></script>
+  <script src="config.js?v=20260125f"></script>
+  <script src="api.js?v=20260125f"></script>
+  <script src="url-handler.js?v=20260125f"></script>
+  <script defer src="app.js?v=20260125f"></script>
   <script>
     // Debug: verificar carga de scripts
     console.log('🔄 Servicios.html cargando...');
@@ -226,107 +226,51 @@
     }
     
     function loadServiciosData(servicios) {
+      if (!servicios || !servicios.servicios) return;
+      
       // Cargar servicios
-      const grid = document.getElementById('servicios-grid');
-      if (servicios.servicios && servicios.servicios.length > 0) {
-        grid.innerHTML = servicios.servicios.map(s => `
+      const serviciosContainer = document.getElementById('servicios-list');
+      if (serviciosContainer) {
+        serviciosContainer.innerHTML = servicios.servicios.map(s => `
           <div class="servicio-card">
-            <h3>${s.nombre}</h3>
-            ${s.duracion ? `<p style="color: var(--gold); font-size: 14px; margin: 8px 0;"><strong>Duración:</strong> ${s.duracion}</p>` : ''}
-            <p>${s.descripcion}</p>
-            ${s.incluye ? `<div style="background: rgba(212,175,55,0.1); padding: 12px; border-radius: 8px; margin: 12px 0; font-size: 14px;"><strong style="color: var(--gold);">Incluye:</strong><ul style="margin: 8px 0 0 20px; padding: 0;">${s.incluye.split('\n').filter(line => line.trim()).map(line => `<li style="color: var(--text); margin: 4px 0;">${line.trim()}</li>`).join('')}</ul></div>` : ''}
+            <div class="servicio-info">
+              <h3 class="servicio-nombre">${s.nombre}</h3>
+              <p class="servicio-descripcion">${s.descripcion}</p>
+              <div class="servicio-detalles">
+                <div class="servicio-duracion">⏱️ ${s.duracion}</div>
+                <div class="servicio-incluye">✨ ${s.incluye ? s.incluye.split('\n').join(' • ') : 'Servicio completo'}</div>
+              </div>
+            </div>
             <div class="servicio-precio">${s.precio}<span class="servicio-precio-small"> CLP</span></div>
           </div>
         `).join('');
       }
 
       // Cargar FAQ
-      const faqList = document.getElementById('faq-list');
-      if (servicios.faq && servicios.faq.length > 0) {
-        faqList.innerHTML = servicios.faq.map((item, idx) => `
-          <div class="faq-item" data-index="${idx}">
-            <div class="faq-question">
-              <h3 class="faq-question-text">${item.pregunta}</h3>
-              <span class="faq-toggle">▼</span>
-            </div>
-            <div class="faq-answer">${item.respuesta}</div>
-          </div>
-        `).join('');
-
-        // Agregar event listeners para abrir/cerrar FAQ
-        document.querySelectorAll('.faq-item').forEach(item => {
-          item.querySelector('.faq-question').addEventListener('click', () => {
-            item.classList.toggle('open');
-          });
-        });
-      }
-
-      // Actualizar año del footer
-      document.getElementById('year').textContent = new Date().getFullYear();
-    } catch (error) {
-      console.error('Error cargando servicios:', error);
-      // Mostrar servicios por defecto si hay error
-      const defaultServicios = {
-        active: true,
-        servicios: [
-          {
-            nombre: "Luxury & Exclusive",
-            descripcion: "Servicio de exclusividad total sin límites",
-            duracion: "1-2 horas",
-            precio: "149.990",
-            incluye: "Atención personalizada\nExclusividad total\nFlexibilidad de horarios\nAmbiente privado"
-          }
-        ],
-        faq: [
-          {
-            pregunta: "¿Cómo funciona el servicio?",
-            respuesta: "Nuestro servicio se adapta completamente a tus necesidades y preferencias."
-          }
-        ]
-      };
-      loadServiciosData(defaultServicios);
-    }
-    }
-    
-    function loadServiciosData(servicios) {
-      if (!servicios || !servicios.servicios) return;
-      
-      // Cargar servicios
-      const serviciosContainer = document.getElementById('servicios-list');
-      serviciosContainer.innerHTML = servicios.servicios.map(s => `
-        <div class="servicio-card">
-          <div class="servicio-info">
-            <h3 class="servicio-nombre">${s.nombre}</h3>
-            <p class="servicio-descripcion">${s.descripcion}</p>
-            <div class="servicio-detalles">
-              <div class="servicio-duracion">⏱️ ${s.duracion}</div>
-              <div class="servicio-incluye">✨ ${s.incluye ? s.incluye.split('\n').join(' • ') : 'Servicio completo'}</div>
-            </div>
-          </div>
-          <div class="servicio-precio">${s.precio}<span class="servicio-precio-small"> CLP</span></div>
-        </div>
-      `).join('');
-
-      // Cargar FAQ
       if (servicios.faq && servicios.faq.length > 0) {
         const faqContainer = document.getElementById('faq-list');
-        faqContainer.innerHTML = servicios.faq.map(f => `
-          <div class="faq-item">
-            <div class="faq-question">${f.pregunta} <span class="faq-toggle">+</span></div>
-            <div class="faq-answer">${f.respuesta}</div>
-          </div>
-        `).join('');
+        if (faqContainer) {
+          faqContainer.innerHTML = servicios.faq.map(f => `
+            <div class="faq-item">
+              <div class="faq-question">${f.pregunta} <span class="faq-toggle">+</span></div>
+              <div class="faq-answer">${f.respuesta}</div>
+            </div>
+          `).join('');
 
-        // Agregar event listeners para abrir/cerrar FAQ
-        document.querySelectorAll('.faq-item').forEach(item => {
-          item.querySelector('.faq-question').addEventListener('click', () => {
-            item.classList.toggle('open');
+          // Agregar event listeners para abrir/cerrar FAQ
+          document.querySelectorAll('.faq-item').forEach(item => {
+            item.querySelector('.faq-question').addEventListener('click', () => {
+              item.classList.toggle('open');
+            });
           });
-        });
+        }
       }
 
       // Actualizar año del footer
-      document.getElementById('year').textContent = new Date().getFullYear();
+      const yearElement = document.getElementById('year');
+      if (yearElement) {
+        yearElement.textContent = new Date().getFullYear();
+      }
     }
 
     // Cargar servicios cuando se carga la página
