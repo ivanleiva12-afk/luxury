@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0; url=../registro.html">
+  <link rel="canonical" href="../registro.html">
+  <title>Redirigiendo...</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      text-align: center; 
+      margin-top: 50px; 
+      background: #0A0A0A; 
+      color: #fff; 
+    }
+    .loader { 
+      border: 3px solid #333; 
+      border-top: 3px solid #D4AF37; 
+      border-radius: 50%; 
+      width: 30px; 
+      height: 30px; 
+      animation: spin 1s linear infinite; 
+      margin: 20px auto; 
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <h1>Redirigiendo al Registro...</h1>
+  <div class="loader"></div>
+  <script>
+    window.location.replace('../registro.html');
+  </script>
+</body>
+</html>
