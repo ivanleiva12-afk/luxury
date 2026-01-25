@@ -1679,7 +1679,7 @@
         loadPostsFilteredByMention(mentionFilterName);
       } else if (postId) {
         // Mostrar post específico
-        showSpecificPost(parseInt(postId));
+        await showSpecificPost(parseInt(postId));
       } else {
         loadPosts();
       }
@@ -1690,24 +1690,25 @@
     // ========================================
     // MOSTRAR POST ESPECÍFICO (desde menciones)
     // ========================================
-    function showSpecificPost(postId) {
-      const posts = JSON.parse(localStorage.getItem('salaOscuraPosts') || '[]');
-      const post = posts.find(p => p.id === postId);
-      
-      if (!post) {
-        alert('El hilo no fue encontrado');
-        loadPosts();
-        return;
-      }
-      
-      // Verificar acceso si es zona clientas (solo escorts pueden ver)
-      if (post.categoria === 'zonaclientas') {
-        if (!currentUser || currentUser.tipo !== 'escort') {
-          alert('⚠️ Acceso restringido\n\nEste hilo es de Zona Clientas, exclusiva para Escorts.');
-          loadPosts('todos');
+    async function showSpecificPost(postId) {
+      try {
+        const posts = await DataService.getSalaOscuraThreads();
+        const post = posts.find(p => p.id === postId);
+        
+        if (!post) {
+          alert('El hilo no fue encontrado');
+          await loadPosts();
           return;
         }
-      }
+        
+        // Verificar acceso si es zona clientas (solo escorts pueden ver)
+        if (post.categoria === 'zonaclientas') {
+          if (!currentUser || currentUser.tipo !== 'escort') {
+            alert('⚠️ Acceso restringido\n\nEste hilo es de Zona Clientas, exclusiva para Escorts.');
+            await loadPosts('todos');
+            return;
+          }
+        }
       
       currentFilter = 'hilo';
       
@@ -1734,7 +1735,12 @@
       
       // Scroll al post
       postsList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (error) {
+      console.error('Error al mostrar post específico:', error);
+      alert('Error de conexión. Por favor intenta nuevamente.');
+      await loadPosts();
     }
+  }
 
     // ========================================
     // FILTRAR POR MENCIONES DE UN PERFIL
@@ -2713,7 +2719,7 @@
           
           // Si estamos viendo un hilo específico, mantenerlo abierto
           if (currentFilter === 'hilo') {
-            showSpecificPost(postId);
+            await showSpecificPost(postId);
           } else {
             await loadPosts(currentFilter);
           }
