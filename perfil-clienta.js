@@ -2,9 +2,9 @@
 // PERFIL CLIENTA - Panel de Control JS
 // ========================================
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // Verificar autenticación
-  let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+  let currentUser = await DataService.getCurrentUser();
   if (!currentUser) {
     window.location.href = 'index.html';
     return;
@@ -14,8 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // VERIFICAR ESTADO ACTUAL DEL REGISTRO
   // (El estado puede haber cambiado desde que se guardó currentUser)
   // ============================================
-  const pendingRegistros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
-  const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+  const pendingRegistros = await DataService.getPendingRegistros() || [];
+  const approvedUsers = await DataService.getApprovedUsers() || [];
   
   // Buscar el estado más reciente del usuario
   let latestUserData = approvedUsers.find(u => u.id === currentUser.id || u.email === currentUser.email);
@@ -39,15 +39,15 @@ document.addEventListener('DOMContentLoaded', () => {
         planExpiry: latestUserData.planExpiry || currentUser.planExpiry,
         lastRenewalDate: latestUserData.lastRenewalDate || currentUser.lastRenewalDate
       };
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      await DataService.setCurrentUser(currentUser);
     }
   }
   
   // ============================================
   // VERIFICAR SI HAY RENOVACIONES APROBADAS
   // ============================================
-  function checkApprovedRenewals() {
-    const requests = JSON.parse(localStorage.getItem('pendingPlanRequests') || '[]');
+  async function checkApprovedRenewals() {
+    const requests = await DataService.getPlanRequests() || [];
     const approvedRenewal = requests.find(r => 
       r.userId === currentUser.id && 
       r.status === 'approved' && 
@@ -59,11 +59,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // Aplicar la renovación al usuario
       currentUser.planExpiry = approvedRenewal.newExpiry;
       currentUser.lastRenewalDate = approvedRenewal.approvedAt;
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      await DataService.setCurrentUser(currentUser);
       
       // Marcar como aplicada
       approvedRenewal.appliedToUser = true;
-      localStorage.setItem('pendingPlanRequests', JSON.stringify(requests));
+      await DataService.savePlanRequests(requests);
       
       // Mostrar notificación
       setTimeout(() => {
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  checkApprovedRenewals();
+  await checkApprovedRenewals();
   
   // Verificar que el perfil esté aprobado
   if (currentUser.status === 'rechazado') {
@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </p>
         <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
           <a href="index.html" style="background: linear-gradient(135deg, #D4AF37, #B8860B); color: #0A0A0A; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">← Volver al Inicio</a>
-          <button onclick="localStorage.removeItem('currentUser'); window.location.href='index.html';" style="background: rgba(255,255,255,0.1); color: #fff; padding: 14px 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; font-weight: 600;">Cerrar Sesión</button>
+          <button onclick="DataService.removeCurrentUser().then(() => window.location.href='index.html');" style="background: rgba(255,255,255,0.1); color: #fff; padding: 14px 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; font-weight: 600;">Cerrar Sesión</button>
         </div>
       </div>
     `;
@@ -128,11 +128,11 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
   }
 
-  // Cargar planes desde localStorage
-  const PLANS = loadPlansConfig();
+  // Cargar planes desde AWS
+  const PLANS = await loadPlansConfig();
   
   // Cargar datos del usuario
-  loadUserData(currentUser);
+  await loadUserData(currentUser);
   
   // Inicializar toggle de visibilidad del perfil
   initProfileVisibilityToggle();
@@ -156,35 +156,35 @@ document.addEventListener('DOMContentLoaded', () => {
     updateVisibilityUI(isVisible);
     
     // Event listener para el toggle
-    toggle.addEventListener('change', () => {
+    toggle.addEventListener('change', async () => {
       const newState = toggle.checked;
       
       // Actualizar currentUser
       currentUser.profileVisible = newState;
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      await DataService.setCurrentUser(currentUser);
       
       // Actualizar en approvedUsers
-      const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+      const approvedUsers = await DataService.getApprovedUsers() || [];
       const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
       if (userIndex !== -1) {
         approvedUsers[userIndex].profileVisible = newState;
-        localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+        await DataService.saveApprovedUsers(approvedUsers);
       }
       
       // Actualizar en approvedProfiles (para los carruseles)
-      const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+      const approvedProfiles = await DataService.getApprovedProfiles() || [];
       const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
       if (profileIndex !== -1) {
         approvedProfiles[profileIndex].profileVisible = newState;
-        localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+        await DataService.saveApprovedProfiles(approvedProfiles);
       }
       
       // Actualizar en pendingRegistros
-      const pendingRegistros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
+      const pendingRegistros = await DataService.getPendingRegistros() || [];
       const regIndex = pendingRegistros.findIndex(r => r.id === currentUser.id);
       if (regIndex !== -1) {
         pendingRegistros[regIndex].profileVisible = newState;
-        localStorage.setItem('pendingRegistros', JSON.stringify(pendingRegistros));
+        await DataService.savePendingRegistros(pendingRegistros);
       }
       
       updateVisibilityUI(newState);
@@ -243,10 +243,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ========== CARGAR CONFIGURACIÓN DE PLANES ==========
-  function loadPlansConfig() {
-    const stored = localStorage.getItem('luxuryPlans');
+  async function loadPlansConfig() {
+    const stored = await DataService.getConfig('luxuryPlans');
     if (stored) {
-      return JSON.parse(stored);
+      return stored;
     }
     // Planes por defecto si no hay configuración
     return {
@@ -257,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Obtener restricciones del plan actual
-  function getPlanRestrictions() {
+  async function getPlanRestrictions() {
     const userPlan = currentUser.selectedPlan || 'premium';
     
     // Usar restricciones del planLimits si están disponibles (desde admin)
@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Si no hay planLimits, obtener configuración directa del admin
-    const plansConfig = JSON.parse(localStorage.getItem('plansConfig') || '{}');
+    const plansConfig = await DataService.getPlansConfig() || {};
     
     const getConfigValue = (plan, key, defaultValue) => {
       return plansConfig[plan]?.[key] ?? defaultValue;
@@ -319,8 +319,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return counter;
   }
 
-  function canPublish(type) {
-    const restrictions = getPlanRestrictions();
+  async function canPublish(type) {
+    const restrictions = await getPlanRestrictions();
     const counter = getDailyCounter(type);
     const maxAllowed = type === 'instantes' ? restrictions.instantes : restrictions.estados;
     
@@ -348,8 +348,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return { allowed: true, remaining: maxAllowed - counter.count };
   }
 
-  function updatePlanInfoTexts() {
-    const restrictions = getPlanRestrictions();
+  async function updatePlanInfoTexts() {
+    const restrictions = await getPlanRestrictions();
     const instantesInfo = document.getElementById('instantes-plan-info');
     const estadosInfo = document.getElementById('estados-plan-info');
     
@@ -376,8 +376,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Actualizar opciones de duración según restricciones del plan
-  function updateDurationOptions() {
-    const restrictions = getPlanRestrictions();
+  async function updateDurationOptions() {
+    const restrictions = await getPlanRestrictions();
     const estadoDuracionSelect = document.getElementById('estado-duracion');
     const duracionPlanInfo = document.getElementById('duracion-plan-info');
     
@@ -445,7 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Llamar al actualizar el DOM
-  updateDurationOptions();
+  await updateDurationOptions();
 
   // ========== TABS ==========
   const tabBtns = document.querySelectorAll('.tab-btn');
@@ -464,15 +464,15 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ========== LOGOUT ==========
-  document.getElementById('logout-btn')?.addEventListener('click', () => {
+  document.getElementById('logout-btn')?.addEventListener('click', async () => {
     if (confirm('¿Segura que quieres cerrar sesión?')) {
-      localStorage.removeItem('currentUser');
+      await DataService.removeCurrentUser();
       window.location.href = 'index.html';
     }
   });
 
   // ========== CARGAR DATOS DEL USUARIO ==========
-  function loadUserData(user) {
+  async function loadUserData(user) {
     // Nombre
     const displayName = document.getElementById('user-display-name');
     if (displayName) displayName.textContent = user.displayName || 'Usuario';
@@ -486,9 +486,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Avatar - usar primera foto de perfil si existe
     const avatar = document.getElementById('user-avatar');
     if (avatar) {
-      // Buscar fotos de perfil del registro
-      const pendingRegistros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
-      const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+      // Buscar fotos de perfil del registro desde AWS
+      const pendingRegistros = await DataService.getPendingRegistros() || [];
+      const approvedUsers = await DataService.getApprovedUsers() || [];
       let userData = approvedUsers.find(u => u.id === user.id || u.email === user.email);
       if (!userData) userData = pendingRegistros.find(r => r.id === user.id || r.email === user.email);
       
@@ -668,9 +668,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ========== STATS ==========
-  function loadStats(user) {
+  async function loadStats(user) {
     // Buscar el perfil en approvedProfiles para obtener stats reales
-    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    const approvedProfiles = await DataService.getApprovedProfiles() || [];
     const userProfile = approvedProfiles.find(p => p.userId === user.id || p.id === `profile-${user.id}`);
     
     let stats;
@@ -686,7 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('stat-contacts').textContent = (stats.recommendations || 0).toLocaleString();
     
     // Contar instantes activos
-    const instantes = JSON.parse(localStorage.getItem(`instantes_${user.id}`) || '[]');
+    const instantes = await DataService.getStories(user.id, 'instante') || [];
     const activeInstantes = instantes.filter(i => {
       const createdAt = new Date(i.createdAt);
       const now = new Date();
@@ -697,12 +697,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Actualizar stats en currentUser también
     currentUser.stats = stats;
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    await DataService.setCurrentUser(currentUser);
   }
 
   // ========== INSTANTES ==========
-  function loadInstantes(userId) {
-    const instantes = JSON.parse(localStorage.getItem(`instantes_${userId}`) || '[]');
+  async function loadInstantes(userId) {
+    const instantes = await DataService.getStories(userId, 'instante') || [];
     const grid = document.getElementById('instantes-grid');
     const activeStatusesList = document.getElementById('active-statuses-list');
     
@@ -747,8 +747,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ========== ESTADOS ==========
-  function loadEstados(userId) {
-    const estados = JSON.parse(localStorage.getItem(`estados_${userId}`) || '[]');
+  async function loadEstados(userId) {
+    const estados = await DataService.getStories(userId, 'estado') || [];
     const estadosList = document.getElementById('estados-list');
     const activeStatusesList = document.getElementById('active-statuses-list');
     
@@ -821,9 +821,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   let selectedInstanteImage = null;
 
-  btnNuevoInstante?.addEventListener('click', () => {
+  btnNuevoInstante?.addEventListener('click', async () => {
     // Verificar límite antes de abrir modal
-    const canPublishResult = canPublish('instantes');
+    const canPublishResult = await canPublish('instantes');
     if (!canPublishResult.allowed) {
       showToast(canPublishResult.reason);
       return;
@@ -859,7 +859,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  formInstante?.addEventListener('submit', (e) => {
+  formInstante?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     if (!selectedInstanteImage) {
@@ -868,13 +868,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Verificar si puede publicar usando el sistema de contador 24h
-    const canPublishResult = canPublish('instantes');
+    const canPublishResult = await canPublish('instantes');
     if (!canPublishResult.allowed) {
       showToast(canPublishResult.reason);
       return;
     }
     
-    const restrictions = getPlanRestrictions();
+    const restrictions = await getPlanRestrictions();
     const caption = document.getElementById('instante-caption').value;
     const instante = {
       id: Date.now().toString(),
@@ -885,32 +885,26 @@ document.addEventListener('DOMContentLoaded', () => {
       duration: restrictions.instantesDuracion // Usar duración del plan
     };
     
-    // Guardar instante
-    const instantes = JSON.parse(localStorage.getItem(`instantes_${currentUser.id}`) || '[]');
-    instantes.unshift(instante);
-    localStorage.setItem(`instantes_${currentUser.id}`, JSON.stringify(instantes));
-    
-    // Incrementar el contador diario (persiste aunque se elimine)
-    const newCounter = incrementDailyCounter('instantes');
-    
-    // Guardar en instantes globales para el carrusel principal
-    const globalInstantes = JSON.parse(localStorage.getItem('globalInstantes') || '[]');
-    globalInstantes.unshift({
+    // Guardar instante en AWS
+    await DataService.addStory({
       ...instante,
+      type: 'instante',
       userName: currentUser.displayName,
       userAvatar: currentUser.avatar || currentUser.profilePhotosData?.[0]?.data,
       whatsapp: currentUser.whatsapp,
       userBadge: currentUser.profileType || 'premium'
     });
-    localStorage.setItem('globalInstantes', JSON.stringify(globalInstantes));
+    
+    // Incrementar el contador diario (persiste aunque se elimine)
+    const newCounter = incrementDailyCounter('instantes');
     
     // Cerrar modal y recargar
     modalInstante.style.display = 'none';
     resetInstanteForm();
-    loadInstantes(currentUser.id);
-    loadStats(currentUser);
-    updatePlanInfoTexts(); // Actualizar contadores en UI
-    loadMediaLimits(); // Actualizar información general
+    await loadInstantes(currentUser.id);
+    await loadStats(currentUser);
+    await updatePlanInfoTexts(); // Actualizar contadores en UI
+    await loadMediaLimits(); // Actualizar información general
     const remaining = restrictions.instantes - newCounter.count;
     showToast(`¡Instante publicado! (${newCounter.count}/${restrictions.instantes} hoy, dura ${restrictions.instantesDuracion}h) - Restantes: ${remaining}`);
   });
@@ -936,14 +930,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const estadoMensaje = document.getElementById('estado-mensaje');
   const estadoChars = document.getElementById('estado-chars');
 
-  btnNuevoEstado?.addEventListener('click', () => {
+  btnNuevoEstado?.addEventListener('click', async () => {
     // Verificar límite antes de abrir modal
-    const canPublishResult = canPublish('estados');
+    const canPublishResult = await canPublish('estados');
     if (!canPublishResult.allowed) {
       showToast(canPublishResult.reason);
       return;
     }
-    updateDurationOptions(); // Actualizar opciones según plan
+    await updateDurationOptions(); // Actualizar opciones según plan
     modalEstado.style.display = 'flex';
   });
 
@@ -963,9 +957,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Quick status buttons - verificar límite antes de abrir modal
   document.querySelectorAll('.status-quick-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       // Verificar si puede publicar usando el sistema de contador 24h
-      const canPublishResult = canPublish('estados');
+      const canPublishResult = await canPublish('estados');
       if (!canPublishResult.allowed) {
         showToast(canPublishResult.reason);
         return;
@@ -973,14 +967,14 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const statusType = btn.dataset.status;
       document.querySelector(`input[name="status-type"][value="${statusType}"]`).checked = true;
-      updateDurationOptions(); // Actualizar opciones según plan
+      await updateDurationOptions(); // Actualizar opciones según plan
       modalEstado.style.display = 'flex';
     });
   });
 
   // Función para actualizar estado de botones de estado rápido
-  function updateQuickStatusButtons() {
-    const canPublishResult = canPublish('estados');
+  async function updateQuickStatusButtons() {
+    const canPublishResult = await canPublish('estados');
     document.querySelectorAll('.status-quick-btn').forEach(btn => {
       btn.classList.toggle('disabled', !canPublishResult.allowed);
       btn.title = !canPublishResult.allowed ? canPublishResult.reason : '';
@@ -990,7 +984,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Ejecutar al cargar
   updateQuickStatusButtons();
 
-  formEstado?.addEventListener('submit', (e) => {
+  formEstado?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const statusType = document.querySelector('input[name="status-type"]:checked').value;
@@ -1006,7 +1000,7 @@ document.addEventListener('DOMContentLoaded', () => {
       userId: currentUser.id
     };
     
-    saveEstado(estado);
+    await saveEstado(estado);
     
     modalEstado.style.display = 'none';
     formEstado.reset();
@@ -1023,15 +1017,15 @@ document.addEventListener('DOMContentLoaded', () => {
     return messages[type] || 'Estado actualizado';
   }
 
-  function saveEstado(estado) {
+  async function saveEstado(estado) {
     // Verificar si puede publicar usando el sistema de contador 24h
-    const canPublishResult = canPublish('estados');
+    const canPublishResult = await canPublish('estados');
     if (!canPublishResult.allowed) {
       showToast(canPublishResult.reason);
       return;
     }
     
-    const restrictions = getPlanRestrictions();
+    const restrictions = await getPlanRestrictions();
     
     // Validar duración máxima
     if (estado.duration > restrictions.estadosDuracion) {
@@ -1039,18 +1033,10 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast(`Duración limitada a ${restrictions.estadosDuracion}h por tu plan ${restrictions.planName}`);
     }
     
-    // Guardar estado
-    const estados = JSON.parse(localStorage.getItem(`estados_${currentUser.id}`) || '[]');
-    estados.unshift(estado);
-    localStorage.setItem(`estados_${currentUser.id}`, JSON.stringify(estados));
-    
-    // Incrementar el contador diario (persiste aunque se elimine)
-    const newCounter = incrementDailyCounter('estados');
-    
-    // Guardar en estados globales para el carrusel principal
-    const globalEstados = JSON.parse(localStorage.getItem('globalEstados') || '[]');
-    globalEstados.unshift({
+    // Guardar estado en AWS
+    await DataService.addStory({
       ...estado,
+      type: 'estado',
       userId: currentUser.id,
       userName: currentUser.displayName,
       userAvatar: currentUser.avatar || currentUser.profilePhotosData?.[0]?.data,
@@ -1059,54 +1045,42 @@ document.addEventListener('DOMContentLoaded', () => {
       commune: currentUser.commune,
       username: currentUser.username
     });
-    localStorage.setItem('globalEstados', JSON.stringify(globalEstados));
     
-    loadEstados(currentUser.id);
-    updatePlanInfoTexts(); // Actualizar contadores en UI
-    updateQuickStatusButtons(); // Actualizar botones de estado rápido
-    loadMediaLimits(); // Actualizar información general
+    // Incrementar el contador diario (persiste aunque se elimine)
+    const newCounter = incrementDailyCounter('estados');
+    
+    await loadEstados(currentUser.id);
+    await updatePlanInfoTexts(); // Actualizar contadores en UI
+    await updateQuickStatusButtons(); // Actualizar botones de estado rápido
+    await loadMediaLimits(); // Actualizar información general
     const remaining = restrictions.estados - newCounter.count;
     showToast(`¡Estado publicado! (${newCounter.count}/${restrictions.estados} hoy) - Restantes: ${remaining}`);
   }
 
   // ========== DELETE FUNCTIONS ==========
-  window.deleteInstante = (id) => {
+  window.deleteInstante = async (id) => {
     if (!confirm('¿Eliminar este instante?')) return;
     
-    let instantes = JSON.parse(localStorage.getItem(`instantes_${currentUser.id}`) || '[]');
-    instantes = instantes.filter(i => i.id !== id);
-    localStorage.setItem(`instantes_${currentUser.id}`, JSON.stringify(instantes));
+    await DataService.deleteStory(id);
     
-    // También eliminar de globales
-    let globalInstantes = JSON.parse(localStorage.getItem('globalInstantes') || '[]');
-    globalInstantes = globalInstantes.filter(i => i.id !== id);
-    localStorage.setItem('globalInstantes', JSON.stringify(globalInstantes));
-    
-    loadInstantes(currentUser.id);
-    loadStats(currentUser);
+    await loadInstantes(currentUser.id);
+    await loadStats(currentUser);
     showToast('Instante eliminado');
   };
 
-  window.deleteEstado = (id) => {
+  window.deleteEstado = async (id) => {
     if (!confirm('¿Eliminar este estado?')) return;
     
-    let estados = JSON.parse(localStorage.getItem(`estados_${currentUser.id}`) || '[]');
-    estados = estados.filter(e => e.id !== id);
-    localStorage.setItem(`estados_${currentUser.id}`, JSON.stringify(estados));
+    await DataService.deleteStory(id);
     
-    // También eliminar de globales
-    let globalEstados = JSON.parse(localStorage.getItem('globalEstados') || '[]');
-    globalEstados = globalEstados.filter(e => e.id !== id);
-    localStorage.setItem('globalEstados', JSON.stringify(globalEstados));
-    
-    loadEstados(currentUser.id);
+    await loadEstados(currentUser.id);
     showToast('Estado eliminado');
   };
 
   // ========== PROFILE EDIT ==========
   const profileEditForm = document.getElementById('profile-edit-form');
   
-  profileEditForm?.addEventListener('submit', (e) => {
+  profileEditForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     // Actualizar datos del usuario
@@ -1122,18 +1096,18 @@ document.addEventListener('DOMContentLoaded', () => {
     currentUser.priceTwoHours = document.getElementById('price-2h').value;
     currentUser.priceOvernight = document.getElementById('price-night').value;
     
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    await DataService.setCurrentUser(currentUser);
     
     // Actualizar también en approvedUsers
-    const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+    const approvedUsers = await DataService.getApprovedUsers() || [];
     const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
     if (userIndex !== -1) {
       approvedUsers[userIndex] = { ...approvedUsers[userIndex], ...currentUser };
-      localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+      await DataService.saveApprovedUsers(approvedUsers);
     }
     
     // Actualizar perfil en carrusel si existe
-    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    const approvedProfiles = await DataService.getApprovedProfiles() || [];
     const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
     if (profileIndex !== -1) {
       approvedProfiles[profileIndex] = {
@@ -1151,7 +1125,7 @@ document.addEventListener('DOMContentLoaded', () => {
           overnight: { CLP: parseInt(currentUser.priceOvernight) || 0, USD: Math.round((parseInt(currentUser.priceOvernight) || 0) / 830) }
         }
       };
-      localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+      await DataService.saveApprovedProfiles(approvedProfiles);
     }
     
     // Actualizar nombre en header
@@ -1168,23 +1142,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ========== GUARDAR TARIFAS ==========
   const saveTarifasBtn = document.getElementById('save-tarifas-btn');
-  saveTarifasBtn?.addEventListener('click', () => {
+  saveTarifasBtn?.addEventListener('click', async () => {
     currentUser.priceHour = document.getElementById('price-1h').value;
     currentUser.priceTwoHours = document.getElementById('price-2h').value;
     currentUser.priceOvernight = document.getElementById('price-night').value;
     
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    await DataService.setCurrentUser(currentUser);
     
     // Actualizar en approvedUsers
-    const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+    const approvedUsers = await DataService.getApprovedUsers() || [];
     const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
     if (userIndex !== -1) {
       approvedUsers[userIndex] = { ...approvedUsers[userIndex], ...currentUser };
-      localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+      await DataService.saveApprovedUsers(approvedUsers);
     }
     
     // Actualizar perfil en carrusel
-    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    const approvedProfiles = await DataService.getApprovedProfiles() || [];
     const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
     if (profileIndex !== -1) {
       const priceHourCLP = parseInt(currentUser.priceHour) || 150000;
@@ -1203,7 +1177,7 @@ document.addEventListener('DOMContentLoaded', () => {
         twoHours: { CLP: priceTwoHoursCLP, USD: Math.round(priceTwoHoursCLP / 830) },
         overnight: { CLP: priceOvernightCLP, USD: Math.round(priceOvernightCLP / 830) }
       };
-      localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+      await DataService.saveApprovedProfiles(approvedProfiles);
     }
     
     showToast('¡Tarifas actualizadas!');
@@ -1211,28 +1185,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ========== GUARDAR SERVICIOS ==========
   const saveServicesBtn = document.getElementById('save-services-btn');
-  saveServicesBtn?.addEventListener('click', () => {
+  saveServicesBtn?.addEventListener('click', async () => {
     const servicesGrid = document.getElementById('services-grid');
     const checkboxes = servicesGrid.querySelectorAll('input[name="services"]:checked');
     const services = Array.from(checkboxes).map(cb => cb.value);
     
     currentUser.services = services;
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    await DataService.setCurrentUser(currentUser);
     
     // Actualizar en approvedUsers
-    const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+    const approvedUsers = await DataService.getApprovedUsers() || [];
     const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
     if (userIndex !== -1) {
       approvedUsers[userIndex] = { ...approvedUsers[userIndex], services };
-      localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+      await DataService.saveApprovedUsers(approvedUsers);
     }
     
     // Actualizar perfil en carrusel
-    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    const approvedProfiles = await DataService.getApprovedProfiles() || [];
     const profileIndex = approvedProfiles.findIndex(p => p.userId === currentUser.id || p.id === `profile-${currentUser.id}`);
     if (profileIndex !== -1) {
       approvedProfiles[profileIndex].services = services;
-      localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+      await DataService.saveApprovedProfiles(approvedProfiles);
     }
     
     showToast('¡Servicios actualizados!');
@@ -1240,7 +1214,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ========== GUARDAR DISPONIBILIDAD ==========
   const saveAvailabilityBtn = document.getElementById('save-availability-btn');
-  saveAvailabilityBtn?.addEventListener('click', () => {
+  saveAvailabilityBtn?.addEventListener('click', async () => {
     const incall = document.getElementById('incall-option')?.checked || false;
     const outcall = document.getElementById('outcall-option')?.checked || false;
     const travel = document.getElementById('travel-option')?.checked || false;
@@ -1249,24 +1223,24 @@ document.addEventListener('DOMContentLoaded', () => {
     currentUser.outcall = outcall;
     currentUser.travel = travel;
     
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    await DataService.setCurrentUser(currentUser);
     
     // Actualizar en approvedUsers
-    const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+    const approvedUsers = await DataService.getApprovedUsers() || [];
     const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
     if (userIndex !== -1) {
       approvedUsers[userIndex] = { ...approvedUsers[userIndex], incall, outcall, travel };
-      localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+      await DataService.saveApprovedUsers(approvedUsers);
     }
     
     // Actualizar perfil en carrusel
-    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    const approvedProfiles = await DataService.getApprovedProfiles() || [];
     const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
     if (profileIndex !== -1) {
       approvedProfiles[profileIndex].incall = incall;
       approvedProfiles[profileIndex].outcall = outcall;
       approvedProfiles[profileIndex].travel = travel;
-      localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+      await DataService.saveApprovedProfiles(approvedProfiles);
     }
     
     showToast('¡Disponibilidad actualizada!');
@@ -1291,10 +1265,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let isDrawing = false;
 
   // Cargar fotos/videos existentes y límites
-  loadMediaLimits();
+  await loadMediaLimits();
   loadSavedMedia();
-  updateDurationOptions(); // Actualizar opciones de duración según el plan
-  updatePlanInfoTexts(); // Actualizar info de plan en instantes y estados
+  await updateDurationOptions(); // Actualizar opciones de duración según el plan
+  await updatePlanInfoTexts(); // Actualizar info de plan en instantes y estados
   
   // Tabs de fotos/videos
   document.querySelectorAll('.media-tab').forEach(tab => {
@@ -1307,8 +1281,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  function loadMediaLimits() {
-    const restrictions = getPlanRestrictions();
+  async function loadMediaLimits() {
+    const restrictions = await getPlanRestrictions();
     const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
     const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
     
@@ -1404,7 +1378,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function loadSavedMedia() {
+  async function loadSavedMedia() {
     let userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
     const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
     
@@ -1421,9 +1395,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Cargar fotos
-    userPhotos.forEach(photo => {
-      addPhotoToGrid(photo.data, photo.id, false, photo.isVerificationPhoto || false);
-    });
+    for (const photo of userPhotos) {
+      await addPhotoToGrid(photo.data, photo.id, false, photo.isVerificationPhoto || false);
+    }
     
     // Cargar videos
     userVideos.forEach(video => {
@@ -1431,8 +1405,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  addPhotoBtn?.addEventListener('click', () => {
-    const restrictions = getPlanRestrictions();
+  addPhotoBtn?.addEventListener('click', async () => {
+    const restrictions = await getPlanRestrictions();
     const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
     
     if (restrictions.photos !== 0 && userPhotos.length >= restrictions.photos) {
@@ -1442,9 +1416,9 @@ document.addEventListener('DOMContentLoaded', () => {
     photoUpload.click();
   });
 
-  addVideoBtn?.addEventListener('click', () => {
+  addVideoBtn?.addEventListener('click', async () => {
     console.log('Click en agregar video');
-    const restrictions = getPlanRestrictions();
+    const restrictions = await getPlanRestrictions();
     const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
     
     if (restrictions.videos === 0) {
@@ -1463,9 +1437,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  photoUpload?.addEventListener('change', (e) => {
+  photoUpload?.addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
-    const restrictions = getPlanRestrictions();
+    const restrictions = await getPlanRestrictions();
     const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
     
     let remaining = restrictions.photos === 0 ? files.length : restrictions.photos - userPhotos.length;
@@ -1491,7 +1465,7 @@ document.addEventListener('DOMContentLoaded', () => {
     photoUpload.value = '';
   });
 
-  videoUpload?.addEventListener('change', (e) => {
+  videoUpload?.addEventListener('change', async (e) => {
     console.log('Video change event', e.target.files);
     const file = e.target.files[0];
     if (!file) {
@@ -1499,7 +1473,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
-    const restrictions = getPlanRestrictions();
+    const restrictions = await getPlanRestrictions();
     const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
     
     if (restrictions.videos !== 0 && userVideos.length >= restrictions.videos) {
@@ -1523,9 +1497,9 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Procesando video...');
     
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       console.log('Video cargado');
-      applyVideoWatermarkAndSave(e.target.result);
+      await applyVideoWatermarkAndSave(e.target.result);
     };
     reader.onerror = (err) => {
       console.error('Error leyendo video:', err);
@@ -1817,7 +1791,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editorCtx.restore();
   }
 
-  saveEditorBtn?.addEventListener('click', () => {
+  saveEditorBtn?.addEventListener('click', async () => {
     if (!editorCanvas) return;
     
     // Asegurar que la marca de agua esté aplicada
@@ -1846,7 +1820,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Sincronizar cambios
-        syncPhotoToProfiles();
+        await syncPhotoToProfiles();
         
         showToast('¡Foto actualizada con éxito!');
       }
@@ -1857,10 +1831,10 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
       
       // Añadir al grid
-      addPhotoToGrid(finalImageData, photoId, true);
+      await addPhotoToGrid(finalImageData, photoId, true);
       
       // Actualizar límites
-      loadMediaLimits();
+      await loadMediaLimits();
       
       showToast('¡Foto guardada con marca de agua!');
     }
@@ -1872,7 +1846,7 @@ document.addEventListener('DOMContentLoaded', () => {
     blurAreas = [];
   });
 
-  function addPhotoToGrid(imageData, photoId, isNew, isVerificationPhoto = false) {
+  async function addPhotoToGrid(imageData, photoId, isNew, isVerificationPhoto = false) {
     const photoSlot = document.createElement('div');
     photoSlot.className = 'photo-slot';
     photoSlot.dataset.id = photoId;
@@ -1908,8 +1882,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Eventos
     const deleteBtn = photoSlot.querySelector('.photo-delete');
     if (deleteBtn) {
-      deleteBtn.addEventListener('click', () => {
-        deletePhoto(photoId);
+      deleteBtn.addEventListener('click', async () => {
+        await deletePhoto(photoId);
         photoSlot.remove();
       });
     }
@@ -1918,25 +1892,25 @@ document.addEventListener('DOMContentLoaded', () => {
       openImageEditor(imageData, photoId);
     });
     
-    photoSlot.querySelector('.photo-profile').addEventListener('click', () => {
-      setAsProfilePhoto(imageData, photoId);
+    photoSlot.querySelector('.photo-profile').addEventListener('click', async () => {
+      await setAsProfilePhoto(imageData, photoId);
     });
     
     photosGrid.insertBefore(photoSlot, addPhotoBtn);
     
     // Si es una foto nueva, sincronizar con approvedUsers y approvedProfiles
     if (isNew) {
-      syncPhotoToProfiles();
+      await syncPhotoToProfiles();
     }
   }
 
-  function setAsProfilePhoto(imageData, photoId) {
+  async function setAsProfilePhoto(imageData, photoId) {
     // Actualizar currentUser
     currentUser.avatar = imageData;
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    await DataService.setCurrentUser(currentUser);
     
     // Actualizar en approvedUsers
-    const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+    const approvedUsers = await DataService.getApprovedUsers() || [];
     const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
     if (userIndex !== -1) {
       approvedUsers[userIndex].avatar = imageData;
@@ -1955,11 +1929,11 @@ document.addEventListener('DOMContentLoaded', () => {
         approvedUsers[userIndex].profilePhotosData = photos;
       }
       
-      localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+      await DataService.saveApprovedUsers(approvedUsers);
     }
     
     // Actualizar en approvedProfiles
-    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    const approvedProfiles = await DataService.getApprovedProfiles() || [];
     const profileIndex = approvedProfiles.findIndex(p => p.userId === currentUser.id || p.id === `profile-${currentUser.id}`);
     if (profileIndex !== -1) {
       approvedProfiles[profileIndex].avatar = imageData;
@@ -1978,7 +1952,7 @@ document.addEventListener('DOMContentLoaded', () => {
         approvedProfiles[profileIndex].profilePhotosData = photos;
       }
       
-      localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+      await DataService.saveApprovedProfiles(approvedProfiles);
     }
     
     // También actualizar photos_userId para mantener consistencia
@@ -2005,28 +1979,28 @@ document.addEventListener('DOMContentLoaded', () => {
         if (child.id !== 'add-photo-btn') child.remove();
       });
       // Recargar fotos
-      loadSavedMedia();
+      await loadSavedMedia();
     }
     
     showToast('✨ Foto de perfil actualizada');
   }
 
-  function syncPhotoToProfiles() {
+  async function syncPhotoToProfiles() {
     const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
     
     // Actualizar en approvedUsers
-    const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+    const approvedUsers = await DataService.getApprovedUsers() || [];
     const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
     if (userIndex !== -1) {
       approvedUsers[userIndex].profilePhotosData = userPhotos.map(photo => ({
         base64: photo.data,
         name: `photo_${photo.id}`
       }));
-      localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+      await DataService.saveApprovedUsers(approvedUsers);
     }
     
     // Actualizar en approvedProfiles
-    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    const approvedProfiles = await DataService.getApprovedProfiles() || [];
     const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
     if (profileIndex !== -1) {
       approvedProfiles[profileIndex].profilePhotosData = userPhotos.map(photo => ({
@@ -2034,23 +2008,23 @@ document.addEventListener('DOMContentLoaded', () => {
         name: `photo_${photo.id}`
       }));
       approvedProfiles[profileIndex].photos = userPhotos.length;
-      localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+      await DataService.saveApprovedProfiles(approvedProfiles);
     }
   }
 
-  function deletePhoto(photoId) {
+  async function deletePhoto(photoId) {
     let userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
     userPhotos = userPhotos.filter(p => p.id !== photoId);
     localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
-    loadMediaLimits();
+    await loadMediaLimits();
     showToast('Foto eliminada');
     
     // Sincronizar con otros perfiles
-    syncPhotoToProfiles();
+    await syncPhotoToProfiles();
   }
 
   // ========== VIDEOS CON MARCA DE AGUA ==========
-  function applyVideoWatermarkAndSave(videoData) {
+  async function applyVideoWatermarkAndSave(videoData) {
     // Para videos, guardamos y aplicamos overlay CSS para la marca de agua
     // (La marca de agua real en video requiere procesamiento del lado del servidor)
     const videoId = Date.now().toString();
@@ -2064,7 +2038,7 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem(`videos_${currentUser.id}`, JSON.stringify(userVideos));
     
     addVideoToGrid(videoData, videoId, true);
-    loadMediaLimits();
+    await loadMediaLimits();
     showToast('¡Video guardado!');
   }
 
@@ -2097,20 +2071,20 @@ document.addEventListener('DOMContentLoaded', () => {
       openVideoModal(videoData);
     });
     
-    videoSlot.querySelector('.video-delete').addEventListener('click', (e) => {
+    videoSlot.querySelector('.video-delete').addEventListener('click', async (e) => {
       e.stopPropagation();
-      deleteVideo(videoId);
+      await deleteVideo(videoId);
       videoSlot.remove();
     });
     
     videosGrid.insertBefore(videoSlot, addVideoBtn);
   }
 
-  function deleteVideo(videoId) {
+  async function deleteVideo(videoId) {
     let userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
     userVideos = userVideos.filter(v => v.id !== videoId);
     localStorage.setItem(`videos_${currentUser.id}`, JSON.stringify(userVideos));
-    loadMediaLimits();
+    await loadMediaLimits();
     showToast('Video eliminado');
   }
 
@@ -2218,8 +2192,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const formRenewPlan = document.getElementById('form-renew-plan');
 
   // Obtener precios de los planes desde localStorage (configurados en admin)
-  function getPlanPrices() {
-    const stored = localStorage.getItem('luxuryPlans');
+  async function getPlanPrices() {
+    const stored = await DataService.getConfig('luxuryPlans');
     if (stored) {
       const plans = JSON.parse(stored);
       return {
@@ -2236,7 +2210,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  function updateRenewPlanInfo() {
+  async function updateRenewPlanInfo() {
     const planNames = {
       'premium': 'Premium Select',
       'vip': 'VIP Black',
@@ -2244,7 +2218,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     // Obtener precios dinámicos desde admin
-    const planPrices = getPlanPrices();
+    const planPrices = await getPlanPrices();
 
     document.getElementById('renew-plan-name').textContent = planNames[currentUser.selectedPlan] || currentUser.selectedPlan;
     
@@ -2321,9 +2295,9 @@ document.addEventListener('DOMContentLoaded', () => {
     updateNewExpiry();
   }
 
-  btnRenew?.addEventListener('click', () => {
+  btnRenew?.addEventListener('click', async () => {
     modalRenewPlan.style.display = 'flex';
-    updateRenewPlanInfo();
+    await updateRenewPlanInfo();
   });
 
   closeModalRenew?.addEventListener('click', () => {
@@ -2351,7 +2325,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       // Calcular fecha de vencimiento actual (misma lógica que updateRenewPlanInfo)
       let currentExpiry;
       if (currentUser.planExpiry) {
@@ -2375,7 +2349,7 @@ document.addEventListener('DOMContentLoaded', () => {
       newExpiry.setDate(newExpiry.getDate() + selectedDuration);
       
       // Obtener precio dinámico
-      const planPrices = getPlanPrices();
+      const planPrices = await getPlanPrices();
       const price = planPrices[currentUser.selectedPlan]?.[selectedDuration] || 0;
 
       const renewalRequest = {
@@ -2397,9 +2371,9 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       // Guardar solicitud pendiente
-      const pendingRequests = JSON.parse(localStorage.getItem('pendingPlanRequests') || '[]');
+      const pendingRequests = await DataService.getPlanRequests() || [];
       pendingRequests.push(renewalRequest);
-      localStorage.setItem('pendingPlanRequests', JSON.stringify(pendingRequests));
+      await DataService.savePlanRequests(pendingRequests);
 
       showNotification('✅ Solicitud de renovación enviada. Te notificaremos cuando sea aprobada.', 'success');
       modalRenewPlan.style.display = 'none';
@@ -2420,8 +2394,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let upgradePlanPrices = {};
 
   // Función para obtener precios de planes
-  function getUpgradePlanPrices() {
-    const luxuryPlans = JSON.parse(localStorage.getItem('luxuryPlans') || '{}');
+  async function getUpgradePlanPrices() {
+    const luxuryPlans = await DataService.getConfig('luxuryPlans') || {};
     return {
       premium: luxuryPlans.premium?.prices || { 7: 12990, 15: 22990, 30: 29990 },
       vip: luxuryPlans.vip?.prices || { 7: 24990, 15: 44990, 30: 59990 },
@@ -2430,8 +2404,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Función para obtener features de los planes
-  function getUpgradePlanFeatures() {
-    const luxuryPlans = JSON.parse(localStorage.getItem('luxuryPlans') || '{}');
+  async function getUpgradePlanFeatures() {
+    const luxuryPlans = await DataService.getConfig('luxuryPlans') || {};
     return {
       premium: luxuryPlans.premium?.features || ['Perfil destacado', 'Hasta 10 fotos', '2 videos', '5 estados por día', 'Badge Premium', 'Instantes destacados'],
       vip: luxuryPlans.vip?.features || ['Todo de Premium', 'Hasta 15 fotos', '4 videos', '7 estados por día', 'Badge VIP exclusivo', 'Prioridad en búsquedas', 'Duración estados 12h'],
@@ -2447,12 +2421,12 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // Función para renderizar las tarjetas de planes
-  function renderUpgradePlanCards() {
+  async function renderUpgradePlanCards() {
     const container = document.getElementById('plans-comparison-container');
     if (!container) return;
 
-    upgradePlanPrices = getUpgradePlanPrices();
-    const planFeatures = getUpgradePlanFeatures();
+    upgradePlanPrices = await getUpgradePlanPrices();
+    const planFeatures = await getUpgradePlanFeatures();
     const planHierarchy = { 'premium': 1, 'vip': 2, 'luxury': 3, 'luxury-exclusive': 3 };
     const currentLevel = planHierarchy[currentUser.selectedPlan] || 1;
 
@@ -2580,8 +2554,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Abrir modal
-  btnUpgrade?.addEventListener('click', () => {
-    renderUpgradePlanCards();
+  btnUpgrade?.addEventListener('click', async () => {
+    await renderUpgradePlanCards();
     
     // Mostrar info del plan actual
     const planConfig = upgradeplanConfig[currentUser.selectedPlan] || 
@@ -2664,7 +2638,7 @@ document.addEventListener('DOMContentLoaded', () => {
     newExpiry.setDate(newExpiry.getDate() + duration);
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const upgradeRequest = {
         id: `upgrade_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         userId: currentUser.id,
@@ -2685,9 +2659,9 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       // Guardar solicitud pendiente
-      const pendingRequests = JSON.parse(localStorage.getItem('pendingPlanRequests') || '[]');
+      const pendingRequests = await DataService.getPlanRequests() || [];
       pendingRequests.push(upgradeRequest);
-      localStorage.setItem('pendingPlanRequests', JSON.stringify(pendingRequests));
+      await DataService.savePlanRequests(pendingRequests);
 
       showNotification('Solicitud de mejora enviada. Pendiente de aprobación', 'success');
       modalUpgradePlan.style.display = 'none';
@@ -2701,12 +2675,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ========== MENCIONES DEL FORO ==========
-  function loadMenciones() {
+  async function loadMenciones() {
     const mencionesList = document.getElementById('menciones-list');
     if (!mencionesList) return;
 
     // Obtener menciones del localStorage (integración con foro Sala Oscura)
-    const allMentions = JSON.parse(localStorage.getItem('salaOscuraMentions') || '{}');
+    const allMentions = await DataService.getConfig('salaOscuraMentions') || {};
     
     // Buscar menciones para el usuario actual por email
     const userEmail = currentUser.email || '';
@@ -2762,11 +2736,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Marcar mención como leída
-  window.markMentionAsRead = function(email, index) {
-    const allMentions = JSON.parse(localStorage.getItem('salaOscuraMentions') || '{}');
+  window.markMentionAsRead = async function(email, index) {
+    const allMentions = await DataService.getConfig('salaOscuraMentions') || {};
     if (allMentions[email] && allMentions[email][index]) {
       allMentions[email][index].read = true;
-      localStorage.setItem('salaOscuraMentions', JSON.stringify(allMentions));
+      await DataService.setConfig('salaOscuraMentions', allMentions);
     }
   };
 
