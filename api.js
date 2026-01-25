@@ -10,7 +10,7 @@
 
 // Proteger contra re-declaración
 if (typeof DataService === 'undefined') {
-  const DataService = {
+  var DataService = {
   
   // ═══════════════════════════════════════════════════════════
   // FUNCIONES AUXILIARES

@@ -9,7 +9,7 @@
 
 // Proteger contra re-declaración
 if (typeof CONFIG === 'undefined') {
-  const CONFIG = {
+  var CONFIG = {
     // ═══════════════════════════════════════════════════════════
     // MODO DE OPERACIÓN
     // ═══════════════════════════════════════════════════════════

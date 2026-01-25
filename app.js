@@ -2966,7 +2966,7 @@ function createSkeletonCard() {
   const nextBtn = document.getElementById('creators-next');
 
   if (!carousel) {
-    console.error('Creators carousel element not found');
+    // Si no existe el carrusel, no ejecutar esta función
     return;
   }
 
@@ -3293,7 +3293,7 @@ function createSkeletonCard() {
   const nextBtn = document.getElementById('premium-select-next');
 
   if (!carousel) {
-    console.error('Premium Select carousel element not found');
+    // Si no existe el carrusel, no ejecutar esta función
     return;
   }
 

@@ -9,8 +9,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
-  <script src="url-handler.js"></script>
-  <script defer src="app.js"></script>
+  <script src="config.js?v=20260125"></script>
+  <script src="api.js?v=20260125"></script>
+  <script src="url-handler.js?v=20260125"></script>
+  <script defer src="app.js?v=20260125"></script>
+  <script>
+    // Debug: verificar carga de scripts
+    console.log('🔄 Servicios.html cargando...');
+    window.addEventListener('load', function() {
+      console.log('✅ Scripts cargados - CONFIG:', typeof CONFIG !== 'undefined' ? '✓' : '✗');
+      console.log('✅ Scripts cargados - DataService:', typeof DataService !== 'undefined' ? '✓' : '✗');
+    });
+  </script>
   <style>
     .servicios-container { width: var(--container); margin: 0 auto; padding: 60px 32px; }
     .servicios-header { margin-bottom: 60px; margin-top: 40px; }
@@ -43,7 +53,7 @@
   <header class="site-header">
     <div class="container header-inner">
       <a class="logo" href="home" aria-label="Inicio">
-        <img src="assets/logo-premium.png.png" alt="Logo" />
+        <img src="assets/logo-premium.png" alt="Logo" />
       </a>
       <nav class="site-nav" aria-label="Principal">
         <ul>
