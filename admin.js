@@ -129,13 +129,18 @@ if (cursor) {
 if (loginBtn) {
   loginBtn.addEventListener('click', async () => {
     console.log('Login button clicked'); // Debug
+    console.log('Password input value:', passwordInput.value);
+    console.log('ADMIN_PASSWORD:', ADMIN_PASSWORD);
     
     // Asegurar que la clave esté cargada
     if (!ADMIN_PASSWORD) {
+      console.log('Cargando clave admin...');
       await loadAdminPassword();
+      console.log('Clave admin después de cargar:', ADMIN_PASSWORD);
     }
     
     if (passwordInput.value === ADMIN_PASSWORD) {
+      console.log('Login exitoso');
       isLoggedIn = true;
       loginScreen.style.display = 'none';
       adminContent.style.display = 'block';
@@ -3265,6 +3270,24 @@ document.getElementById('save-correo-btn')?.addEventListener('click', saveCorreo
 document.getElementById('test-correo-btn')?.addEventListener('click', testCorreo);
 
 // Cargar configuración de correo al cargar la página
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('Admin panel inicializando...');
+  
+  // Cargar configuración de correo
   loadCorreoConfig();
+  
+  // Cargar clave de admin desde AWS
+  await loadAdminPassword();
+  console.log('Clave admin cargada:', ADMIN_PASSWORD ? 'Sí' : 'No');
+  
+  // Cargar registros desde AWS
+  await loadRegistrosFromAPI();
+  
+  // Inicializar datos por defecto si no existen
+  await initializeDefaultData();
+  
+  // Inicializar planes por defecto si no existen
+  await initializePlansData();
+  
+  console.log('Admin panel inicializado completamente');
 });
