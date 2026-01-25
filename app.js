@@ -9,9 +9,10 @@ if (navToggle && siteNav) {
 }
 
 // ========== USUARIO DE PRUEBA (DEMO) ==========
-(function createDemoUser() {
+// El usuario demo se crea automáticamente en AWS si no existe
+(async function createDemoUser() {
   const demoEmail = 'demo@salaoscura.com';
-  const pendingRegistros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
+  const pendingRegistros = await DataService.getPendingRegistros() || [];
   
   // Solo crear si no existe
   if (!pendingRegistros.find(u => u.email === demoEmail)) {
@@ -38,9 +39,8 @@ if (navToggle && siteNav) {
       stats: { views: 245, likes: 89, contacts: 34 }
     };
     
-    pendingRegistros.push(demoUser);
-    localStorage.setItem('pendingRegistros', JSON.stringify(pendingRegistros));
-    console.log('✅ Usuario demo creado: demo@salaoscura.com / demo123');
+    await DataService.addPendingRegistro(demoUser);
+    console.log('✅ Usuario demo creado en AWS: demo@salaoscura.com / demo123');
   }
 })();
 
@@ -65,9 +65,9 @@ const yearEl = document.getElementById('year');
 if (yearEl) yearEl.textContent = new Date().getFullYear();
 
 // ========== CONTROL DE VISIBILIDAD DE BOTONES DEL FOOTER ==========
-function updateFooterLinks() {
-  const servicios = JSON.parse(localStorage.getItem('servicios') || '{"active": false}');
-  const nosotros = JSON.parse(localStorage.getItem('nosotros') || '{"active": false}');
+async function updateFooterLinks() {
+  const servicios = await DataService.getServiciosConfig() || { active: false };
+  const nosotros = await DataService.getNosotrosConfig() || { active: false };
   
   const serviciosLink = document.getElementById('footer-servicios-link');
   const nosotrosLink = document.getElementById('footer-nosotros-link');
@@ -262,8 +262,8 @@ function matchWeightRange(weight, range) {
 }
 
 // Actualizar navegación según estado de login
-function updateNavigation() {
-  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+async function updateNavigation() {
+  const currentUser = await DataService.getCurrentUser();
   const navCta = document.querySelector('.nav-cta');
   const navUl = document.querySelector('.site-nav ul');
   
@@ -287,9 +287,9 @@ function updateNavigation() {
     if (!existingLogout) {
       const logoutItem = document.createElement('li');
       logoutItem.innerHTML = `<a class="nav-cta nav-logout" href="#" style="background: linear-gradient(135deg, #DC2626, #B91C1C); border: none;">Cerrar Sesión</a>`;
-      logoutItem.querySelector('.nav-logout').addEventListener('click', (e) => {
+      logoutItem.querySelector('.nav-logout').addEventListener('click', async (e) => {
         e.preventDefault();
-        localStorage.removeItem('currentUser');
+        await DataService.removeCurrentUser();
         // Redirigir a la página principal
         window.location.href = 'index.html';
       });
@@ -514,15 +514,15 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
     closeModal();
   });
 
-  form?.addEventListener('submit', (e) => {
+  form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
 
     console.log('🔐 Intento de login para:', email);
 
-    // Primero buscar en usuarios aprobados
-    const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+    // Primero buscar en usuarios aprobados desde AWS
+    const approvedUsers = await DataService.getApprovedUsers() || [];
     let approvedUser = approvedUsers.find(u => u.email === email && u.status === 'aprobado');
     
     console.log('👥 Usuarios aprobados encontrados:', approvedUsers.length);
@@ -536,16 +536,16 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
         alert('❌ Contraseña incorrecta. Por favor verifica tus credenciales.');
         return;
       }
-      // Usuario aprobado - permitir login
-      localStorage.setItem('currentUser', JSON.stringify(approvedUser));
+      // Usuario aprobado - permitir login (currentUser en localStorage temporal)
+      await DataService.setCurrentUser(approvedUser);
       closeModal();
       form.reset();
       window.location.href = 'perfil-clienta.html';
       return;
     }
     
-    // Buscar en registros pendientes
-    const pendingRegistros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
+    // Buscar en registros pendientes desde AWS
+    const pendingRegistros = await DataService.getPendingRegistros() || [];
     let pendingUser = pendingRegistros.find(u => u.email === email);
     
     console.log('⏳ Registros pendientes encontrados:', pendingRegistros.length);
@@ -587,7 +587,7 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
           stats: pendingUser.stats || { views: 0, likes: 0, contacts: 0 }
         };
         
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        await DataService.setCurrentUser(currentUser);
         closeModal();
         form.reset();
         window.location.href = 'perfil-clienta.html';
@@ -605,7 +605,7 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
     console.log('🔍 Verificando publicaciones creadas...');
     
     // Buscar en publicaciones creadas (para compatibilidad con perfiles antiguos)
-    const publicacionesCreadas = JSON.parse(localStorage.getItem('publicacionesCreadas') || '[]');
+    const publicacionesCreadas = await DataService.getProfiles() || [];
     let user = publicacionesCreadas.find(u => u.email === email);
     
     if (user) {
@@ -635,7 +635,7 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
         stats: user.stats || { views: 0, likes: 0, contacts: 0 }
       };
       
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      await DataService.setCurrentUser(currentUser);
       
       closeModal();
       form.reset();
@@ -700,9 +700,9 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
     
     const email = document.getElementById('recovery-email').value;
     
-    // Buscar usuario con ese email
-    const pendingRegistros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
-    const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+    // Buscar usuario con ese email desde AWS
+    const pendingRegistros = await DataService.getPendingRegistros() || [];
+    const approvedUsers = await DataService.getApprovedUsers() || [];
     
     let user = approvedUsers.find(u => u.email === email);
     if (!user) user = pendingRegistros.find(u => u.email === email);
@@ -716,8 +716,8 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
     const recoveryToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     const expiry = Date.now() + (24 * 60 * 60 * 1000); // 24 horas
     
-    // Guardar token en localStorage
-    const recoveryRequests = JSON.parse(localStorage.getItem('passwordRecoveryRequests') || '[]');
+    // Guardar token en AWS
+    const recoveryRequests = await DataService.getPasswordRecoveryRequests() || [];
     recoveryRequests.push({
       email: email,
       token: recoveryToken,
@@ -725,13 +725,13 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
       used: false,
       createdAt: new Date().toISOString()
     });
-    localStorage.setItem('passwordRecoveryRequests', JSON.stringify(recoveryRequests));
+    await DataService.savePasswordRecoveryRequests(recoveryRequests);
     
     // URL de recuperación
     const recoveryUrl = `${window.location.origin}/reset-password.html?token=${recoveryToken}&email=${encodeURIComponent(email)}`;
     
-    // Intentar enviar email usando la configuración del admin
-    const emailConfig = JSON.parse(localStorage.getItem('emailConfig') || '{}');
+    // Intentar enviar email usando AWS SES
+    const emailConfig = await DataService.getEmailConfig() || {};
     
     if (emailConfig.active && emailConfig.provider) {
       // Simular envío de email (en producción usarías un backend)
@@ -753,25 +753,25 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
 // SISTEMA DE LIKES Y ESTADÍSTICAS (Definir antes del modal)
 // ============================================
 
-// Cargar perfiles aprobados desde localStorage (integración con admin)
-const loadApprovedProfiles = () => {
-  const approved = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+// Cargar perfiles aprobados desde AWS (integración con admin)
+const loadApprovedProfiles = async () => {
+  const approved = await DataService.getApprovedProfiles() || [];
   return approved.length > 0 ? approved : null;
 };
 
-// Guardar perfil actualizado en localStorage
-const saveProfileStats = (profileId, stats) => {
-  let profiles = JSON.parse(localStorage.getItem('publicacionesCreadas') || '[]');
+// Guardar perfil actualizado en AWS
+const saveProfileStats = async (profileId, stats) => {
+  let profiles = await DataService.getProfiles() || [];
   const index = profiles.findIndex(p => p.id === profileId);
   
   if (index !== -1) {
     profiles[index].stats = { ...profiles[index].stats, ...stats };
-    localStorage.setItem('publicacionesCreadas', JSON.stringify(profiles));
+    await DataService.saveProfiles(profiles);
     
     // También actualizar en aprobados si está aprobado
     if (profiles[index].status === 'aprobado') {
       const aprobados = profiles.filter(p => p.status === 'aprobado');
-      localStorage.setItem('publicacionesAprobadas', JSON.stringify(aprobados));
+      await DataService.saveApprovedProfiles(aprobados);
     }
   }
 };
@@ -805,8 +805,8 @@ const getProfileTypesWithPromotion = (profile) => {
 
 // ========== SISTEMA DE RECOMENDACIONES (Menciones en Sala Oscura) ==========
 // Cuenta cuántas veces un perfil fue mencionado en Sala Oscura
-const getMentionCount = (profileName, profileEmail) => {
-  const posts = JSON.parse(localStorage.getItem('salaOscuraPosts') || '[]');
+const getMentionCount = async (profileName, profileEmail) => {
+  const posts = await DataService.getForoPosts() || [];
   const searchName = profileName?.toLowerCase() || '';
   const searchEmail = profileEmail?.toLowerCase() || '';
   let count = 0;
@@ -838,48 +838,48 @@ const getMentionCount = (profileName, profileEmail) => {
 };
 
 // Abre Sala Oscura filtrada por los hilos donde está mencionada la persona
-window.openMentionedThreads = (profileName, profileEmail) => {
-  const { postIds } = getMentionCount(profileName, profileEmail);
+window.openMentionedThreads = async (profileName, profileEmail) => {
+  const { postIds } = await getMentionCount(profileName, profileEmail);
   
   if (postIds.length === 0) {
     alert('No se encontraron menciones para este perfil.');
     return;
   }
   
-  // Guardar los IDs de posts a mostrar y redirigir a Sala Oscura
+  // Guardar los IDs de posts a mostrar (temporal en localStorage para navegación)
   localStorage.setItem('filterMentionPostIds', JSON.stringify(postIds));
   localStorage.setItem('filterMentionName', profileName);
   window.location.href = `salaoscura.html?filter=mentions&name=${encodeURIComponent(profileName)}`;
 };
 
-// Obtener likes del usuario (guardados en localStorage)
-const getUserLikes = () => {
-  return JSON.parse(localStorage.getItem('userLikes') || '[]');
+// Obtener likes del usuario (guardados en AWS)
+const getUserLikes = async () => {
+  return await DataService.getUserLikes() || [];
 };
 
 // Guardar like del usuario
-const saveUserLike = (profileId) => {
-  const likes = getUserLikes();
+const saveUserLike = async (profileId) => {
+  const likes = await getUserLikes();
   if (!likes.includes(profileId)) {
     likes.push(profileId);
-    localStorage.setItem('userLikes', JSON.stringify(likes));
+    await DataService.saveUserLikes(likes);
   }
 };
 
 // Quitar like del usuario
-const removeUserLike = (profileId) => {
-  let likes = getUserLikes();
+const removeUserLike = async (profileId) => {
+  let likes = await getUserLikes();
   likes = likes.filter(id => id !== profileId);
-  localStorage.setItem('userLikes', JSON.stringify(likes));
+  await DataService.saveUserLikes(likes);
 };
 
 // Toggle like en perfil
-window.toggleLike = (profileId) => {
-  const userLikesData = getUserLikes();
+window.toggleLike = async (profileId) => {
+  const userLikesData = await getUserLikes();
   const hasLiked = userLikesData.includes(profileId);
   
   // Buscar el perfil en approvedProfiles
-  const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+  const approvedProfiles = await DataService.getApprovedProfiles() || [];
   const profileIndex = approvedProfiles.findIndex(p => p.id === profileId);
   
   if (profileIndex !== -1) {
@@ -892,17 +892,17 @@ window.toggleLike = (profileId) => {
     
     if (hasLiked) {
       // Quitar like
-      removeUserLike(profileId);
+      await removeUserLike(profileId);
       profile.stats.likes = Math.max(0, (profile.stats.likes || 0) - 1);
     } else {
       // Agregar like
-      saveUserLike(profileId);
+      await saveUserLike(profileId);
       profile.stats.likes = (profile.stats.likes || 0) + 1;
     }
     
-    // Guardar en approvedProfiles
+    // Guardar en AWS approvedProfiles
     approvedProfiles[profileIndex] = profile;
-    localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+    await DataService.saveApprovedProfiles(approvedProfiles);
     console.log('✅ Like actualizado:', profile.displayName, 'likes:', profile.stats.likes);
     
     // Actualizar contador en UI (dentro del modal)
@@ -920,9 +920,9 @@ window.toggleLike = (profileId) => {
 };
 
 // Incrementar vistas cuando se abre un perfil
-window.incrementViews = (profileId) => {
+window.incrementViews = async (profileId) => {
   // Buscar en approvedProfiles
-  const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+  const approvedProfiles = await DataService.getApprovedProfiles() || [];
   const profileIndex = approvedProfiles.findIndex(p => p.id === profileId);
   
   if (profileIndex !== -1) {
@@ -930,14 +930,14 @@ window.incrementViews = (profileId) => {
     if (!profile.stats) profile.stats = { likes: 0, views: 0, recommendations: 0, experiences: 0 };
     profile.stats.views = (profile.stats.views || 0) + 1;
     
-    // Guardar cambios en localStorage
+    // Guardar cambios en AWS
     approvedProfiles[profileIndex] = profile;
-    localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+    await DataService.saveApprovedProfiles(approvedProfiles);
     return;
   }
   
   // Si no está en approvedProfiles, buscar en publicaciones creadas aprobadas
-  const publicacionesCreadas = JSON.parse(localStorage.getItem('publicacionesCreadas') || '[]');
+  const publicacionesCreadas = await DataService.getProfiles() || [];
   const pubIndex = publicacionesCreadas.findIndex(p => p.status === 'aprobado' && (p.id === profileId || p.id === parseInt(profileId)));
   
   if (pubIndex !== -1) {
@@ -945,22 +945,22 @@ window.incrementViews = (profileId) => {
     profile.stats = profile.stats || {};
     profile.stats.views = (profile.stats.views || 0) + 1;
     
-    // Guardar cambios en localStorage
-    localStorage.setItem('publicacionesCreadas', JSON.stringify(publicacionesCreadas));
+    // Guardar cambios en AWS
+    await DataService.saveProfiles(publicacionesCreadas);
   }
 };
 
 // Compartir perfil (incrementa recomendaciones)
-window.shareProfile = (profileId) => {
+window.shareProfile = async (profileId) => {
   let profile = null;
   
   // Buscar en approvedProfiles
-  const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+  const approvedProfiles = await DataService.getApprovedProfiles() || [];
   profile = approvedProfiles.find(p => p.id === profileId);
   
   // Si no está en approvedProfiles, buscar en publicaciones creadas aprobadas
   if (!profile) {
-    const publicacionesCreadas = JSON.parse(localStorage.getItem('publicacionesCreadas') || '[]');
+    const publicacionesCreadas = await DataService.getProfiles() || [];
     profile = publicacionesCreadas.find(p => p.status === 'aprobado' && (p.id === profileId || p.id === parseInt(profileId)));
   }
   
@@ -1073,14 +1073,14 @@ window.shareProfile = (profileId) => {
 };
 
 // Funciones de compartir por red social
-window.shareViaWhatsApp = (profileId) => {
+window.shareViaWhatsApp = async (profileId) => {
   // Buscar en approvedProfiles
-  const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+  const approvedProfiles = await DataService.getApprovedProfiles() || [];
   let profile = approvedProfiles.find(p => p.id === profileId);
   
   // Si no está en approvedProfiles, buscar en publicaciones creadas aprobadas
   if (!profile) {
-    const publicacionesCreadas = JSON.parse(localStorage.getItem('publicacionesCreadas') || '[]');
+    const publicacionesCreadas = await DataService.getProfiles() || [];
     profile = publicacionesCreadas.find(p => p.status === 'aprobado' && (p.id === profileId || p.id === parseInt(profileId)));
   }
   
@@ -1094,14 +1094,14 @@ window.shareViaWhatsApp = (profileId) => {
   document.getElementById('share-menu')?.remove();
 };
 
-window.shareViaTelegram = (profileId) => {
+window.shareViaTelegram = async (profileId) => {
   // Buscar en approvedProfiles
-  const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+  const approvedProfiles = await DataService.getApprovedProfiles() || [];
   let profile = approvedProfiles.find(p => p.id === profileId);
   
   // Si no está en approvedProfiles, buscar en publicaciones creadas aprobadas
   if (!profile) {
-    const publicacionesCreadas = JSON.parse(localStorage.getItem('publicacionesCreadas') || '[]');
+    const publicacionesCreadas = await DataService.getProfiles() || [];
     profile = publicacionesCreadas.find(p => p.status === 'aprobado' && (p.id === profileId || p.id === parseInt(profileId)));
   }
   
@@ -1122,14 +1122,14 @@ window.shareViaFacebook = (profileId) => {
   document.getElementById('share-menu')?.remove();
 };
 
-window.shareViaTwitter = (profileId) => {
+window.shareViaTwitter = async (profileId) => {
   // Buscar en approvedProfiles
-  const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+  const approvedProfiles = await DataService.getApprovedProfiles() || [];
   let profile = approvedProfiles.find(p => p.id === profileId);
   
   // Si no está en approvedProfiles, buscar en publicaciones creadas aprobadas
   if (!profile) {
-    const publicacionesCreadas = JSON.parse(localStorage.getItem('publicacionesCreadas') || '[]');
+    const publicacionesCreadas = await DataService.getProfiles() || [];
     profile = publicacionesCreadas.find(p => p.status === 'aprobado' && (p.id === profileId || p.id === parseInt(profileId)));
   }
   
@@ -1143,14 +1143,14 @@ window.shareViaTwitter = (profileId) => {
   document.getElementById('share-menu')?.remove();
 };
 
-window.shareViaEmail = (profileId) => {
+window.shareViaEmail = async (profileId) => {
   // Buscar en approvedProfiles
-  const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+  const approvedProfiles = await DataService.getApprovedProfiles() || [];
   let profile = approvedProfiles.find(p => p.id === profileId);
   
   // Si no está en approvedProfiles, buscar en publicaciones creadas aprobadas
   if (!profile) {
-    const publicacionesCreadas = JSON.parse(localStorage.getItem('publicacionesCreadas') || '[]');
+    const publicacionesCreadas = await DataService.getProfiles() || [];
     profile = publicacionesCreadas.find(p => p.status === 'aprobado' && (p.id === profileId || p.id === parseInt(profileId)));
   }
   
@@ -1165,14 +1165,14 @@ window.shareViaEmail = (profileId) => {
   setTimeout(() => document.getElementById('share-menu')?.remove(), 500);
 };
 
-window.copyProfileLink = (profileId) => {
+window.copyProfileLink = async (profileId) => {
   // Buscar en approvedProfiles
-  const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+  const approvedProfiles = await DataService.getApprovedProfiles() || [];
   let profile = approvedProfiles.find(p => p.id === profileId);
   
   // Si no está en approvedProfiles, buscar en publicaciones creadas aprobadas
   if (!profile) {
-    const publicacionesCreadas = JSON.parse(localStorage.getItem('publicacionesCreadas') || '[]');
+    const publicacionesCreadas = await DataService.getProfiles() || [];
     profile = publicacionesCreadas.find(p => p.status === 'aprobado' && (p.id === profileId || p.id === parseInt(profileId)));
   }
   
@@ -1198,9 +1198,9 @@ window.copyProfileLink = (profileId) => {
 };
 
 // Función auxiliar para incrementar recomendaciones
-const incrementRecommendation = (profileId) => {
+const incrementRecommendation = async (profileId) => {
   // Buscar en approvedProfiles
-  const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+  const approvedProfiles = await DataService.getApprovedProfiles() || [];
   const profileIndex = approvedProfiles.findIndex(p => p.id === profileId);
   
   if (profileIndex !== -1) {
@@ -1208,9 +1208,9 @@ const incrementRecommendation = (profileId) => {
     if (!profile.stats) profile.stats = { likes: 0, views: 0, recommendations: 0, experiences: 0 };
     profile.stats.recommendations = (profile.stats.recommendations || 0) + 1;
     
-    // Guardar en approvedProfiles
+    // Guardar en AWS approvedProfiles
     approvedProfiles[profileIndex] = profile;
-    localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+    await DataService.saveApprovedProfiles(approvedProfiles);
     
     // Actualizar UI si existe
     const recommendationsCount = document.querySelector('.recommendations-count');
@@ -1221,7 +1221,7 @@ const incrementRecommendation = (profileId) => {
   }
   
   // Si no está en approvedProfiles, buscar en publicaciones creadas aprobadas
-  const publicacionesCreadas = JSON.parse(localStorage.getItem('publicacionesCreadas') || '[]');
+  const publicacionesCreadas = await DataService.getProfiles() || [];
   const pubIndex = publicacionesCreadas.findIndex(p => p.status === 'aprobado' && (p.id === profileId || p.id === parseInt(profileId)));
   
   if (pubIndex !== -1) {
@@ -1229,8 +1229,8 @@ const incrementRecommendation = (profileId) => {
     profile.stats = profile.stats || {};
     profile.stats.recommendations = (profile.stats.recommendations || 0) + 1;
     
-    // Guardar cambios en localStorage
-    localStorage.setItem('publicacionesCreadas', JSON.stringify(publicacionesCreadas));
+    // Guardar cambios en AWS
+    await DataService.saveProfiles(publicacionesCreadas);
     
     const recCount = document.querySelector('.recommendations-count');
     if (recCount) {
@@ -1240,9 +1240,9 @@ const incrementRecommendation = (profileId) => {
 };
 
 // WhatsApp directo
-window.openWhatsApp = (profileId) => {
+window.openWhatsApp = async (profileId) => {
   // Buscar en approvedProfiles
-  const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+  const approvedProfiles = await DataService.getApprovedProfiles() || [];
   const profile = approvedProfiles.find(p => p.id === profileId);
   
   if (!profile || !profile.whatsapp) {
@@ -1298,7 +1298,7 @@ window.refreshCarouselsWithFilter = function(filters) {
 };
 
 // Featured Carousel / Destacados VIP
-(function setupFeaturedCarousel() {
+(async function setupFeaturedCarousel() {
   const carousel = document.getElementById('featured-carousel');
   const dotsContainer = document.getElementById('featured-dots');
   const prevBtn = document.getElementById('featured-prev');
@@ -1311,8 +1311,8 @@ window.refreshCarouselsWithFilter = function(filters) {
   const AUTOPLAY_DELAY = 5000; // 5 segundos
 
   // Función para cargar perfiles aprobados del admin para Luxury & Exclusive
-  const loadApprovedLuxuryProfiles = () => {
-    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+  const loadApprovedLuxuryProfiles = async () => {
+    const approvedProfiles = await DataService.getApprovedProfiles() || [];
     const today = new Date().toISOString().split('T')[0];
     // Solo mostrar perfiles que estén visibles, activos y con plan válido (no vencido)
     return approvedProfiles.filter(profile => {
@@ -1329,12 +1329,12 @@ window.refreshCarouselsWithFilter = function(filters) {
   };
 
   // Obtener solo perfiles aprobados
-  const getAllLuxuryProfiles = () => {
-    return loadApprovedLuxuryProfiles();
+  const getAllLuxuryProfiles = async () => {
+    return await loadApprovedLuxuryProfiles();
   };
 
   // Usar el array de perfiles aprobados
-  const featuredCars = getAllLuxuryProfiles();
+  const featuredCars = await getAllLuxuryProfiles();
 
   if (featuredCars.length === 0) {
     const section = document.getElementById('featured-section');
@@ -2163,14 +2163,14 @@ window.refreshCarouselsWithFilter = function(filters) {
 })();
 
 // Experiencias Grid
-(function setupExperienciasGrid() {
+(async function setupExperienciasGrid() {
   const categoryMap = { premium: 'Premium', sport: 'Estándar', luxury: 'Luxury', classic: 'Estándar' };
 
-  // Cargar perfiles aprobados desde localStorage
-  const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+  // Cargar perfiles aprobados desde AWS
+  const approvedProfiles = await DataService.getApprovedProfiles() || [];
   
-  // Cargar publicaciones creadas desde admin con defaults
-  const publicacionesCreadas = JSON.parse(localStorage.getItem('publicacionesCreadas') || '[]').map((p, idx) => ({
+  // Cargar publicaciones creadas desde AWS con defaults
+  const publicacionesCreadas = (await DataService.getProfiles() || []).map((p, idx) => ({
     ...p,
     profileTypes: p.profileTypes || [p.profileType] || ['vip'],
     price: p.price || { CLP: Number(p.precioCLP) || 0 },
@@ -2528,13 +2528,13 @@ function createSkeletonCard() {
 }
 
 // Stories System
-(function setupStories() {
+(async function setupStories() {
   // Los stories/instantes se cargan solo desde los datos reales de las clientas
   // No hay datos de ejemplo
 
   // Función para cargar instantes de clientas registradas
-  function loadUserInstantes() {
-    const globalInstantes = JSON.parse(localStorage.getItem('globalInstantes') || '[]');
+  async function loadUserInstantes() {
+    const globalInstantes = await DataService.getStories() || [];
     const now = new Date();
     
     // Filtrar instantes activos (no vencidos - duración de 24 horas)
@@ -2580,7 +2580,7 @@ function createSkeletonCard() {
   }
   
   // Solo cargar instantes reales de usuarios (sin datos de ejemplo)
-  let storiesData = loadUserInstantes();
+  let storiesData = await loadUserInstantes();
 
   // Ordenar stories por badge priority (coincide con sistema de profileTypes)
   const BADGE_PRIORITY = {
@@ -2600,7 +2600,7 @@ function createSkeletonCard() {
   });
 
   // Estado
-  // viewedStories ahora guarda el timestamp de la última historia vista por usuario
+  // viewedStories se guarda localmente para UX rápida (qué historias ya vió el usuario actual)
   let viewedStories = JSON.parse(localStorage.getItem('viewedStories') || '{}');
   let currentUserIndex = 0;
   let currentStoryIndex = 0;
@@ -2850,15 +2850,15 @@ function createSkeletonCard() {
   const userNameEl = document.getElementById('stories-user-name');
   const userAvatarEl = document.getElementById('stories-user-avatar');
   
-  function openUserProfile() {
+  async function openUserProfile() {
     const user = storiesData[currentUserIndex];
     if (!user) return;
     
     // Cerrar el modal de stories
     closeStories();
     
-    // Buscar el perfil completo del usuario
-    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    // Buscar el perfil completo del usuario desde AWS
+    const approvedProfiles = await DataService.getApprovedProfiles() || [];
     
     // Extraer el userId del id del usuario en stories (format: "clienta-XXX")
     const userId = user.id.replace('clienta-', '');
@@ -2972,8 +2972,8 @@ function createSkeletonCard() {
   }
 
   // Función para cargar perfiles aprobados del admin para VIP Black
-  const loadApprovedVIPProfiles = () => {
-    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+  const loadApprovedVIPProfiles = async () => {
+    const approvedProfiles = await DataService.getApprovedProfiles() || [];
     // Solo mostrar perfiles que estén visibles, activos y con plan válido
     return approvedProfiles.filter(profile => {
       const isVisible = profile.profileVisible === true;
@@ -2992,8 +2992,8 @@ function createSkeletonCard() {
   // Los perfiles se cargan desde approvedProfiles (no hay datos por defecto)
 
   // Combinar perfiles del admin con datos por defecto
-  const getAllCreatorsData = () => {
-    const approvedProfiles = loadApprovedVIPProfiles();
+  const getAllCreatorsData = async () => {
+    const approvedProfiles = await loadApprovedVIPProfiles();
     const adminCreators = approvedProfiles.map(profile => ({
       id: profile.id,
       name: profile.displayName,
@@ -3295,8 +3295,8 @@ function createSkeletonCard() {
   // Los perfiles se cargan desde approvedProfiles (no hay datos por defecto)
 
   // Función para cargar perfiles aprobados del admin para Premium Select
-  const loadApprovedPremiumProfiles = () => {
-    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+  const loadApprovedPremiumProfiles = async () => {
+    const approvedProfiles = await DataService.getApprovedProfiles() || [];
     // Solo mostrar perfiles que estén visibles, activos y con plan válido
     return approvedProfiles.filter(profile => {
       const isVisible = profile.profileVisible === true;
@@ -3313,8 +3313,8 @@ function createSkeletonCard() {
   };
 
   // Combinar perfiles del admin con datos por defecto
-  const getAllPremiumSelectData = () => {
-    const approvedProfiles = loadApprovedPremiumProfiles();
+  const getAllPremiumSelectData = async () => {
+    const approvedProfiles = await loadApprovedPremiumProfiles();
     const adminCreators = approvedProfiles.map(profile => ({
       id: profile.id,
       name: profile.displayName,
@@ -3675,21 +3675,21 @@ function createSkeletonCard() {
       leido: false
     };
 
-    // Guardar en localStorage
-    const mensajes = JSON.parse(localStorage.getItem('contactMessages') || '[]');
+    // Guardar en AWS
+    const mensajes = await DataService.getContactMessages() || [];
     mensajes.unshift(mensaje);
-    localStorage.setItem('contactMessages', JSON.stringify(mensajes));
+    await DataService.saveContactMessages(mensajes);
 
-    // Intentar enviar notificación por correo
+    // Intentar enviar notificación por correo usando AWS SES
     enviarNotificacionCorreo(mensaje);
 
     alert('¡Mensaje enviado correctamente! Te responderemos pronto.');
     closeModal();
   });
 
-  // Función para enviar notificación por correo
+  // Función para enviar notificación por correo usando AWS SES
   async function enviarNotificacionCorreo(mensaje) {
-    const emailConfig = JSON.parse(localStorage.getItem('emailConfig') || '{}');
+    const emailConfig = await DataService.getEmailConfig() || {};
     
     if (!emailConfig.active || !emailConfig.provider || !emailConfig.to) {
       console.log('Notificaciones por correo no configuradas o desactivadas');
@@ -3767,7 +3767,7 @@ function createSkeletonCard() {
 // Testimonials Slider
 // ============================================
 
-(function setupTestimonials() {
+(async function setupTestimonials() {
   const section = document.getElementById('testimonials-section');
   const slider = document.getElementById('testimonials-slider');
   const track = document.getElementById('ts-track');
@@ -3786,8 +3786,8 @@ function createSkeletonCard() {
     { id: 's6', carId: 'aston-martin-db11', name: 'Lucía P.', rating: 5, text: 'Ambiente muy cómodo y elegante, todo perfecto.', date: '2024-12-02' },
   ];
 
-  const loadApproved = () => {
-    const arr = JSON.parse(localStorage.getItem('testimonials') || '[]');
+  const loadApproved = async () => {
+    const arr = await DataService.getTestimonials() || [];
     return arr.filter(t => t.approved);
   };
 
@@ -3795,7 +3795,7 @@ function createSkeletonCard() {
   let itemsPerView = 3;
   let autoplayId = null;
   const AUTOPLAY_MS = 6000;
-  let currentList = loadApproved();
+  let currentList = await loadApproved();
   if (!currentList.length) currentList = SAMPLE.slice(0,6);
 
   const getItemsPerView = () => {
@@ -3934,17 +3934,17 @@ window.addEventListener('DOMContentLoaded', () => {
     console.log('Buscando perfil para ID:', profileId);
     
     // Buscar el perfil en todos los lugares posibles
-    setTimeout(() => {
+    setTimeout(async () => {
       let profile = null;
       
-      // 1. Buscar en approvedProfiles
-      const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+      // 1. Buscar en approvedProfiles desde AWS
+      const approvedProfiles = await DataService.getApprovedProfiles() || [];
       profile = approvedProfiles.find(p => p.id === profileId);
       console.log('Búsqueda en approvedProfiles:', profile ? 'Encontrado' : 'No encontrado');
       
       // 2. Si no está en approvedProfiles, buscar en publicaciones creadas aprobadas
       if (!profile) {
-        const publicacionesCreadas = JSON.parse(localStorage.getItem('publicacionesCreadas') || '[]');
+        const publicacionesCreadas = await DataService.getProfiles() || [];
         console.log('Publicaciones creadas disponibles:', publicacionesCreadas.length);
         profile = publicacionesCreadas.find(p => p.status === 'aprobado' && (p.id === profileId || p.id === parseInt(profileId)));
         console.log('Búsqueda en publicaciones creadas:', profile ? 'Encontrado' : 'No encontrado');
@@ -3952,7 +3952,7 @@ window.addEventListener('DOMContentLoaded', () => {
       
       // 3. También buscar en publicaciones aprobadas (por compatibilidad)
       if (!profile) {
-        const publicacionesAprobadas = JSON.parse(localStorage.getItem('publicacionesAprobadas') || '[]');
+        const publicacionesAprobadas = await DataService.getApprovedProfiles() || [];
         console.log('Publicaciones aprobadas disponibles:', publicacionesAprobadas.length);
         profile = publicacionesAprobadas.find(p => p.id === profileId || p.id === parseInt(profileId));
         console.log('Búsqueda en publicaciones aprobadas:', profile ? 'Encontrado' : 'No encontrado');
@@ -3982,7 +3982,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const numericId = parseInt(profileId);
         if (!isNaN(numericId)) {
           console.log('Intentando búsqueda con ID numérico:', numericId);
-          const publicacionesCreadas = JSON.parse(localStorage.getItem('publicacionesCreadas') || '[]');
+          const publicacionesCreadas = await DataService.getProfiles() || [];
           profile = publicacionesCreadas.find(p => p.status === 'aprobado' && p.id === numericId);
           
           if (profile && typeof window.openVIPModal === 'function') {
@@ -4004,12 +4004,12 @@ window.addEventListener('DOMContentLoaded', () => {
 // ========================================
 // CARRUSEL DE ESTADOS/DISPONIBILIDAD
 // ========================================
-(function setupEstadosCarousel() {
+(async function setupEstadosCarousel() {
   const carousel = document.getElementById('estados-carousel');
   if (!carousel) return;
   
-  function loadEstados() {
-    const globalEstados = JSON.parse(localStorage.getItem('globalEstados') || '[]');
+  async function loadEstados() {
+    const globalEstados = await DataService.getEstados() || [];
     const now = new Date();
     
     // Filtrar estados activos (no vencidos)
@@ -4046,7 +4046,7 @@ window.addEventListener('DOMContentLoaded', () => {
     
     // Agregar click para abrir perfil al hacer click en la card
     carousel.querySelectorAll('.estado-card').forEach(card => {
-      card.addEventListener('click', (e) => {
+      card.addEventListener('click', async (e) => {
         // Si el click fue en el botón de contactar, no abrir el perfil
         if (e.target.closest('.estado-contact-btn')) return;
         
@@ -4055,9 +4055,9 @@ window.addEventListener('DOMContentLoaded', () => {
         const userName = card.querySelector('.estado-user-name')?.textContent?.trim()?.split('\n')[0]?.trim();
         console.log('🔍 Click en estado - userId:', userId, 'username:', username, 'userName:', userName);
         
-        // Buscar el perfil en approvedProfiles usando múltiples criterios
-        const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
-        const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+        // Buscar el perfil en AWS approvedProfiles usando múltiples criterios
+        const approvedProfiles = await DataService.getApprovedProfiles() || [];
+        const approvedUsers = await DataService.getApprovedUsers() || [];
         
         // Primero buscar por userId (más preciso)
         let profile = null;

@@ -25,7 +25,7 @@ const DataService = {
     }
     
     try {
-      const response = await fetch(\`\${url}\${endpoint}\`, {
+      const response = await fetch(`\${url}\${endpoint}`, {
         headers: {
           'Content-Type': 'application/json',
           ...options.headers
@@ -35,12 +35,12 @@ const DataService = {
       
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(\`HTTP \${response.status}: \${errorText}\`);
+        throw new Error(`HTTP \${response.status}: \${errorText}`);
       }
       
       return await response.json();
     } catch (error) {
-      console.error(\`Error en API \${endpoint}:\`, error.message);
+      console.error(`Error en API \${endpoint}:`, error.message);
       throw error;
     }
   },
@@ -60,7 +60,7 @@ const DataService = {
   
   async getProfileById(profileId) {
     try {
-      return await this.fetchApi(\`/profiles/\${profileId}\`);
+      return await this.fetchApi(`/profiles/\${profileId}`);
     } catch (error) {
       console.error('Error obteniendo perfil:', error);
       return null;
@@ -81,7 +81,7 @@ const DataService = {
   
   async updateProfile(profileId, updatedData) {
     try {
-      return await this.fetchApi(\`/profiles/\${profileId}\`, {
+      return await this.fetchApi(`/profiles/\${profileId}`, {
         method: 'PUT',
         body: JSON.stringify({ ...updatedData, id: profileId })
       });
@@ -93,7 +93,7 @@ const DataService = {
   
   async deleteProfile(profileId) {
     try {
-      return await this.fetchApi(\`/profiles/\${profileId}\`, {
+      return await this.fetchApi(`/profiles/\${profileId}`, {
         method: 'DELETE'
       });
     } catch (error) {
@@ -129,7 +129,7 @@ const DataService = {
   
   async updateRegistro(registroId, data) {
     try {
-      return await this.fetchApi(\`/registros/\${registroId}\`, {
+      return await this.fetchApi(`/registros/\${registroId}`, {
         method: 'PUT',
         body: JSON.stringify({ ...data, id: registroId })
       });
@@ -141,7 +141,7 @@ const DataService = {
   
   async deleteRegistro(registroId) {
     try {
-      return await this.fetchApi(\`/registros/\${registroId}\`, {
+      return await this.fetchApi(`/registros/\${registroId}`, {
         method: 'DELETE'
       });
     } catch (error) {
@@ -177,7 +177,7 @@ const DataService = {
   
   async updateUser(userId, data) {
     try {
-      return await this.fetchApi(\`/users/\${userId}\`, {
+      return await this.fetchApi(`/users/\${userId}`, {
         method: 'PUT',
         body: JSON.stringify({ ...data, id: userId })
       });
@@ -189,7 +189,7 @@ const DataService = {
   
   async deleteUser(userId) {
     try {
-      return await this.fetchApi(\`/users/\${userId}\`, {
+      return await this.fetchApi(`/users/\${userId}`, {
         method: 'DELETE'
       });
     } catch (error) {
@@ -230,6 +230,10 @@ const DataService = {
   async logout() {
     localStorage.removeItem('currentUser');
   },
+  
+  async removeCurrentUser() {
+    localStorage.removeItem('currentUser');
+  },
 
   // ═══════════════════════════════════════════════════════════
   // MENSAJES DE CONTACTO
@@ -258,13 +262,23 @@ const DataService = {
   
   async deleteMessage(messageId) {
     try {
-      return await this.fetchApi(\`/messages/\${messageId}\`, {
+      return await this.fetchApi(`/messages/\${messageId}`, {
         method: 'DELETE'
       });
     } catch (error) {
       console.error('Error eliminando mensaje:', error);
       throw error;
     }
+  },
+  
+  async saveContactMessages(messages) {
+    // Batch save de mensajes
+    for (const msg of messages) {
+      if (!msg.id) {
+        await this.addContactMessage(msg);
+      }
+    }
+    return messages;
   },
 
   // ═══════════════════════════════════════════════════════════
@@ -273,7 +287,7 @@ const DataService = {
   
   async getConfig(key) {
     try {
-      const result = await this.fetchApi(\`/config/\${key}\`);
+      const result = await this.fetchApi(`/config/\${key}`);
       return result?.value || null;
     } catch (error) {
       console.error('Error obteniendo config:', error);
@@ -283,7 +297,7 @@ const DataService = {
   
   async setConfig(key, value) {
     try {
-      return await this.fetchApi(\`/config/\${key}\`, {
+      return await this.fetchApi(`/config/\${key}`, {
         method: 'PUT',
         body: JSON.stringify({ key, value })
       });
@@ -303,6 +317,30 @@ const DataService = {
   
   async getPlansConfig() {
     return await this.getConfig('plans') || {};
+  },
+  
+  async getEmailConfig() {
+    return await this.getConfig('emailConfig') || {};
+  },
+  
+  async setEmailConfig(config) {
+    return await this.setConfig('emailConfig', config);
+  },
+  
+  async getTestimonials() {
+    return await this.getConfig('testimonials') || [];
+  },
+  
+  async saveTestimonials(testimonials) {
+    return await this.setConfig('testimonials', testimonials);
+  },
+  
+  async getUserLikes() {
+    return await this.getConfig('userLikes') || [];
+  },
+  
+  async saveUserLikes(likes) {
+    return await this.setConfig('userLikes', likes);
   },
 
   // ═══════════════════════════════════════════════════════════
@@ -374,7 +412,7 @@ const DataService = {
    */
   async getUserMedia(userId) {
     try {
-      return await this.fetchApi(\`/media?userId=\${userId}\`) || [];
+      return await this.fetchApi(`/media?userId=\${userId}`) || [];
     } catch (error) {
       console.error('Error obteniendo media:', error);
       return [];
@@ -451,6 +489,19 @@ const DataService = {
     requests.push(request);
     await this.setConfig('passwordRecoveryRequests', requests);
     return request;
+  },
+  
+  async savePasswordRecoveryRequests(requests) {
+    return await this.setConfig('passwordRecoveryRequests', requests);
+  },
+  
+  // Alias para getApprovedProfiles (compatibilidad con código existente)
+  async getProfiles() {
+    return await this.getApprovedProfiles();
+  },
+  
+  async saveProfiles(profiles) {
+    return await this.saveApprovedProfiles(profiles);
   },
 
   // ═══════════════════════════════════════════════════════════
