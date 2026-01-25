@@ -592,7 +592,7 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
         window.location.href = 'profile';
       } else if (pendingUser.status === 'pendiente') {
         console.log('⏳ Usuario en estado pendiente');
-        alert('⏳ Tu cuenta está pendiente de aprobación.\n\nNuestro equipo está revisando tu solicitud. Te contactaremos pronto por WhatsApp.\n\n💡 Tip: Puedes revisar el panel de admin para aprobar tu cuenta manualmente.');
+        alert('⏳ Tu cuenta está pendiente de aprobación.\n\nNuestro equipo está revisando tu solicitud. Te contactaremos pronto por WhatsApp.');
       } else if (pendingUser.status === 'rechazado') {
         console.log('❌ Usuario rechazado');
         alert('❌ Tu solicitud fue rechazada.\n\nMotivo: ' + (pendingUser.rejectionReason || 'No especificado') + '\n\nPuedes contactarnos para más información.');
