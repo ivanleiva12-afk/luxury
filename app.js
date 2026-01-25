@@ -2639,14 +2639,13 @@ function createSkeletonCard() {
   const contentDiv = document.getElementById('stories-content');
 
   if (!carousel) {
-    console.error('Stories carousel element not found');
+    // Si no existe el carrusel, no ejecutar esta función
     return;
   }
 
   // Renderizar círculos de stories
   function renderCarousel() {
     if (!carousel) {
-      console.error('Stories carousel element not found');
       return;
     }
     
