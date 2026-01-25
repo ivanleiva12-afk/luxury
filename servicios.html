@@ -1,0 +1,215 @@
+codigo aws logs get-log-events \
+  --log-group-name /aws/lambda/salaoscura-api \
+  --log-stream-name "NOMBRE_DEL_STREAM" \
+  --limit 50 \
+  --profile salaoscura --region us-east-1<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Servicios — Sala Oscura</title>
+  <meta name="description" content="Conoce los servicios ofrecidos y sus valores." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+  <script defer src="app.js"></script>
+  <style>
+    .servicios-container { width: var(--container); margin: 0 auto; padding: 60px 32px; }
+    .servicios-header { margin-bottom: 60px; margin-top: 40px; }
+    .servicios-title { font-family: "Playfair Display", serif; font-size: 48px; color: var(--text); margin: 0 0 16px 0; }
+    .servicios-subtitle { font-size: 18px; color: var(--muted); margin: 0; }
+    
+    .servicios-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px; margin-bottom: 60px; }
+    .servicio-card { background: linear-gradient(135deg, rgba(212,175,55,0.1), rgba(212,175,55,0.05)); border: 1px solid rgba(212,175,55,0.3); border-radius: 16px; padding: 32px; display: flex; flex-direction: column; min-height: 400px; }
+    .servicio-card h3 { color: var(--gold); font-size: 24px; margin: 0 0 16px 0; }
+    .servicio-card p { color: var(--text); line-height: 1.6; margin: 0 0 16px 0; flex-grow: 1; }
+    .servicio-precio { font-size: 32px; color: var(--gold); font-weight: 700; margin-top: auto; }
+    .servicio-precio-small { font-size: 14px; color: var(--muted); }
+    
+    .faq-section { margin-top: 80px; }
+    .faq-title { font-family: "Playfair Display", serif; font-size: 32px; color: var(--text); margin: 0 0 32px 0; }
+    .faq-list { display: grid; gap: 16px; }
+    .faq-item { background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.2); border-radius: 12px; overflow: hidden; }
+    .faq-question { padding: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 200ms ease; }
+    .faq-question:hover { background: rgba(212,175,55,0.1); }
+    .faq-question-text { color: var(--text); font-weight: 600; margin: 0; }
+    .faq-toggle { color: var(--gold); font-size: 24px; transition: transform 200ms ease; }
+    .faq-item.open .faq-toggle { transform: rotate(180deg); }
+    .faq-answer { display: none; padding: 0 20px 20px 20px; color: var(--text); line-height: 1.6; }
+    .faq-item.open .faq-answer { display: block; }
+    
+    header { position: sticky; top: 0; z-index: 100; background: rgba(10,10,10,0.98); border-bottom: 1px solid rgba(212,175,55,0.08); }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="logo" href="index.html" aria-label="Inicio">
+        <img src="assets/logo-premium.png.png" alt="Logo" />
+      </a>
+      <nav class="site-nav" aria-label="Principal">
+        <ul>
+          <li><a class="nav-link" href="foro.html">Vivencias</a></li>
+          <li><a class="nav-link interactive" href="#contact-modal">Contacto</a></li>
+          <li><a class="nav-cta interactive" href="#login-modal">Publicate</a></li>
+        </ul>
+      </nav>
+      <button class="nav-toggle" aria-label="Abrir menú" aria-expanded="false">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="servicios-section">
+      <div class="servicios-container">
+        <div class="servicios-header">
+          <h1 class="servicios-title">Nuestros Servicios</h1>
+          <p class="servicios-subtitle" id="servicios-subtitle">Descubre los planes y servicios que ofrecemos</p>
+        </div>
+
+        <div class="servicios-grid" id="servicios-grid">
+          <!-- Los servicios se cargarán aquí vía JavaScript -->
+        </div>
+
+        <div class="faq-section">
+          <h2 class="faq-title">Preguntas Frecuentes</h2>
+          <div class="faq-list" id="faq-list">
+            <!-- Las preguntas se cargarán aquí vía JavaScript -->
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <a class="logo" href="index.html">
+          <img src="assets/logo-premium.png" alt="Logo" />
+        </a>
+        <p class="footer-copy">© <span id="year"></span> Sala Oscura. Todos los derechos reservados.</p>
+      </div>
+      <div class="footer-links">
+        <a id="footer-servicios-link" href="servicios.html">Servicios</a>
+        <a id="footer-nosotros-link" href="nosotros.html">Nosotros</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Contact Modal -->
+  <div id="contact-modal" class="contact-modal" aria-modal="true" role="dialog" aria-labelledby="contact-title" aria-hidden="true">
+    <div class="contact-overlay"></div>
+    <div class="contact-container">
+      <button id="contact-close" class="contact-close" aria-label="Cerrar modal">&times;</button>
+      <h2 id="contact-title" class="contact-title">Contáctanos</h2>
+      <p class="contact-subtitle">Cuéntanos sobre tu proyecto y te respondemos en 24h</p>
+      <form id="contact-form" class="contact-form">
+        <div class="contact-field">
+          <label for="contact-nombre" class="contact-label">Nombre *</label>
+          <input id="contact-nombre" type="text" name="nombre" placeholder="Tu nombre completo" required />
+        </div>
+        <div class="contact-field">
+          <label for="contact-email" class="contact-label">Correo *</label>
+          <input id="contact-email" type="email" name="email" placeholder="tu@email.com" required />
+        </div>
+        <div class="contact-field">
+          <label for="contact-telefono" class="contact-label">Teléfono (opcional)</label>
+          <input id="contact-telefono" type="tel" name="telefono" placeholder="+56 9 0000 0000" />
+        </div>
+        <div class="contact-field">
+          <label for="contact-mensaje" class="contact-label">Mensaje *</label>
+          <textarea id="contact-mensaje" name="mensaje" placeholder="Cuéntanos sobre tu proyecto..." rows="5" required></textarea>
+        </div>
+        <div class="contact-field">
+          <label for="contact-archivos" class="contact-label">Adjuntar archivos (opcional)</label>
+          <input id="contact-archivos" type="file" name="archivos" multiple accept="image/*,.pdf,.doc,.docx" />
+          <p class="contact-hint">Puedes adjuntar imágenes, PDF o documentos</p>
+        </div>
+        <div class="contact-actions">
+          <button type="button" id="contact-cancel" class="btn contact-cancel">Cancelar</button>
+          <button type="submit" class="btn cta-gold">Enviar mensaje</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="login-modal" aria-modal="true" role="dialog" aria-labelledby="login-title" aria-hidden="true">
+    <div class="login-overlay"></div>
+    <div class="login-container">
+      <button id="login-close" class="login-close" aria-label="Cerrar modal">&times;</button>
+      <h2 id="login-title" class="login-title">Ingresa tu cuenta</h2>
+      <form id="login-form" class="login-form">
+        <div class="login-field">
+          <label for="login-email" class="login-label">Correo</label>
+          <input id="login-email" type="email" name="email" placeholder="tu@email.com" required />
+        </div>
+        <div class="login-field">
+          <label for="login-password" class="login-label">Contraseña</label>
+          <input id="login-password" type="password" name="password" placeholder="••••••••" required />
+        </div>
+        <div class="login-checkbox">
+          <input id="login-remember" type="checkbox" name="remember" />
+          <label for="login-remember">Recordar cuenta</label>
+        </div>
+        <button type="submit" class="btn cta-gold">Ingresar</button>
+      </form>
+      <p class="login-signup">¿No tienes cuenta? <a href="registro.html" id="login-signup-link">Crear cuenta</a></p>
+    </div>
+  </div>
+
+  <script>
+    // Cargar datos de servicios y FAQ
+    function loadServicios() {
+      const servicios = JSON.parse(localStorage.getItem('servicios') || '{"active": true, "servicios": [], "faq": []}');
+      
+      if (!servicios.active) {
+        document.querySelector('.servicios-section').innerHTML = '<div class="servicios-container"><div style="text-align: center; padding: 80px 32px;"><h2 style="color: var(--text);">Sección no disponible</h2><p style="color: var(--muted);">Esta sección está temporalmente desactivada.</p></div></div>';
+        return;
+      }
+
+      // Cargar servicios
+      const grid = document.getElementById('servicios-grid');
+      if (servicios.servicios && servicios.servicios.length > 0) {
+        grid.innerHTML = servicios.servicios.map(s => `
+          <div class="servicio-card">
+            <h3>${s.nombre}</h3>
+            ${s.duracion ? `<p style="color: var(--gold); font-size: 14px; margin: 8px 0;"><strong>Duración:</strong> ${s.duracion}</p>` : ''}
+            <p>${s.descripcion}</p>
+            ${s.incluye ? `<div style="background: rgba(212,175,55,0.1); padding: 12px; border-radius: 8px; margin: 12px 0; font-size: 14px;"><strong style="color: var(--gold);">Incluye:</strong><ul style="margin: 8px 0 0 20px; padding: 0;">${s.incluye.split('\n').filter(line => line.trim()).map(line => `<li style="color: var(--text); margin: 4px 0;">${line.trim()}</li>`).join('')}</ul></div>` : ''}
+            <div class="servicio-precio">${s.precio}<span class="servicio-precio-small"> CLP</span></div>
+          </div>
+        `).join('');
+      }
+
+      // Cargar FAQ
+      const faqList = document.getElementById('faq-list');
+      if (servicios.faq && servicios.faq.length > 0) {
+        faqList.innerHTML = servicios.faq.map((item, idx) => `
+          <div class="faq-item" data-index="${idx}">
+            <div class="faq-question">
+              <h3 class="faq-question-text">${item.pregunta}</h3>
+              <span class="faq-toggle">▼</span>
+            </div>
+            <div class="faq-answer">${item.respuesta}</div>
+          </div>
+        `).join('');
+
+        // Agregar event listeners para abrir/cerrar FAQ
+        document.querySelectorAll('.faq-item').forEach(item => {
+          item.querySelector('.faq-question').addEventListener('click', () => {
+            item.classList.toggle('open');
+          });
+        });
+      }
+
+      // Actualizar año del footer
+      document.getElementById('year').textContent = new Date().getFullYear();
+    }
+
+    // Cargar servicios cuando se carga la página
+    document.addEventListener('DOMContentLoaded', loadServicios);
+  </script>
+</body>
+</html>

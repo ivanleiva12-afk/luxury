@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nosotros — Sala Oscura</title>
+  <meta name="description" content="Información legal y de contacto de Sala Oscura." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+  <script defer src="app.js"></script>
+  <style>
+    .nosotros-container { width: var(--container); margin: 0 auto; padding: 60px 32px; }
+    .nosotros-header { margin-bottom: 60px; margin-top: 40px; }
+    .nosotros-title { font-family: "Playfair Display", serif; font-size: 48px; color: var(--text); margin: 0 0 16px 0; }
+    .nosotros-subtitle { font-size: 18px; color: var(--muted); margin: 0; }
+    
+    .nosotros-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 32px; margin-bottom: 60px; }
+    .nosotros-card { background: linear-gradient(135deg, rgba(212,175,55,0.1), rgba(212,175,55,0.05)); border: 1px solid rgba(212,175,55,0.3); border-radius: 16px; padding: 32px; }
+    .nosotros-card h3 { color: var(--gold); font-size: 20px; margin: 0 0 12px 0; display: flex; align-items: center; gap: 10px; }
+    .nosotros-card-icon { font-size: 28px; }
+    .nosotros-card p { color: var(--text); line-height: 1.6; margin: 0; word-break: break-word; }
+    
+    .legal-section { background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.2); border-radius: 12px; padding: 32px; margin-top: 40px; }
+    .legal-title { font-family: "Playfair Display", serif; font-size: 28px; color: var(--text); margin: 0 0 16px 0; }
+    .legal-content { color: var(--text); line-height: 1.8; max-height: 500px; overflow-y: auto; }
+    
+    header { position: sticky; top: 0; z-index: 100; background: rgba(10,10,10,0.98); border-bottom: 1px solid rgba(212,175,55,0.08); }
+    
+    /* ========== RESPONSIVE MÓVIL ========== */
+    @media (max-width: 768px) {
+      .nosotros-container {
+        padding: 24px 16px;
+      }
+      
+      .nosotros-header {
+        margin-bottom: 32px;
+        margin-top: 20px;
+        text-align: center;
+      }
+      
+      .nosotros-title {
+        font-size: 28px;
+        line-height: 1.2;
+      }
+      
+      .nosotros-subtitle {
+        font-size: 14px;
+      }
+      
+      .nosotros-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin-bottom: 32px;
+      }
+      
+      .nosotros-card {
+        padding: 20px;
+        border-radius: 12px;
+      }
+      
+      .nosotros-card h3 {
+        font-size: 16px;
+        gap: 8px;
+      }
+      
+      .nosotros-card-icon {
+        font-size: 22px;
+      }
+      
+      .nosotros-card p {
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      
+      .legal-section {
+        padding: 20px;
+        margin-top: 24px;
+        border-radius: 10px;
+      }
+      
+      .legal-title {
+        font-size: 20px;
+        margin-bottom: 12px;
+      }
+      
+      .legal-content {
+        font-size: 13px;
+        line-height: 1.7;
+        max-height: 400px;
+      }
+      
+      /* Header móvil */
+      .header-inner {
+        padding: 12px 16px;
+      }
+      
+      .site-nav {
+        display: none;
+      }
+      
+      .nav-toggle {
+        display: block;
+      }
+      
+      /* Footer móvil */
+      .footer-inner {
+        flex-direction: column;
+        text-align: center;
+        gap: 16px;
+        padding: 24px 16px;
+      }
+      
+      .footer-links {
+        flex-direction: column;
+        gap: 10px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .nosotros-container {
+        padding: 16px 12px;
+      }
+      
+      .nosotros-title {
+        font-size: 24px;
+      }
+      
+      .nosotros-card {
+        padding: 16px;
+      }
+      
+      .legal-section {
+        padding: 16px;
+      }
+      
+      .legal-title {
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="logo" href="index.html" aria-label="Inicio">
+        <img src="assets/logo-premium.png.png" alt="Logo" />
+      </a>
+      <nav class="site-nav" aria-label="Principal">
+        <ul>
+          <li><a class="nav-link" href="foro.html">Vivencias</a></li>
+          <li><a class="nav-link interactive" href="#contact-modal">Contacto</a></li>
+          <li><a class="nav-cta interactive" href="#login-modal">Publicate</a></li>
+        </ul>
+      </nav>
+      <button class="nav-toggle" aria-label="Abrir menú" aria-expanded="false">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="nosotros-section">
+      <div class="nosotros-container">
+        <div class="nosotros-header">
+          <h1 class="nosotros-title">Sobre Nosotros</h1>
+          <p class="nosotros-subtitle" id="nosotros-subtitle">Información legal y de contacto</p>
+        </div>
+
+        <div class="nosotros-grid" id="nosotros-grid">
+          <!-- Los datos se cargarán aquí vía JavaScript -->
+        </div>
+
+        <div class="legal-section">
+          <h2 class="legal-title">Información Legal</h2>
+          <div class="legal-content" id="legal-content">
+            <!-- El contenido legal se cargará aquí vía JavaScript -->
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <a class="logo" href="index.html">
+          <img src="assets/logo-premium.png" alt="Logo" />
+        </a>
+        <p class="footer-copy">© <span id="year"></span> Sala Oscura. Todos los derechos reservados.</p>
+      </div>
+      <div class="footer-links">
+        <a id="footer-servicios-link" href="servicios.html">Servicios</a>
+        <a id="footer-nosotros-link" href="nosotros.html">Nosotros</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Contact Modal -->
+  <div id="contact-modal" class="contact-modal" aria-modal="true" role="dialog" aria-labelledby="contact-title" aria-hidden="true">
+    <div class="contact-overlay"></div>
+    <div class="contact-container">
+      <button id="contact-close" class="contact-close" aria-label="Cerrar modal">&times;</button>
+      <h2 id="contact-title" class="contact-title">Contáctanos</h2>
+      <p class="contact-subtitle">Cuéntanos sobre tu proyecto y te respondemos en 24h</p>
+      <form id="contact-form" class="contact-form">
+        <div class="contact-field">
+          <label for="contact-nombre" class="contact-label">Nombre *</label>
+          <input id="contact-nombre" type="text" name="nombre" placeholder="Tu nombre completo" required />
+        </div>
+        <div class="contact-field">
+          <label for="contact-email" class="contact-label">Correo *</label>
+          <input id="contact-email" type="email" name="email" placeholder="tu@email.com" required />
+        </div>
+        <div class="contact-field">
+          <label for="contact-telefono" class="contact-label">Teléfono (opcional)</label>
+          <input id="contact-telefono" type="tel" name="telefono" placeholder="+56 9 0000 0000" />
+        </div>
+        <div class="contact-field">
+          <label for="contact-mensaje" class="contact-label">Mensaje *</label>
+          <textarea id="contact-mensaje" name="mensaje" placeholder="Cuéntanos sobre tu proyecto..." rows="5" required></textarea>
+        </div>
+        <div class="contact-field">
+          <label for="contact-archivos" class="contact-label">Adjuntar archivos (opcional)</label>
+          <input id="contact-archivos" type="file" name="archivos" multiple accept="image/*,.pdf,.doc,.docx" />
+          <p class="contact-hint">Puedes adjuntar imágenes, PDF o documentos</p>
+        </div>
+        <div class="contact-actions">
+          <button type="button" id="contact-cancel" class="btn contact-cancel">Cancelar</button>
+          <button type="submit" class="btn cta-gold">Enviar mensaje</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="login-modal" aria-modal="true" role="dialog" aria-labelledby="login-title" aria-hidden="true">
+    <div class="login-overlay"></div>
+    <div class="login-container">
+      <button id="login-close" class="login-close" aria-label="Cerrar modal">&times;</button>
+      <h2 id="login-title" class="login-title">Ingresa tu cuenta</h2>
+      <form id="login-form" class="login-form">
+        <div class="login-field">
+          <label for="login-email" class="login-label">Correo</label>
+          <input id="login-email" type="email" name="email" placeholder="tu@email.com" required />
+        </div>
+        <div class="login-field">
+          <label for="login-password" class="login-label">Contraseña</label>
+          <input id="login-password" type="password" name="password" placeholder="••••••••" required />
+        </div>
+        <div class="login-checkbox">
+          <input id="login-remember" type="checkbox" name="remember" />
+          <label for="login-remember">Recordar cuenta</label>
+        </div>
+        <button type="submit" class="btn cta-gold">Ingresar</button>
+      </form>
+      <p class="login-signup">¿No tienes cuenta? <a href="registro.html" id="login-signup-link">Crear cuenta</a></p>
+    </div>
+  </div>
+
+  <script>
+    // Cargar datos de nosotros
+    function loadNosotros() {
+      const data = JSON.parse(localStorage.getItem('nosotros') || '{"active": true, "nombre": "", "email": "", "telefono": "", "whatsapp": "", "direccion": "", "legal": ""}');
+      
+      if (!data.active) {
+        document.querySelector('.nosotros-section').innerHTML = '<div class="nosotros-container"><div style="text-align: center; padding: 80px 32px;"><h2 style="color: var(--text);">Sección no disponible</h2><p style="color: var(--muted);">Esta sección está temporalmente desactivada.</p></div></div>';
+        return;
+      }
+
+      // Cargar datos de contacto
+      const grid = document.getElementById('nosotros-grid');
+      const cards = [];
+      
+      if (data.nombre) cards.push(`<div class="nosotros-card"><h3><span class="nosotros-card-icon">🏢</span>Empresa</h3><p>${data.nombre}</p></div>`);
+      if (data.email) cards.push(`<div class="nosotros-card"><h3><span class="nosotros-card-icon">✉️</span>Email</h3><p><a href="mailto:${data.email}" style="color: var(--gold); text-decoration: none;">${data.email}</a></p></div>`);
+      if (data.telefono) cards.push(`<div class="nosotros-card"><h3><span class="nosotros-card-icon">📞</span>Teléfono</h3><p><a href="tel:${data.telefono}" style="color: var(--gold); text-decoration: none;">${data.telefono}</a></p></div>`);
+      if (data.whatsapp) cards.push(`<div class="nosotros-card"><h3><span class="nosotros-card-icon">💬</span>WhatsApp</h3><p><a href="https://wa.me/${data.whatsapp.replace(/\D/g, '')}" target="_blank" style="color: var(--gold); text-decoration: none;">${data.whatsapp}</a></p></div>`);
+      if (data.direccion) cards.push(`<div class="nosotros-card"><h3><span class="nosotros-card-icon">📍</span>Ubicación</h3><p>${data.direccion}</p></div>`);
+      
+      // Agregar información adicional como tarjetas
+      if (data.info && data.info.length > 0) {
+        data.info.forEach(info => {
+          if (info.titulo && info.contenido) {
+            cards.push(`<div class="nosotros-card"><h3><span class="nosotros-card-icon">ℹ️</span>${info.titulo}</h3><p>${info.contenido}</p></div>`);
+          }
+        });
+      }
+      
+      grid.innerHTML = cards.length > 0 ? cards.join('') : '<p style="color: var(--muted); grid-column: 1/-1;">No hay datos disponibles</p>';
+
+      // Cargar información legal
+      const legalContent = document.getElementById('legal-content');
+      if (data.legal) {
+        legalContent.innerHTML = data.legal.split('\n').map(line => line.trim()).filter(line => line).join('<br><br>');
+      } else {
+        legalContent.innerHTML = '<p style="color: var(--muted);">No hay información legal disponible</p>';
+      }
+
+      // Actualizar año del footer
+      document.getElementById('year').textContent = new Date().getFullYear();
+    }
+
+    // Cargar nosotros cuando se carga la página
+    document.addEventListener('DOMContentLoaded', loadNosotros);
+  </script>
+</body>
+</html>

@@ -3,13 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Proyecto Chic — Servicios</title>
+  <title>Sala Oscura — Servicios</title>
   <meta name="description" content="Venta de servicios profesionales. Calidad, rapidez y atención personalizada." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+  <script src="config.js"></script>
+  <script src="api.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
@@ -38,14 +40,12 @@
   <header class="site-header">
     <div class="container header-inner">
       <a class="logo" href="#inicio" aria-label="Inicio">
-        <img src="assets/logo-premium.png.png" alt="Logo" />
+        <img src="assets/logo-premium.png" alt="Logo" />
       </a>
       <nav class="site-nav" aria-label="Principal">
         <ul>
-          <li><a class="nav-link" href="#servicios">Servicios</a></li>
-          <li><a class="nav-link" href="foro.html">Experiencias</a></li>
           <li><a class="nav-link interactive" href="#contact-modal">Contacto</a></li>
-          <li><a class="btn-foro" href="comunidad.html">Foro</a></li>
+          <li><a class="btn-foro" href="salaoscura.html">Sala Oscura</a></li>
           <li><a class="nav-cta interactive" href="#login-modal">Publicate</a></li>
         </ul>
       </nav>
@@ -54,15 +54,97 @@
   </header>
 
   <main>
+    <!-- Filtro de Perfiles -->
+    <section id="filter-section" class="filter-section">
+      <div class="container">
+        <button id="filter-toggle" class="filter-toggle" onclick="toggleFilter()">
+          <span class="filter-toggle-icon">🔍</span>
+          <span>Buscar perfiles</span>
+          <svg class="filter-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        
+        <div id="filter-panel" class="filter-panel" style="display: none;">
+          <div class="filter-grid">
+            <!-- Edad -->
+            <div class="filter-group">
+              <label class="filter-label">Edad</label>
+              <select id="filter-age" class="filter-select">
+                <option value="">Todas</option>
+                <option value="18-21">18 - 21 años</option>
+                <option value="22-25">22 - 25 años</option>
+                <option value="26-30">26 - 30 años</option>
+                <option value="31-35">31 - 35 años</option>
+                <option value="36-40">36 - 40 años</option>
+                <option value="40+">40+ años</option>
+              </select>
+            </div>
+            
+            <!-- Estatura -->
+            <div class="filter-group">
+              <label class="filter-label">Estatura</label>
+              <select id="filter-height" class="filter-select">
+                <option value="">Todas</option>
+                <option value="140-150">1.40 - 1.50 m</option>
+                <option value="150-160">1.50 - 1.60 m</option>
+                <option value="160-170">1.60 - 1.70 m</option>
+                <option value="170+">1.70+ m</option>
+              </select>
+            </div>
+            
+            <!-- Nacionalidad -->
+            <div class="filter-group">
+              <label class="filter-label">Nacionalidad</label>
+              <select id="filter-nationality" class="filter-select">
+                <option value="">Todas</option>
+                <option value="chilena">Chilena</option>
+                <option value="colombiana">Colombiana</option>
+                <option value="venezolana">Venezolana</option>
+                <option value="argentina">Argentina</option>
+                <option value="peruana">Peruana</option>
+                <option value="brasileña">Brasileña</option>
+                <option value="otra">Otra</option>
+              </select>
+            </div>
+            
+            <!-- Peso -->
+            <div class="filter-group">
+              <label class="filter-label">Peso</label>
+              <select id="filter-weight" class="filter-select">
+                <option value="">Todos</option>
+                <option value="45-55">45 - 55 kg</option>
+                <option value="55-65">55 - 65 kg</option>
+                <option value="65-75">65 - 75 kg</option>
+                <option value="75+">75+ kg</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="filter-actions">
+            <button id="apply-filter" class="filter-btn filter-btn-apply" onclick="applyFilters()">
+              <span>🔍</span> Aplicar filtros
+            </button>
+            <button id="clear-filter" class="filter-btn filter-btn-clear" onclick="clearFilters()">
+              <span>✕</span> Limpiar
+            </button>
+          </div>
+        </div>
+        
+        <!-- Indicador de filtros activos -->
+        <div id="active-filters" class="active-filters" style="display: none;">
+          <span class="active-filters-label">Filtros activos:</span>
+          <div id="filter-tags" class="filter-tags"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- Featured Section / Destacados -->
     <section id="featured-section" class="featured-section">
       <div class="container">
-        <div class="passione-nera-header">
+        <div class="luxury-header">
           <div class="decorative-line left"></div>
-          <h2 class="passione-title">Passione Nera</h2>
+          <h2 class="luxury-title">Luxury & Exclusive</h2>
           <div class="decorative-line right"></div>
         </div>
-        <p class="featured-subtitle">Las experiencias más exclusivas</p>
         
         <div class="featured-carousel-wrapper">
           <div class="featured-carousel" id="featured-carousel">
@@ -86,9 +168,24 @@
     <!-- Stories Section -->
     <section id="stories-section" class="stories-section">
       <div class="stories-container">
-        <h2 class="stories-title">Historias</h2>
+        <h2 class="stories-title">Instantes</h2>
         <div id="stories-carousel" class="stories-carousel">
           <!-- Las historias se cargarán aquí vía JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Estados/Mensajes Section - Carrusel de disponibilidad y novedades -->
+    <section id="estados-section" class="estados-section">
+      <div class="container">
+        <div class="estados-header-main">
+          <h2 class="estados-title">🔥 Disponibles Ahora</h2>
+          <p class="estados-subtitle">Chicas activas en este momento</p>
+        </div>
+        <div class="estados-carousel-wrapper">
+          <div id="estados-carousel" class="estados-carousel">
+            <!-- Los estados se cargarán aquí vía JavaScript -->
+          </div>
         </div>
       </div>
     </section>
@@ -122,112 +219,35 @@
       </div>
     </div>
 
-    <!-- Experiencias Section -->
-    <section id="experiencias" class="section">
-      <div class="container experiencias-container">
-        <div class="section-header">
-          <h2 class="section-title">Experiencias Premium</h2>
-          <p class="section-subtitle">Descubre las publicaciones más exclusivas</p>
-        </div>
-        
-        <div class="filters-sticky" id="filters-sticky">
-          <div class="filters-row-compact">
-            <div class="filter-block">
-              <div class="filter-label">Ubicación</div>
-              <select id="filter-location" class="filter-select">
-                <option value="">Todas</option>
-                <option value="Santiago Centro">Centro</option>
-                <option value="Providencia">Providencia</option>
-                <option value="Las Condes">Las Condes</option>
-                <option value="Vitacura">Vitacura</option>
-                <option value="Ñuñoa">Ñuñoa</option>
-                <option value="La Reina">La Reina</option>
-                <option value="Lo Barnechea">Lo Barnechea</option>
-              </select>
-            </div>
-
-            <div class="filter-block">
-              <div class="filter-label">Disponibilidad</div>
-              <div class="pill-group" id="filter-availability" role="group" aria-label="Disponibilidad">
-                <button type="button" class="pill" data-value="Disponible ahora">Ahora</button>
-                <button type="button" class="pill" data-value="Programar">Programar</button>
-                <button type="button" class="pill" data-value="24/7">24/7</button>
-              </div>
-            </div>
-
-            <div class="filter-block">
-              <div class="filter-label">Categorías</div>
-              <div class="pill-group" id="filter-category-chips" role="group" aria-label="Categorías">
-                <button type="button" class="pill" data-value="VIP">VIP</button>
-                <button type="button" class="pill" data-value="Premium">Premium</button>
-                <button type="button" class="pill" data-value="Elite">Elite</button>
-                <button type="button" class="pill" data-value="Estándar">Estándar</button>
-              </div>
-            </div>
-
-            <div class="filter-block">
-              <div class="filter-label">Servicios</div>
-              <div class="pill-group" id="filter-services" role="group" aria-label="Servicios">
-                <button type="button" class="pill" data-value="in-call">In-call</button>
-                <button type="button" class="pill" data-value="out-call">Out-call</button>
-                <button type="button" class="pill" data-value="travel">Travel</button>
-              </div>
-            </div>
-
-            <div class="filter-block search-block">
-              <div class="filter-label">Búsqueda</div>
-              <input type="search" id="filter-search" placeholder="Buscar..." list="names-datalist" />
-              <datalist id="names-datalist"></datalist>
-            </div>
-
-            <div class="filter-block">
-              <div class="filter-label">Ordenar</div>
-              <select id="filter-sort" class="filter-select">
-                <option value="recent">Reciente</option>
-                <option value="price-desc">$ Mayor</option>
-                <option value="price-asc">$ Menor</option>
-                <option value="popular">Popular</option>
-              </select>
-            </div>
-
-            <button id="currency-toggle" class="currency-btn" aria-label="Cambiar moneda">
-              <span class="currency-label">CLP</span>
-            </button>
-          </div>
-
-          <div class="filters-meta">
-            <div class="active-chips" id="active-chips"></div>
-            <div class="filters-counter" id="filters-counter">Mostrando 0 de 0 servicios</div>
-            <button id="reset-filters" class="btn-reset-filters" type="button">Limpiar filtros</button>
-          </div>
-        </div>
-
-        <div id="experiencias-grid" class="experiencias-grid">
-          <!-- Las tarjetas se cargarán aquí vía JavaScript -->
-        </div>
-
-        <div id="skeleton-loader" class="skeleton-loader">
-          <!-- Skeletons se generarán vía JavaScript -->
-        </div>
-
-        <button id="load-more-btn" class="btn cta-gold load-more-btn" style="display: none;">Cargar más</button>
-      </div>
-    </section>
-    
-    <!-- Testimonials Section -->
-    <section id="testimonials-section" class="testimonials-section">
+    <!-- Creators Section -->
+    <section id="creators-section" class="creators-section">
       <div class="container">
         <div class="section-header">
-          <h2 class="section-title">Testimonios</h2>
-          <p class="section-subtitle">Lo que dicen nuestros clientes</p>
+          <h2 class="section-title">VIP <span class="black-animated">Black</span></h2>
+          <p class="section-subtitle">Los perfiles más exclusivos de la plataforma</p>
         </div>
+        
+        <div class="creators-grid-container">
+          <div id="creators-carousel" class="creators-grid">
+            <!-- Los creadores se cargarán aquí vía JavaScript -->
+          </div>
+        </div>
+      </div>
+    </section>
 
-        <div class="testimonials-slider" id="testimonials-slider">
-          <button class="ts-nav ts-prev" aria-label="Anterior">&#10094;</button>
-          <div class="ts-track" id="ts-track"></div>
-          <button class="ts-nav ts-next" aria-label="Siguiente">&#10095;</button>
+    <!-- Premium Select Section -->
+    <section id="premium-select-section" class="premium-select-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title premium-select-title">Premium Select</h2>
+          <p class="section-subtitle">Selección exclusiva de experiencias premium</p>
         </div>
-        <div class="ts-dots" id="ts-dots" role="tablist" aria-label="Navegación de testimonios"></div>
+        
+        <div class="premium-select-grid-container">
+          <div id="premium-select-carousel" class="premium-select-grid">
+            <!-- Los creadores premium se cargarán aquí vía JavaScript -->
+          </div>
+        </div>
       </div>
     </section>
   </main>
@@ -236,14 +256,13 @@
     <div class="container footer-inner">
       <div>
         <a class="logo" href="#inicio">
-          <img src="assets/logo-premium.png.png" alt="Logo" />
+          <img src="assets/logo-premium.png" alt="Logo" />
         </a>
-        <p class="footer-copy">© <span id="year"></span> Proyecto Chic. Todos los derechos reservados.</p>
+        <p class="footer-copy">© <span id="year"></span> Sala Oscura. Todos los derechos reservados.</p>
       </div>
       <div class="footer-links">
-        <a href="#servicios">Servicios</a>
-        <a href="#nosotros">Nosotros</a>
-        <a href="#contacto">Contacto</a>
+        <a id="footer-servicios-link" href="servicios.html">Servicios</a>
+        <a id="footer-nosotros-link" href="nosotros.html">Nosotros</a>
       </div>
     </div>
   </footer>
@@ -268,8 +287,31 @@
           <label for="login-remember">Recordar cuenta</label>
         </div>
         <button type="submit" class="btn cta-gold">Ingresar</button>
+        <p class="login-forgot" style="text-align: center; margin-top: 12px;">
+          <a href="#" id="forgot-password-link" style="color: #D4AF37; font-size: 13px;">¿Olvidaste tu contraseña?</a>
+        </p>
       </form>
-      <p class="login-signup">¿No tienes cuenta? <a href="#" id="login-signup-link">Crear cuenta</a></p>
+      <p class="login-signup">¿No tienes cuenta? <a href="registro.html" id="login-signup-link">Crear cuenta</a></p>
+    </div>
+  </div>
+
+  <!-- Password Recovery Modal -->
+  <div id="recovery-modal" class="login-modal" aria-modal="true" role="dialog" aria-hidden="true" style="display: none;">
+    <div class="login-overlay" id="recovery-overlay"></div>
+    <div class="login-container">
+      <button id="recovery-close" class="login-close" aria-label="Cerrar modal">&times;</button>
+      <h2 class="login-title">🔐 Recuperar Contraseña</h2>
+      <p style="color: #888; font-size: 13px; margin-bottom: 20px; text-align: center;">Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.</p>
+      <form id="recovery-form" class="login-form">
+        <div class="login-field">
+          <label for="recovery-email" class="login-label">Correo electrónico</label>
+          <input id="recovery-email" type="email" name="email" placeholder="tu@email.com" required />
+        </div>
+        <button type="submit" class="btn cta-gold">Enviar enlace de recuperación</button>
+      </form>
+      <p style="text-align: center; margin-top: 16px;">
+        <a href="#" id="back-to-login" style="color: #D4AF37; font-size: 13px;">← Volver a iniciar sesión</a>
+      </p>
     </div>
   </div>
 

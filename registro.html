@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Publicar Perfil - Sala Oscura</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💎</text></svg>" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="registro.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="logo" href="index.html">
+        <img src="assets/logo-premium.png" alt="Sala Oscura" />
+      </a>
+      <nav class="site-nav">
+        <ul class="nav-list">
+          <li><a class="nav-link" href="index.html">Inicio</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="registro-main">
+    <div class="registro-container">
+      <!-- Progress Steps -->
+      <div class="registro-progress">
+        <div class="progress-step active" data-step="1">
+          <div class="step-number">1</div>
+          <span class="step-label">Información Personal</span>
+        </div>
+        <div class="progress-line"></div>
+        <div class="progress-step" data-step="2">
+          <div class="step-number">2</div>
+          <span class="step-label">Características Físicas</span>
+        </div>
+        <div class="progress-line"></div>
+        <div class="progress-step" data-step="3">
+          <div class="step-number">3</div>
+          <span class="step-label">Servicios y Tarifas</span>
+        </div>
+        <div class="progress-line"></div>
+        <div class="progress-step" data-step="4">
+          <div class="step-number">4</div>
+          <span class="step-label">Verificación</span>
+        </div>
+        <div class="progress-line"></div>
+        <div class="progress-step" data-step="5">
+          <div class="step-number">5</div>
+          <span class="step-label">Plan y Confirmación</span>
+        </div>
+      </div>
+
+      <form id="registro-form" class="registro-form">
+        <!-- Step 1: Información Personal -->
+        <div class="form-step active" data-step="1">
+          <h2 class="form-step-title">Información Personal</h2>
+          <p class="form-step-subtitle">Cuéntanos sobre ti para crear tu perfil</p>
+          
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="displayName">Nombre artístico / Display Name *</label>
+              <input type="text" id="displayName" name="displayName" required placeholder="Ej: Valentina Torres" />
+            </div>
+            
+            <div class="form-group">
+              <label for="username">Nombre de usuario</label>
+              <div class="input-prefix">
+                <span>@</span>
+                <input type="text" id="username" name="username" placeholder="tu.usuario" />
+              </div>
+              <small style="color: var(--muted); margin-top: 4px; display: block;">Opcional - Si no lo agregas, se creará uno automáticamente</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="email">Correo electrónico *</label>
+              <input type="email" id="email" name="email" required placeholder="tu@email.com" />
+            </div>
+            
+            <div class="form-group">
+              <label for="whatsapp">WhatsApp *</label>
+              <input type="tel" id="whatsapp" name="whatsapp" required placeholder="+56 9 1234 5678" />
+            </div>
+            
+            <div class="form-group">
+              <label for="password">Contraseña *</label>
+              <input type="password" id="password" name="password" required placeholder="Mínimo 8 caracteres" />
+            </div>
+            
+            <div class="form-group">
+              <label for="confirmPassword">Confirmar contraseña *</label>
+              <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Repite tu contraseña" />
+            </div>
+            
+            <div class="form-group">
+              <label for="city">Ciudad *</label>
+              <select id="city" name="city" required>
+                <option value="">Selecciona tu ciudad</option>
+                <option value="Santiago">Santiago</option>
+                <option value="Valparaíso">Valparaíso</option>
+                <option value="Viña del Mar">Viña del Mar</option>
+                <option value="Concepción">Concepción</option>
+                <option value="Antofagasta">Antofagasta</option>
+                <option value="La Serena">La Serena</option>
+                <option value="Temuco">Temuco</option>
+                <option value="Puerto Montt">Puerto Montt</option>
+                <option value="Otra">Otra (especificar)</option>
+              </select>
+            </div>
+            
+            <div class="form-group" id="otherCityGroup" style="display: none;">
+              <label for="otherCity">Especifica tu ciudad *</label>
+              <input type="text" id="otherCity" name="otherCity" placeholder="Escribe el nombre de tu ciudad" />
+            </div>
+            
+            <div class="form-group">
+              <label for="commune">Comuna *</label>
+              <input type="text" id="commune" name="commune" placeholder="Ej: Las Condes, Providencia" required />
+            </div>
+            
+            <div class="form-group full-width">
+              <label for="bio">Descripción / Bio *</label>
+              <textarea id="bio" name="bio" required placeholder="Describe tu perfil, personalidad y lo que te hace especial..." rows="4"></textarea>
+              <span class="char-counter"><span id="bioCount">0</span>/500</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="nationality">Nacionalidad *</label>
+              <select id="nationality" name="nationality" required>
+                <option value="">Selecciona tu nacionalidad</option>
+                <option value="Chilena">Chilena</option>
+                <option value="Argentina">Argentina</option>
+                <option value="Brasileña">Brasileña</option>
+                <option value="Colombiana">Colombiana</option>
+                <option value="Venezolana">Venezolana</option>
+                <option value="Peruana">Peruana</option>
+                <option value="Mexicana">Mexicana</option>
+                <option value="Española">Española</option>
+                <option value="Otra">Otra (especificar)</option>
+              </select>
+            </div>
+            
+            <div class="form-group" id="otherNationalityGroup" style="display: none;">
+              <label for="otherNationality">Especifica tu nacionalidad *</label>
+              <input type="text" id="otherNationality" name="otherNationality" placeholder="Escribe tu nacionalidad" />
+            </div>
+            
+            <div class="form-group">
+              <label>Idiomas que hablas *</label>
+              <div class="checkbox-grid">
+                <label class="checkbox-item">
+                  <input type="checkbox" name="languages" value="Español" checked />
+                  <span>Español</span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" name="languages" value="Inglés" />
+                  <span>Inglés</span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" name="languages" value="Portugués" />
+                  <span>Portugués</span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" name="languages" value="Francés" />
+                  <span>Francés</span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" name="languages" value="Italiano" />
+                  <span>Italiano</span>
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" name="languages" value="Alemán" />
+                  <span>Alemán</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Características Físicas -->
+        <div class="form-step" data-step="2">
+          <h2 class="form-step-title">Características Físicas</h2>
+          <p class="form-step-subtitle">Información sobre tu apariencia física</p>
+          
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="birthdate">Fecha de nacimiento *</label>
+              <input type="date" id="birthdate" name="birthdate" required />
+              <small style="color: var(--muted); font-size: 11px; margin-top: 4px;">Debes ser mayor de 18 años</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="age">Edad</label>
+              <input type="number" id="age" name="age" readonly disabled style="background: rgba(255,255,255,0.05); cursor: not-allowed;" placeholder="Se calcula automáticamente" />
+              <small style="color: var(--muted); font-size: 11px; margin-top: 4px;">Calculada a partir de tu fecha de nacimiento</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="height">Altura (cm) *</label>
+              <input type="number" id="height" name="height" required min="140" max="210" placeholder="Ej: 168" />
+            </div>
+            
+            <div class="form-group">
+              <label for="weight">Peso (kg) *</label>
+              <input type="number" id="weight" name="weight" required min="40" max="150" placeholder="Ej: 58" />
+            </div>
+            
+            <div class="form-group">
+              <label for="skinTone">Tono de piel *</label>
+              <select id="skinTone" name="skinTone" required>
+                <option value="">Selecciona</option>
+                <option value="Blanca">Blanca</option>
+                <option value="Caucásica">Caucásica</option>
+                <option value="Trigueña">Trigueña</option>
+                <option value="Morena">Morena</option>
+                <option value="Negra">Negra</option>
+                <option value="Asiática">Asiática</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="bodyType">Tipo de cuerpo *</label>
+              <select id="bodyType" name="bodyType" required>
+                <option value="">Selecciona</option>
+                <option value="Delgada">Delgada</option>
+                <option value="Atlética">Atlética</option>
+                <option value="Normal">Normal</option>
+                <option value="Curvilínea">Curvilínea</option>
+                <option value="Voluptuosa">Voluptuosa</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="hairColor">Color de cabello *</label>
+              <select id="hairColor" name="hairColor" required>
+                <option value="">Selecciona</option>
+                <option value="Negro">Negro</option>
+                <option value="Castaño">Castaño</option>
+                <option value="Rubio">Rubio</option>
+                <option value="Pelirrojo">Pelirrojo</option>
+                <option value="Platinado">Platinado</option>
+                <option value="Colorido">Colorido</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="hairLength">Largo del cabello *</label>
+              <select id="hairLength" name="hairLength" required>
+                <option value="">Selecciona</option>
+                <option value="Corto">Corto</option>
+                <option value="Medio">Medio</option>
+                <option value="Largo">Largo</option>
+                <option value="Muy largo">Muy largo</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="eyeColor">Color de ojos *</label>
+              <select id="eyeColor" name="eyeColor" required>
+                <option value="">Selecciona</option>
+                <option value="Café">Café</option>
+                <option value="Negro">Negro</option>
+                <option value="Verde">Verde</option>
+                <option value="Azul">Azul</option>
+                <option value="Miel">Miel</option>
+                <option value="Gris">Gris</option>
+              </select>
+            </div>
+            
+            <div class="form-section-title">Medidas</div>
+            
+            <div class="form-group">
+              <label for="bust">Busto (cm)</label>
+              <input type="number" id="bust" name="bust" min="70" max="130" placeholder="Ej: 95" />
+            </div>
+            
+            <div class="form-group">
+              <label for="waist">Cintura (cm)</label>
+              <input type="number" id="waist" name="waist" min="50" max="100" placeholder="Ej: 62" />
+            </div>
+            
+            <div class="form-group">
+              <label for="hips">Caderas (cm)</label>
+              <input type="number" id="hips" name="hips" min="70" max="140" placeholder="Ej: 98" />
+            </div>
+            
+            <div class="form-group">
+              <label for="breastSize">Tamaño de busto *</label>
+              <select id="breastSize" name="breastSize" required>
+                <option value="">Selecciona</option>
+                <option value="Pequeño">Pequeño</option>
+                <option value="Mediano">Mediano</option>
+                <option value="Grande">Grande</option>
+                <option value="Muy grande">Muy grande</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="breastType">Tipo de busto *</label>
+              <select id="breastType" name="breastType" required>
+                <option value="">Selecciona</option>
+                <option value="Natural">Natural</option>
+                <option value="Operados">Operados</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="buttSize">Tamaño de cola *</label>
+              <select id="buttSize" name="buttSize" required>
+                <option value="">Selecciona</option>
+                <option value="Pequeña">Pequeña</option>
+                <option value="Mediana">Mediana</option>
+                <option value="Grande">Grande</option>
+                <option value="Muy grande">Muy grande</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="pubicHair">Depilación íntima *</label>
+              <select id="pubicHair" name="pubicHair" required>
+                <option value="">Selecciona</option>
+                <option value="Depilada completa">Depilada completa</option>
+                <option value="Depilada parcial">Depilada parcial</option>
+                <option value="Natural recortado">Natural recortado</option>
+                <option value="Natural">Natural</option>
+              </select>
+            </div>
+            
+            <div class="form-section-title">Otros atributos</div>
+            
+            <div class="form-group">
+              <label>¿Tienes tatuajes?</label>
+              <div class="radio-group">
+                <label class="radio-item">
+                  <input type="radio" name="tattoos" value="true" />
+                  <span>Sí</span>
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="tattoos" value="false" checked />
+                  <span>No</span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>¿Tienes piercings?</label>
+              <div class="radio-group">
+                <label class="radio-item">
+                  <input type="radio" name="piercings" value="true" />
+                  <span>Sí</span>
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="piercings" value="false" checked />
+                  <span>No</span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>¿Fumas?</label>
+              <div class="radio-group">
+                <label class="radio-item">
+                  <input type="radio" name="smoker" value="true" />
+                  <span>Sí</span>
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="smoker" value="false" checked />
+                  <span>No</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Servicios y Tarifas -->
+        <div class="form-step" data-step="3">
+          <h2 class="form-step-title">Servicios y Tarifas</h2>
+          <p class="form-step-subtitle">Define qué servicios ofreces y tus tarifas</p>
+          
+          <div class="form-grid">
+            <div class="form-section-title full-width">Servicios que ofreces</div>
+            
+            <div class="form-group full-width">
+              <div class="services-grid">
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="oral" />
+                  <span>Oral con preservativo</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="americana" />
+                  <span>Americana</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="penetracion" />
+                  <span>Penetración</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="masajes" />
+                  <span>Masajes</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="juguetes" />
+                  <span>Juguetes</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="fantasias" />
+                  <span>Fantasías</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="parejas" />
+                  <span>Parejas</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="despedidas" />
+                  <span>Despedidas</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="viajes" />
+                  <span>Viajes</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="eyaculacion-facial" />
+                  <span>Eyaculación facial</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="eyaculacion-cuerpo" />
+                  <span>Eyaculación en cuerpo</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="striptease" />
+                  <span>Striptease</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="baile" />
+                  <span>Baile</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="roll-play" />
+                  <span>Roll Play</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="girlfriend" />
+                  <span>Girlfriend Experience</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="pornstar" />
+                  <span>Pornstar Experience</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="beso-negro" />
+                  <span>Beso negro</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="lluvia-dorada" />
+                  <span>Lluvia dorada</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="dominacion" />
+                  <span>Dominación</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="sumision" />
+                  <span>Sumisión</span>
+                </label>
+                <label class="service-item">
+                  <input type="checkbox" name="services" value="otros" />
+                  <span>Otros servicios 😏</span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="form-section-title full-width">Disponibilidad de atención</div>
+            
+            <div class="form-group">
+              <label>¿Atiendes en tu lugar? (Incall)</label>
+              <div class="radio-group">
+                <label class="radio-item">
+                  <input type="radio" name="incall" value="true" />
+                  <span>Sí</span>
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="incall" value="false" checked />
+                  <span>No</span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>¿Vas al lugar del cliente? (Outcall)</label>
+              <div class="radio-group">
+                <label class="radio-item">
+                  <input type="radio" name="outcall" value="true" />
+                  <span>Sí</span>
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="outcall" value="false" checked />
+                  <span>No</span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>¿Disponible para viajes?</label>
+              <div class="radio-group">
+                <label class="radio-item">
+                  <input type="radio" name="travel" value="true" />
+                  <span>Sí</span>
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="travel" value="false" checked />
+                  <span>No</span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="availability">Horario de disponibilidad *</label>
+              <select id="availability" name="availability" required>
+                <option value="">Selecciona</option>
+                <option value="24/7">24/7</option>
+                <option value="Mañana">Solo mañanas</option>
+                <option value="Tarde">Solo tardes</option>
+                <option value="Noche">Solo noches</option>
+                <option value="Día">Solo de día</option>
+                <option value="Fin de semana">Solo fines de semana</option>
+              </select>
+            </div>
+            
+            <div class="form-section-title full-width">Tarifas (en pesos chilenos CLP)</div>
+            
+            <div class="form-group">
+              <label for="priceHour">Tarifa por hora (CLP) *</label>
+              <div class="input-prefix">
+                <span>$</span>
+                <input type="number" id="priceHour" name="priceHour" required min="100000" placeholder="Ej: 150000" />
+              </div>
+              <div id="priceWarning" style="display: none; margin-top: 8px; padding: 12px; background: rgba(220,38,38,0.15); border: 1px solid rgba(220,38,38,0.3); border-radius: 8px;">
+                <p style="color: #DC2626; margin: 0; font-size: 13px; font-weight: 500;">
+                  ⚠️ <strong>Tarifa mínima no cumplida:</strong> Sala Negra es una plataforma exclusiva para profesionales con tarifas superiores a $100.000 CLP por hora.
+                </p>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="priceTwoHours">Tarifa 2 horas (CLP)</label>
+              <div class="input-prefix">
+                <span>$</span>
+                <input type="number" id="priceTwoHours" name="priceTwoHours" min="80000" placeholder="Ej: 280000" />
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="priceOvernight">Tarifa noche completa (CLP)</label>
+              <div class="input-prefix">
+                <span>$</span>
+                <input type="number" id="priceOvernight" name="priceOvernight" min="200000" placeholder="Ej: 800000" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Verificación -->
+        <div class="form-step" data-step="4">
+          <h2 class="form-step-title">Verificación de Identidad</h2>
+          <p class="form-step-subtitle">Para tu seguridad y la de nuestros usuarios, necesitamos verificar tu identidad</p>
+          
+          <div class="verification-notice">
+            <div class="notice-icon">🔒</div>
+            <div class="notice-content">
+              <h4>Tus documentos están protegidos</h4>
+              <p>Toda la información se encripta y solo se usa para verificación. No compartimos tus datos con terceros.</p>
+            </div>
+          </div>
+          
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label>Documento de identidad oficial (Carnet / Pasaporte) *</label>
+              <div class="upload-zone" id="docUploadZone">
+                <input type="file" id="docUpload" name="docUpload" accept="image/*,.pdf" required hidden />
+                <div class="upload-content">
+                  <span class="upload-icon">📄</span>
+                  <span class="upload-text">Arrastra tu documento aquí o <strong>haz clic para subir</strong></span>
+                  <span class="upload-hint">Formatos: JPG, PNG, PDF. Máximo 10MB</span>
+                </div>
+                <div class="upload-preview" id="docPreview"></div>
+              </div>
+            </div>
+            
+            <div class="form-group full-width">
+              <label>Foto sosteniendo tu carnet (Selfie con documento) *</label>
+              <div class="upload-zone" id="selfieUploadZone">
+                <input type="file" id="selfieUpload" name="selfieUpload" accept="image/*" required hidden />
+                <div class="upload-content">
+                  <span class="upload-icon">🤳</span>
+                  <span class="upload-text">Sube una foto tuya sosteniendo tu carnet</span>
+                  <span class="upload-hint">Tu rostro y el documento deben ser claramente visibles</span>
+                </div>
+                <div class="upload-preview" id="selfiePreview"></div>
+              </div>
+            </div>
+            
+            <div class="form-group full-width">
+              <label>Fotos de verificación para tu perfil (2 fotos obligatorias) *</label>
+              <div class="verification-photo-notice" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                <h4 style="color: #8B5CF6; margin: 0 0 12px 0; font-size: 15px;">📸 Importante sobre las fotos de verificación:</h4>
+                <ul style="color: var(--muted); margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.8;">
+                  <li><strong style="color: var(--text);">Sin editar:</strong> Las fotos deben ser originales, sin filtros ni retoques</li>
+                  <li><strong style="color: var(--text);">Rostro visible:</strong> Tu cara debe aparecer claramente en ambas fotos</li>
+                  <li><strong style="color: #DC2626;">⚠️ Permanentes:</strong> Estas 2 fotos quedarán en tu perfil y <strong>no podrán ser eliminadas</strong>, solo podrás difuminar tu rostro desde tu panel</li>
+                  <li><strong style="color: var(--gold);">✨ Más contenido:</strong> Podrás subir más fotos y videos desde tu perfil según el plan que elijas</li>
+                </ul>
+              </div>
+              <div class="upload-zone multiple" id="photosUploadZone">
+                <input type="file" id="photosUpload" name="photosUpload" accept="image/*" multiple required hidden />
+                <div class="upload-content">
+                  <span class="upload-icon">📸</span>
+                  <span class="upload-text">Sube tus 2 fotos de verificación obligatorias</span>
+                  <span class="upload-hint">Exactamente 2 fotos. Formatos: JPG, PNG. Máximo 5MB cada una</span>
+                </div>
+                <div class="upload-preview-grid" id="photosPreview"></div>
+              </div>
+              <div id="photosCounter" style="margin-top: 8px; font-size: 13px; color: var(--muted);">
+                <span id="photosCount">0</span>/2 fotos seleccionadas
+              </div>
+              <input type="hidden" id="mainPhotoIndex" name="mainPhotoIndex" value="0" />
+              <div id="mainPhotoInfo" style="display: none; margin-top: 12px; padding: 12px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 8px;">
+                <p style="color: #10B981; margin: 0; font-size: 14px;">⭐ <strong>Haz clic en una foto para seleccionarla como foto principal</strong> (la que aparecerá en el carrusel)</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5: Plan y Confirmación -->
+        <div class="form-step" data-step="5">
+          <h2 class="form-step-title">Selecciona tu Plan</h2>
+          <p class="form-step-subtitle">Elige el nivel de visibilidad para tu perfil</p>
+          
+          <!-- Mensaje de restricción de planes -->
+          <div id="planRestrictionMessage" style="display: none; margin-bottom: 24px; padding: 16px 20px; border-radius: 12px; background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3);">
+            <p style="color: #A78BFA; margin: 0; font-size: 14px;">
+              <strong>💎 Planes disponibles según tu tarifa:</strong>
+              <span id="planRestrictionText"></span>
+            </p>
+          </div>
+          
+          <div class="plans-container">
+            <div class="plan-card" data-plan="vip">
+              <div class="plan-badge">VIP</div>
+              <h3 class="plan-name">VIP Black</h3>
+              
+              <!-- Selector de duración -->
+              <div class="plan-duration-selector" style="margin-bottom: 16px;">
+                <label style="color: var(--muted); font-size: 12px; display: block; margin-bottom: 8px;">Duración del plan:</label>
+                <div class="duration-options" style="display: flex; gap: 6px;">
+                  <button type="button" class="duration-btn" data-days="7" data-plan="vip">7 días</button>
+                  <button type="button" class="duration-btn" data-days="15" data-plan="vip">15 días</button>
+                  <button type="button" class="duration-btn active" data-days="30" data-plan="vip">30 días</button>
+                </div>
+              </div>
+              
+              <div class="plan-price">
+                <span class="price-amount" data-plan="vip">$49.990</span>
+                <span class="price-period" data-plan="vip">/30 días</span>
+              </div>
+              <ul class="plan-features" data-plan="vip">
+                <li>✓ Perfil verificado</li>
+                <li>✓ Apareces en sección VIP</li>
+                <li>✓ Badge VIP exclusivo</li>
+                <li>✓ Hasta 10 fotos</li>
+                <li>✓ 2 videos</li>
+                <li>✓ Estadísticas básicas</li>
+              </ul>
+              <button type="button" class="plan-select-btn" data-plan="vip">Seleccionar VIP</button>
+            </div>
+            
+            <div class="plan-card featured" data-plan="premium">
+              <div class="plan-badge premium">PREMIUM</div>
+              <div class="plan-popular">Más popular</div>
+              <h3 class="plan-name">Premium Select</h3>
+              
+              <!-- Selector de duración -->
+              <div class="plan-duration-selector" style="margin-bottom: 16px;">
+                <label style="color: var(--muted); font-size: 12px; display: block; margin-bottom: 8px;">Duración del plan:</label>
+                <div class="duration-options" style="display: flex; gap: 6px;">
+                  <button type="button" class="duration-btn" data-days="7" data-plan="premium">7 días</button>
+                  <button type="button" class="duration-btn" data-days="15" data-plan="premium">15 días</button>
+                  <button type="button" class="duration-btn active" data-days="30" data-plan="premium">30 días</button>
+                </div>
+              </div>
+              
+              <div class="plan-price">
+                <span class="price-amount" data-plan="premium">$79.990</span>
+                <span class="price-period" data-plan="premium">/30 días</span>
+              </div>
+              <ul class="plan-features" data-plan="premium">
+                <li>✓ Todo lo de VIP</li>
+                <li>✓ Apareces en Premium Select</li>
+                <li>✓ Badge Premium dorado</li>
+                <li>✓ Hasta 15 fotos</li>
+                <li>✓ 4 videos</li>
+                <li>✓ Estadísticas avanzadas</li>
+                <li>✓ Prioridad en búsquedas</li>
+                <li>✓ Soporte prioritario</li>
+              </ul>
+              <button type="button" class="plan-select-btn premium" data-plan="premium">Seleccionar Premium</button>
+            </div>
+            
+            <div class="plan-card luxury" data-plan="luxury">
+              <div class="plan-badge luxury">LUXURY</div>
+              <div class="plan-limited">⚡ Disponibilidad limitada</div>
+              <h3 class="plan-name">Luxury & Exclusive</h3>
+              
+              <!-- Selector de duración -->
+              <div class="plan-duration-selector" style="margin-bottom: 16px;">
+                <label style="color: var(--muted); font-size: 12px; display: block; margin-bottom: 8px;">Duración del plan:</label>
+                <div class="duration-options" style="display: flex; gap: 6px;">
+                  <button type="button" class="duration-btn" data-days="7" data-plan="luxury">7 días</button>
+                  <button type="button" class="duration-btn" data-days="15" data-plan="luxury">15 días</button>
+                  <button type="button" class="duration-btn active" data-days="30" data-plan="luxury">30 días</button>
+                </div>
+              </div>
+              
+              <div class="plan-price">
+                <span class="price-amount" data-plan="luxury">$149.990</span>
+                <span class="price-period" data-plan="luxury">/30 días</span>
+              </div>
+              <ul class="plan-features" data-plan="luxury">
+                <li>✓ Todo lo de Premium</li>
+                <li>✓ Carrusel principal destacado</li>
+                <li>✓ Badge Luxury diamante</li>
+                <li>✓ Fotos ilimitadas</li>
+                <li>✓ Videos ilimitados</li>
+                <li>✓ Estadísticas completas</li>
+                <li>✓ Máxima visibilidad</li>
+                <li>✓ Gestor de cuenta personal</li>
+                <li>✓ Verificación prioritaria</li>
+              </ul>
+              <button type="button" class="plan-select-btn luxury" data-plan="luxury">Seleccionar Luxury</button>
+            </div>
+          </div>
+          
+          <input type="hidden" id="selectedPlan" name="selectedPlan" value="" />
+          <input type="hidden" id="selectedDuration" name="selectedDuration" value="30" />
+          
+          <!-- Sección de Pago y Entrevista (se muestra al seleccionar plan) -->
+          <div id="paymentSection" style="display: none; margin-top: 32px;">
+            
+            <!-- Código de descuento -->
+            <div class="discount-code-section" style="padding: 24px; background: rgba(255,255,255,0.03); border: 1px solid rgba(212,175,55,0.2); border-radius: 12px; margin-bottom: 24px;">
+              <h3 style="color: var(--gold); margin-bottom: 16px; font-size: 18px;">🎟️ ¿Tienes un código de descuento?</h3>
+              <div style="display: flex; gap: 12px; align-items: flex-start;">
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                  <input type="text" id="discountCode" name="discountCode" placeholder="Ingresa tu código" style="text-transform: uppercase;" />
+                </div>
+                <button type="button" id="applyDiscountBtn" class="btn" style="background: rgba(212,175,55,0.2); color: var(--gold); border: 1px solid var(--gold); padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 200ms ease; white-space: nowrap;">Aplicar código</button>
+              </div>
+              <div id="discountMessage" style="margin-top: 12px; display: none;"></div>
+              <input type="hidden" id="appliedDiscount" name="appliedDiscount" value="" />
+              <input type="hidden" id="finalPrice" name="finalPrice" value="" />
+            </div>
+            
+            <!-- Datos de Transferencia -->
+            <div class="transfer-section" style="padding: 24px; background: linear-gradient(135deg, rgba(212,175,55,0.1), rgba(139,92,246,0.05)); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; margin-bottom: 24px;">
+              <h3 style="color: var(--gold); margin-bottom: 20px; font-size: 18px;">💳 Datos para Transferencia</h3>
+              
+              <div id="transferDataDisplay" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 8px;">
+                <div>
+                  <span style="color: var(--muted); font-size: 12px; text-transform: uppercase;">Banco</span>
+                  <p id="bankName" style="color: var(--text); font-weight: 600; margin: 4px 0 0 0;">Banco Estado</p>
+                </div>
+                <div>
+                  <span style="color: var(--muted); font-size: 12px; text-transform: uppercase;">Tipo de Cuenta</span>
+                  <p id="accountType" style="color: var(--text); font-weight: 600; margin: 4px 0 0 0;">Cuenta Corriente</p>
+                </div>
+                <div>
+                  <span style="color: var(--muted); font-size: 12px; text-transform: uppercase;">Número de Cuenta</span>
+                  <p id="accountNumber" style="color: var(--text); font-weight: 600; margin: 4px 0 0 0;">1234567890</p>
+                </div>
+                <div>
+                  <span style="color: var(--muted); font-size: 12px; text-transform: uppercase;">RUT</span>
+                  <p id="accountRut" style="color: var(--text); font-weight: 600; margin: 4px 0 0 0;">12.345.678-9</p>
+                </div>
+                <div style="grid-column: span 2;">
+                  <span style="color: var(--muted); font-size: 12px; text-transform: uppercase;">Nombre del Titular</span>
+                  <p id="accountHolder" style="color: var(--text); font-weight: 600; margin: 4px 0 0 0;">Luxury Services SpA</p>
+                </div>
+                <div style="grid-column: span 2;">
+                  <span style="color: var(--muted); font-size: 12px; text-transform: uppercase;">Correo para Comprobante</span>
+                  <p id="accountEmail" style="color: var(--text); font-weight: 600; margin: 4px 0 0 0;">pagos@luxury.cl</p>
+                </div>
+              </div>
+              
+              <div style="margin-top: 20px; padding: 16px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 8px;">
+                <p style="color: #10B981; margin: 0; font-size: 14px;">
+                  <strong>💰 Monto a transferir:</strong> <span id="amountToTransfer" style="font-size: 18px;">$0</span>
+                </p>
+                <p style="color: rgba(16,185,129,0.8); margin: 8px 0 0 0; font-size: 13px;">
+                  ⚠️ Si tu perfil es rechazado después de la entrevista, se te devolverá el 100% del pago.
+                </p>
+              </div>
+              
+              <!-- Adjuntar comprobante -->
+              <div class="form-group" style="margin-top: 20px;">
+                <label style="color: var(--text); font-weight: 600; margin-bottom: 8px; display: block;">📎 Adjuntar Comprobante de Transferencia</label>
+                <div id="transferUploadZone" class="upload-zone" style="border: 2px dashed rgba(212,175,55,0.3); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: all 200ms ease;">
+                  <input type="file" id="transferReceipt" name="transferReceipt" accept="image/*,.pdf" style="display: none;" />
+                  <div class="upload-placeholder">
+                    <span style="font-size: 32px; display: block; margin-bottom: 8px;">📄</span>
+                    <p style="color: var(--muted); margin: 0;">Arrastra tu comprobante aquí o haz clic para seleccionar</p>
+                    <small style="color: var(--muted);">PNG, JPG o PDF (máx. 5MB)</small>
+                  </div>
+                  <div class="upload-preview" style="display: none;">
+                    <span style="color: #10B981; font-weight: 600;">✓ Comprobante adjunto</span>
+                    <p id="transferFileName" style="color: var(--muted); margin: 4px 0 0 0;"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Opción pagar después de entrevista -->
+            <div id="payLaterOption" style="padding: 20px; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 12px; margin-bottom: 24px;">
+              <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
+                <input type="checkbox" id="payAfterInterview" name="payAfterInterview" style="accent-color: var(--gold); margin-top: 4px; width: 20px; height: 20px;" />
+                <div>
+                  <span style="color: #F59E0B; font-weight: 600; font-size: 16px;">💡 Prefiero pagar después de la entrevista</span>
+                  <p style="color: rgba(245,158,11,0.8); margin: 8px 0 0 0; font-size: 14px;">
+                    Si marcas esta opción, podrás realizar el pago una vez que tu entrevista sea aprobada. 
+                    Tu perfil no será publicado hasta confirmar el pago.
+                  </p>
+                </div>
+              </label>
+            </div>
+            
+            <!-- Agendar Entrevista -->
+            <div class="interview-section" style="padding: 24px; background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3); border-radius: 12px; margin-bottom: 24px;">
+              <h3 style="color: #8B5CF6; margin-bottom: 20px; font-size: 18px;">📅 Agendar Entrevista de Verificación</h3>
+              <p style="color: var(--muted); margin-bottom: 20px; font-size: 14px;">
+                Todos los perfiles pasan por una breve entrevista de verificación por videollamada (5-10 min). 
+                Selecciona el día y hora que mejor te acomode.
+              </p>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="interviewDate">Fecha de Entrevista *</label>
+                  <input type="date" id="interviewDate" name="interviewDate" required min="" />
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="interviewTime">Hora de Entrevista *</label>
+                  <select id="interviewTime" name="interviewTime" required>
+                    <option value="">Selecciona una hora</option>
+                    <!-- Las opciones se cargan dinámicamente desde la configuración del admin -->
+                  </select>
+                </div>
+              </div>
+              
+              <div style="margin-top: 16px; padding: 12px; background: rgba(139,92,246,0.15); border-radius: 8px;">
+                <p style="color: #A78BFA; margin: 0; font-size: 13px;">
+                  📞 Recibirás un enlace de videollamada por WhatsApp 30 minutos antes de tu cita.
+                </p>
+              </div>
+            </div>
+            
+          </div>
+          
+          <div class="legal-section">
+            <h3>Declaración y Términos Legales</h3>
+            
+            <div class="legal-checkbox">
+              <label class="checkbox-legal">
+                <input type="checkbox" id="ageConfirm" name="ageConfirm" required />
+                <span class="checkmark"></span>
+                <span class="legal-text">
+                  <strong>Declaro bajo juramento que soy mayor de 18 años</strong> y que toda la información proporcionada en este formulario es verídica y corresponde a mi identidad real.
+                </span>
+              </label>
+            </div>
+            
+            <div class="legal-checkbox">
+              <label class="checkbox-legal">
+                <input type="checkbox" id="termsAccept" name="termsAccept" required />
+                <span class="checkmark"></span>
+                <span class="legal-text">
+                  He leído y acepto los <a href="#" target="_blank">Términos y Condiciones</a> y la <a href="#" target="_blank">Política de Privacidad</a> de Sala Oscura.
+                </span>
+              </label>
+            </div>
+            
+            <div class="legal-checkbox">
+              <label class="checkbox-legal">
+                <input type="checkbox" id="fraudDisclaimer" name="fraudDisclaimer" required />
+                <span class="checkmark"></span>
+                <span class="legal-text">
+                  Entiendo que <strong>cualquier engaño, falsedad o suplantación de identidad</strong> resultará en la eliminación inmediata de mi cuenta y que <strong>salaoscura.com queda exenta de cualquier responsabilidad</strong>. Además, se notificará a las autoridades competentes en caso de falsificación de identidad o edad, pudiendo derivar en acciones legales.
+                </span>
+              </label>
+            </div>
+            
+            <div class="legal-checkbox">
+              <label class="checkbox-legal">
+                <input type="checkbox" id="contentOwnership" name="contentOwnership" required />
+                <span class="checkmark"></span>
+                <span class="legal-text">
+                  Certifico que <strong>soy el/la propietario/a de todo el contenido</strong> (fotos y videos) que estoy subiendo, y autorizo su publicación en la plataforma.
+                </span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="warning-box">
+            <div class="warning-icon">⚠️</div>
+            <div class="warning-content">
+              <h4>Advertencia Legal</h4>
+              <p>La falsificación de documentos de identidad o la declaración de información falsa sobre la edad constituye un delito penal. Sala Oscura colabora activamente con las autoridades y proporcionará toda la información necesaria en caso de investigaciones.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="form-navigation">
+          <button type="button" id="prevBtn" class="nav-btn prev-btn" style="display: none;">
+            ← Anterior
+          </button>
+          <button type="button" id="nextBtn" class="nav-btn next-btn">
+            Siguiente →
+          </button>
+          <button type="submit" id="submitBtn" class="nav-btn submit-btn" style="display: none;">
+            Crear mi cuenta
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <footer class="site-footer registro-footer">
+    <div class="container">
+      <p class="footer-copy">© <span id="year"></span> Sala Oscura. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="registro.js"></script>
+</body>
+</html>

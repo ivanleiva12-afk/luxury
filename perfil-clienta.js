@@ -1,0 +1,2839 @@
+// ========================================
+// PERFIL CLIENTA - Panel de Control JS
+// ========================================
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Verificar autenticación
+  let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+  if (!currentUser) {
+    window.location.href = 'index.html';
+    return;
+  }
+  
+  // ============================================
+  // VERIFICAR ESTADO ACTUAL DEL REGISTRO
+  // (El estado puede haber cambiado desde que se guardó currentUser)
+  // ============================================
+  const pendingRegistros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
+  const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+  
+  // Buscar el estado más reciente del usuario
+  let latestUserData = approvedUsers.find(u => u.id === currentUser.id || u.email === currentUser.email);
+  
+  if (!latestUserData) {
+    latestUserData = pendingRegistros.find(r => r.id === currentUser.id || r.email === currentUser.email);
+  }
+  
+  if (latestUserData) {
+    // Actualizar el status del currentUser con el más reciente
+    currentUser.status = latestUserData.status;
+    
+    // Si está aprobado, actualizar todos los datos
+    if (latestUserData.status === 'aprobado') {
+      currentUser = {
+        ...currentUser,
+        status: 'aprobado',
+        approvedAt: latestUserData.approvedAt,
+        profileVisible: latestUserData.profileVisible || currentUser.profileVisible || false,
+        // Sincronizar fecha de vencimiento si fue actualizada por renovación
+        planExpiry: latestUserData.planExpiry || currentUser.planExpiry,
+        lastRenewalDate: latestUserData.lastRenewalDate || currentUser.lastRenewalDate
+      };
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    }
+  }
+  
+  // ============================================
+  // VERIFICAR SI HAY RENOVACIONES APROBADAS
+  // ============================================
+  function checkApprovedRenewals() {
+    const requests = JSON.parse(localStorage.getItem('pendingPlanRequests') || '[]');
+    const approvedRenewal = requests.find(r => 
+      r.userId === currentUser.id && 
+      r.status === 'approved' && 
+      r.type === 'renewal' &&
+      !r.appliedToUser
+    );
+    
+    if (approvedRenewal) {
+      // Aplicar la renovación al usuario
+      currentUser.planExpiry = approvedRenewal.newExpiry;
+      currentUser.lastRenewalDate = approvedRenewal.approvedAt;
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      
+      // Marcar como aplicada
+      approvedRenewal.appliedToUser = true;
+      localStorage.setItem('pendingPlanRequests', JSON.stringify(requests));
+      
+      // Mostrar notificación
+      setTimeout(() => {
+        showNotification(`🎉 ¡Tu renovación ha sido aprobada! Tu plan ahora vence el ${new Date(approvedRenewal.newExpiry).toLocaleDateString('es-CL')}`, 'success');
+      }, 1000);
+    }
+  }
+  
+  checkApprovedRenewals();
+  
+  // Verificar que el perfil esté aprobado
+  if (currentUser.status === 'rechazado') {
+    showRejectedMessage(latestUserData?.rejectionReason);
+    return;
+  }
+  
+  if (currentUser.status !== 'aprobado') {
+    showPendingApprovalMessage();
+    return;
+  }
+  
+  // Función para mostrar mensaje de rechazado
+  function showRejectedMessage(reason) {
+    document.body.innerHTML = `
+      <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0A0A0A; color: #fff; text-align: center; padding: 24px;">
+        <div style="font-size: 64px; margin-bottom: 24px;">❌</div>
+        <h1 style="color: #DC2626; font-size: 28px; margin-bottom: 16px;">Perfil Rechazado</h1>
+        <p style="color: #A0A0A0; max-width: 500px; line-height: 1.6; margin-bottom: 24px;">
+          Lamentamos informarte que tu solicitud de registro ha sido rechazada.
+        </p>
+        ${reason ? `
+        <div style="background: rgba(220,38,38,0.1); border: 1px solid rgba(220,38,38,0.3); padding: 16px 24px; border-radius: 12px; margin-bottom: 24px; max-width: 500px;">
+          <p style="color: #DC2626; font-size: 14px;"><strong>Motivo:</strong> ${reason}</p>
+        </div>
+        ` : ''}
+        <p style="color: #A0A0A0; font-size: 14px; margin-bottom: 24px;">
+          Si crees que esto es un error o deseas más información, contáctanos por WhatsApp.
+        </p>
+        <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
+          <a href="index.html" style="background: linear-gradient(135deg, #D4AF37, #B8860B); color: #0A0A0A; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">← Volver al Inicio</a>
+          <button onclick="localStorage.removeItem('currentUser'); window.location.href='index.html';" style="background: rgba(255,255,255,0.1); color: #fff; padding: 14px 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; font-weight: 600;">Cerrar Sesión</button>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Función para mostrar mensaje de pendiente
+  function showPendingApprovalMessage() {
+    document.body.innerHTML = `
+      <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0A0A0A; color: #fff; text-align: center; padding: 24px;">
+        <div style="font-size: 64px; margin-bottom: 24px;">⏳</div>
+        <h1 style="color: #D4AF37; font-size: 28px; margin-bottom: 16px;">Perfil Pendiente de Aprobación</h1>
+        <p style="color: #A0A0A0; max-width: 500px; line-height: 1.6; margin-bottom: 24px;">
+          Tu registro ha sido recibido y está siendo revisado por nuestro equipo.<br><br>
+          Te notificaremos por WhatsApp o email cuando tu perfil sea aprobado.
+        </p>
+        <div style="background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.5); padding: 16px 24px; border-radius: 12px; margin-bottom: 24px;">
+          <p style="color: #8B5CF6; font-size: 14px;">📅 Tu entrevista está programada. Mantente atenta a tu WhatsApp.</p>
+        </div>
+        <a href="index.html" style="background: linear-gradient(135deg, #D4AF37, #B8860B); color: #0A0A0A; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">← Volver al Inicio</a>
+      </div>
+    `;
+  }
+
+  // Cargar planes desde localStorage
+  const PLANS = loadPlansConfig();
+  
+  // Cargar datos del usuario
+  loadUserData(currentUser);
+  
+  // Inicializar toggle de visibilidad del perfil
+  initProfileVisibilityToggle();
+
+  // Año en footer
+  const yearEl = document.getElementById('year');
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
+  
+  // ========== TOGGLE DE VISIBILIDAD DEL PERFIL ==========
+  function initProfileVisibilityToggle() {
+    const toggle = document.getElementById('profile-visibility-toggle');
+    const visibilityIcon = document.getElementById('visibility-icon');
+    const visibilityText = document.getElementById('visibility-text');
+    const visibilityLabel = document.getElementById('visibility-label');
+    
+    if (!toggle) return;
+    
+    // Cargar estado actual
+    const isVisible = currentUser.profileVisible || false;
+    toggle.checked = isVisible;
+    updateVisibilityUI(isVisible);
+    
+    // Event listener para el toggle
+    toggle.addEventListener('change', () => {
+      const newState = toggle.checked;
+      
+      // Actualizar currentUser
+      currentUser.profileVisible = newState;
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      
+      // Actualizar en approvedUsers
+      const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+      const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
+      if (userIndex !== -1) {
+        approvedUsers[userIndex].profileVisible = newState;
+        localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+      }
+      
+      // Actualizar en approvedProfiles (para los carruseles)
+      const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+      const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
+      if (profileIndex !== -1) {
+        approvedProfiles[profileIndex].profileVisible = newState;
+        localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+      }
+      
+      // Actualizar en pendingRegistros
+      const pendingRegistros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
+      const regIndex = pendingRegistros.findIndex(r => r.id === currentUser.id);
+      if (regIndex !== -1) {
+        pendingRegistros[regIndex].profileVisible = newState;
+        localStorage.setItem('pendingRegistros', JSON.stringify(pendingRegistros));
+      }
+      
+      updateVisibilityUI(newState);
+      
+      // Mostrar confirmación
+      if (newState) {
+        showNotification('✨ ¡Tu perfil ahora es visible en la página principal!', 'success');
+      } else {
+        showNotification('🔒 Tu perfil está oculto. No aparecerá en la página principal.', 'info');
+      }
+    });
+    
+    function updateVisibilityUI(isVisible) {
+      if (isVisible) {
+        visibilityIcon.textContent = '🟢';
+        visibilityText.textContent = 'Perfil Visible';
+        visibilityText.classList.add('active');
+        visibilityLabel.textContent = 'Perfil Activo';
+        visibilityLabel.classList.add('active');
+      } else {
+        visibilityIcon.textContent = '🔴';
+        visibilityText.textContent = 'Perfil Oculto';
+        visibilityText.classList.remove('active');
+        visibilityLabel.textContent = 'Activar Perfil';
+        visibilityLabel.classList.remove('active');
+      }
+    }
+  }
+  
+  // Función para mostrar notificaciones
+  function showNotification(message, type = 'info') {
+    const existing = document.querySelector('.profile-notification');
+    if (existing) existing.remove();
+    
+    const notification = document.createElement('div');
+    notification.className = 'profile-notification';
+    notification.style.cssText = `
+      position: fixed;
+      top: 100px;
+      right: 24px;
+      padding: 16px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 9999;
+      animation: slideIn 300ms ease;
+      ${type === 'success' ? 'background: rgba(16,185,129,0.9); color: white;' : type === 'error' ? 'background: rgba(239,68,68,0.9); color: white;' : 'background: rgba(59,130,246,0.9); color: white;'}
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      notification.style.animation = 'fadeOut 300ms ease forwards';
+      setTimeout(() => notification.remove(), 300);
+    }, 3000);
+  }
+
+  // ========== CARGAR CONFIGURACIÓN DE PLANES ==========
+  function loadPlansConfig() {
+    const stored = localStorage.getItem('luxuryPlans');
+    if (stored) {
+      return JSON.parse(stored);
+    }
+    // Planes por defecto si no hay configuración
+    return {
+      vip: { photos: 10, videos: 2, instantes: 3, instantesDuracion: 12, estados: 2, estadosDuracion: 6 },
+      premium: { photos: 15, videos: 4, instantes: 5, instantesDuracion: 24, estados: 5, estadosDuracion: 12 },
+      luxury: { photos: 0, videos: 0, instantes: 0, instantesDuracion: 48, estados: 0, estadosDuracion: 24 }
+    };
+  }
+
+  // Obtener restricciones del plan actual
+  function getPlanRestrictions() {
+    const userPlan = currentUser.selectedPlan || 'premium';
+    
+    // Usar restricciones del planLimits si están disponibles (desde admin)
+    if (currentUser.planLimits) {
+      return {
+        photos: currentUser.planLimits.photos || 10,
+        videos: currentUser.planLimits.videos || 2,
+        instantes: currentUser.planLimits.instantes || 5,
+        instantesDuracion: currentUser.planLimits.instantesDuration || 12,
+        estados: currentUser.planLimits.states || 5,
+        estadosDuracion: currentUser.planLimits.stateDuration || 6,
+        planName: userPlan.charAt(0).toUpperCase() + userPlan.slice(1)
+      };
+    }
+    
+    // Si no hay planLimits, obtener configuración directa del admin
+    const plansConfig = JSON.parse(localStorage.getItem('plansConfig') || '{}');
+    
+    const getConfigValue = (plan, key, defaultValue) => {
+      return plansConfig[plan]?.[key] ?? defaultValue;
+    };
+    
+    const planRestrictions = {
+      photos: getConfigValue(userPlan, 'photos', { premium: 15, vip: 10, luxury: 0 }[userPlan] || 10),
+      videos: getConfigValue(userPlan, 'videos', { premium: 4, vip: 2, luxury: 0 }[userPlan] || 2),
+      instantes: getConfigValue(userPlan, 'instantes', { premium: 5, vip: 3, luxury: 0 }[userPlan] || 5),
+      instantesDuracion: getConfigValue(userPlan, 'instantesDuracion', { premium: 24, vip: 12, luxury: 48 }[userPlan] || 12),
+      estados: getConfigValue(userPlan, 'estados', { premium: 5, vip: 2, luxury: 0 }[userPlan] || 5),
+      estadosDuracion: getConfigValue(userPlan, 'estadosDuracion', { premium: 12, vip: 6, luxury: 24 }[userPlan] || 6),
+      planName: userPlan.charAt(0).toUpperCase() + userPlan.slice(1)
+    };
+    
+    return planRestrictions;
+  }
+
+  // ========== SISTEMA DE CONTADOR 24H PARA INSTANTES Y ESTADOS ==========
+  // Este contador persiste aunque se eliminen los instantes/estados
+  // Se resetea a medianoche del día siguiente
+
+  function getDailyCounter(type) {
+    const key = `dailyCounter_${type}_${currentUser.id}`;
+    const data = JSON.parse(localStorage.getItem(key) || '{}');
+    const today = new Date().toDateString();
+    
+    // Si es un nuevo día, resetear el contador
+    if (data.date !== today) {
+      return { count: 0, date: today };
+    }
+    
+    return data;
+  }
+
+  function incrementDailyCounter(type) {
+    const key = `dailyCounter_${type}_${currentUser.id}`;
+    const counter = getDailyCounter(type);
+    counter.count += 1;
+    counter.date = new Date().toDateString();
+    localStorage.setItem(key, JSON.stringify(counter));
+    return counter;
+  }
+
+  function canPublish(type) {
+    const restrictions = getPlanRestrictions();
+    const counter = getDailyCounter(type);
+    const maxAllowed = type === 'instantes' ? restrictions.instantes : restrictions.estados;
+    
+    // Si el plan no permite este tipo
+    if (maxAllowed === 0) {
+      return { allowed: false, reason: `Tu plan ${restrictions.planName} no permite publicar ${type}.`, remaining: 0 };
+    }
+    
+    // Verificar si se alcanzó el límite diario
+    if (counter.count >= maxAllowed) {
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      const hoursRemaining = Math.ceil((tomorrow - now) / (1000 * 60 * 60));
+      
+      return { 
+        allowed: false, 
+        reason: `Has alcanzado tu límite de ${maxAllowed} ${type}/día. Se reinicia en ~${hoursRemaining}h.`,
+        remaining: 0,
+        hoursUntilReset: hoursRemaining
+      };
+    }
+    
+    return { allowed: true, remaining: maxAllowed - counter.count };
+  }
+
+  function updatePlanInfoTexts() {
+    const restrictions = getPlanRestrictions();
+    const instantesInfo = document.getElementById('instantes-plan-info');
+    const estadosInfo = document.getElementById('estados-plan-info');
+    
+    const instantesCounter = getDailyCounter('instantes');
+    const estadosCounter = getDailyCounter('estados');
+    
+    if (instantesInfo) {
+      if (restrictions.instantes === 0) {
+        instantesInfo.innerHTML = '<strong style="color:#D4AF37;">Tu plan no permite instantes.</strong>';
+      } else {
+        const instantesRemaining = Math.max(0, restrictions.instantes - instantesCounter.count);
+        instantesInfo.innerHTML = `<strong>Duración: ${restrictions.instantesDuracion}h</strong> • Límite: <strong>${instantesCounter.count}/${restrictions.instantes}</strong> por día • Restantes: <strong>${instantesRemaining}</strong>`;
+      }
+    }
+    
+    if (estadosInfo) {
+      if (restrictions.estados === 0) {
+        estadosInfo.innerHTML = '<strong style="color:#D4AF37;">Tu plan no permite estados.</strong>';
+      } else {
+        const estadosRemaining = Math.max(0, restrictions.estados - estadosCounter.count);
+        estadosInfo.innerHTML = `<strong>Duración máx: ${restrictions.estadosDuracion}h</strong> • Límite: <strong>${estadosCounter.count}/${restrictions.estados}</strong> por día • Restantes: <strong>${estadosRemaining}</strong>`;
+      }
+    }
+  }
+
+  // Actualizar opciones de duración según restricciones del plan
+  function updateDurationOptions() {
+    const restrictions = getPlanRestrictions();
+    const estadoDuracionSelect = document.getElementById('estado-duracion');
+    const duracionPlanInfo = document.getElementById('duracion-plan-info');
+    
+    if (estadoDuracionSelect) {
+      // Limpiar opciones existentes
+      estadoDuracionSelect.innerHTML = '';
+      
+      // Obtener duración máxima del plan
+      const maxDuration = restrictions.estadosDuracion;
+      
+      // Mostrar info del plan
+      if (duracionPlanInfo) {
+        duracionPlanInfo.textContent = `(máx. ${maxDuration}h - Plan ${restrictions.planName})`;
+      }
+      
+      // Generar opciones dinámicamente hasta el máximo permitido
+      const allOptions = [
+        { value: 1, text: '1 hora' },
+        { value: 2, text: '2 horas' },
+        { value: 3, text: '3 horas' },
+        { value: 4, text: '4 horas' },
+        { value: 6, text: '6 horas' },
+        { value: 8, text: '8 horas' },
+        { value: 12, text: '12 horas' },
+        { value: 24, text: '24 horas' },
+        { value: 48, text: '48 horas' }
+      ];
+      
+      // Filtrar opciones que estén dentro del límite del plan
+      const availableOptions = allOptions.filter(opt => opt.value <= maxDuration);
+      
+      // Si el máximo no está en las opciones predefinidas, agregarlo
+      if (maxDuration > 0 && !availableOptions.find(opt => opt.value === maxDuration)) {
+        availableOptions.push({ 
+          value: maxDuration, 
+          text: `${maxDuration} hora${maxDuration > 1 ? 's' : ''}` 
+        });
+        availableOptions.sort((a, b) => a.value - b.value);
+      }
+      
+      // Crear las opciones del select
+      availableOptions.forEach((option, index) => {
+        const optionElement = document.createElement('option');
+        optionElement.value = option.value;
+        optionElement.textContent = option.text;
+        
+        // Seleccionar la opción del medio o la más alta si hay pocas
+        const middleIndex = Math.floor(availableOptions.length / 2);
+        if (index === middleIndex) {
+          optionElement.selected = true;
+        }
+        
+        estadoDuracionSelect.appendChild(optionElement);
+      });
+      
+      // Si no hay opciones válidas, agregar al menos 1 hora
+      if (estadoDuracionSelect.children.length === 0) {
+        const optionElement = document.createElement('option');
+        optionElement.value = 1;
+        optionElement.textContent = '1 hora';
+        optionElement.selected = true;
+        estadoDuracionSelect.appendChild(optionElement);
+      }
+    }
+  }
+
+  // Llamar al actualizar el DOM
+  updateDurationOptions();
+
+  // ========== TABS ==========
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabContents = document.querySelectorAll('.tab-content');
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabId = btn.dataset.tab;
+      
+      tabBtns.forEach(b => b.classList.remove('active'));
+      tabContents.forEach(c => c.classList.remove('active'));
+      
+      btn.classList.add('active');
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+    });
+  });
+
+  // ========== LOGOUT ==========
+  document.getElementById('logout-btn')?.addEventListener('click', () => {
+    if (confirm('¿Segura que quieres cerrar sesión?')) {
+      localStorage.removeItem('currentUser');
+      window.location.href = 'index.html';
+    }
+  });
+
+  // ========== CARGAR DATOS DEL USUARIO ==========
+  function loadUserData(user) {
+    // Nombre
+    const displayName = document.getElementById('user-display-name');
+    if (displayName) displayName.textContent = user.displayName || 'Usuario';
+    
+    // Username (para menciones en el foro)
+    const usernameDisplay = document.getElementById('user-username-display');
+    if (usernameDisplay) {
+      usernameDisplay.textContent = user.username ? `@${user.username}` : '@usuario';
+    }
+    
+    // Avatar - usar primera foto de perfil si existe
+    const avatar = document.getElementById('user-avatar');
+    if (avatar) {
+      // Buscar fotos de perfil del registro
+      const pendingRegistros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
+      const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+      let userData = approvedUsers.find(u => u.id === user.id || u.email === user.email);
+      if (!userData) userData = pendingRegistros.find(r => r.id === user.id || r.email === user.email);
+      
+      if (userData?.profilePhotosData?.[0]?.base64) {
+        avatar.src = userData.profilePhotosData[0].base64;
+      } else if (user.avatar && !user.avatar.includes('unsplash')) {
+        avatar.src = user.avatar;
+      } else {
+        avatar.src = 'https://via.placeholder.com/200x200?text=' + (user.displayName?.charAt(0) || 'U');
+      }
+    }
+    
+    // Email
+    const emailField = document.getElementById('edit-email');
+    if (emailField) emailField.value = user.email || '';
+    
+    // Campos editables
+    document.getElementById('edit-display-name').value = user.displayName || '';
+    
+    // Fecha de nacimiento y edad (solo lectura)
+    const birthdateField = document.getElementById('edit-birthdate');
+    if (birthdateField && user.birthdate) {
+      // Formatear fecha como DD/MM/YYYY
+      const date = new Date(user.birthdate);
+      const formattedDate = date.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      birthdateField.value = formattedDate;
+    }
+    document.getElementById('edit-age').value = user.age || '';
+    
+    document.getElementById('edit-tagline').value = user.tagline || '✨ Experiencia VIP exclusiva';
+    document.getElementById('edit-bio').value = user.bio || '';
+    document.getElementById('edit-city').value = user.city || '';
+    document.getElementById('edit-commune').value = user.commune || '';
+    document.getElementById('edit-whatsapp').value = user.whatsapp || '';
+    document.getElementById('edit-telegram').value = user.telegram || '';
+    
+    // Precios - sin valores por defecto para 2h y noche completa
+    document.getElementById('price-1h').value = user.priceHour || 150000;
+    document.getElementById('price-2h').value = user.priceTwoHours || '';
+    document.getElementById('price-night').value = user.priceOvernight || '';
+    
+    // Cargar servicios
+    loadServices(user);
+    
+    // Cargar disponibilidad
+    loadAvailability(user);
+    
+    // Plan
+    loadPlanInfo(user);
+    
+    // Payment History
+    loadPaymentHistory(user);
+    
+    // Stats
+    loadStats(user);
+    
+    // Cargar instantes y estados
+    loadInstantes(user.id);
+    loadEstados(user.id);
+  }
+
+  // ========== PLAN INFO ==========
+  function loadPlanInfo(user) {
+    const planName = document.getElementById('current-plan-name');
+    const planIcon = document.getElementById('plan-icon');
+    const planStatus = document.getElementById('plan-status');
+    const planExpiry = document.getElementById('plan-expiry');
+    const planDays = document.getElementById('plan-days');
+    const planFeaturesList = document.getElementById('plan-features-list');
+    
+    const plans = {
+      'premium': { name: 'Premium', icon: '⭐', features: ['Perfil destacado', 'Hasta 10 fotos', '5 estados/día', 'Badge Premium'] },
+      'vip': { name: 'VIP', icon: '👑', features: ['Perfil VIP', 'Hasta 15 fotos', '7 estados/día', 'Badge VIP', 'Duración estados 12h'] },
+      'luxury': { name: 'Luxury & Exclusive', icon: '💎', features: ['Máxima prioridad', 'Fotos ilimitadas', '10 estados/día', 'Badge Luxury', 'Duración estados 24h', 'Soporte VIP'] },
+      'luxury-exclusive': { name: 'Luxury & Exclusive', icon: '💎', features: ['Máxima prioridad', 'Fotos ilimitadas', '10 estados/día', 'Badge Luxury', 'Duración estados 24h', 'Soporte VIP'] }
+    };
+    
+    const userPlan = user.selectedPlan || 'premium';
+    const plan = plans[userPlan] || plans.premium;
+    
+    if (planName) planName.textContent = plan.name;
+    if (planIcon) planIcon.textContent = plan.icon;
+    
+    // Calcular fecha de vencimiento - Prioridad: planExpiry > planInfo.expiryDate > calculado
+    let expiryDate;
+    
+    if (user.planExpiry) {
+      // Si hay planExpiry directo (por renovación aprobada)
+      expiryDate = new Date(user.planExpiry);
+    } else if (user.planInfo?.expiryDate) {
+      // Si hay fecha de expiración en planInfo
+      expiryDate = new Date(user.planInfo.expiryDate);
+    } else {
+      // Fallback: calcular desde fecha de aprobación o registro
+      const startDate = user.approvedAt ? new Date(user.approvedAt) : new Date(user.registrationDate || Date.now());
+      const planDuration = user.planInfo?.duration || { luxury: 30, vip: 30, premium: 30 }[userPlan] || 30;
+      expiryDate = new Date(startDate);
+      expiryDate.setDate(expiryDate.getDate() + planDuration);
+    }
+    
+    // Validar que sea una fecha válida
+    if (isNaN(expiryDate.getTime())) {
+      expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + 30);
+    }
+    
+    const today = new Date();
+    const daysLeft = Math.max(0, Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24)));
+    
+    if (planExpiry) planExpiry.textContent = expiryDate.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' });
+    if (planDays) {
+      planDays.textContent = `${daysLeft} días`;
+      // Colorear según urgencia
+      if (daysLeft <= 7) {
+        planDays.style.color = '#EF4444';
+      } else if (daysLeft <= 15) {
+        planDays.style.color = '#F59E0B';
+      } else {
+        planDays.style.color = '#10B981';
+      }
+    }
+    if (planStatus) {
+      planStatus.textContent = daysLeft > 0 ? 'Activo' : 'Vencido';
+      planStatus.className = `detail-value ${daysLeft > 0 ? 'active' : 'expired'}`;
+    }
+    
+    if (planFeaturesList) {
+      planFeaturesList.innerHTML = plan.features.map(f => `<li>✓ ${f}</li>`).join('');
+    }
+  }
+
+  // ========== SERVICIOS ==========
+  function loadServices(user) {
+    const servicesGrid = document.getElementById('services-grid');
+    if (!servicesGrid) return;
+    
+    const userServices = user.services || [];
+    
+    // Marcar los checkboxes según los servicios del usuario
+    const checkboxes = servicesGrid.querySelectorAll('input[name="services"]');
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = userServices.includes(checkbox.value);
+      
+      // Actualizar estilo visual
+      const label = checkbox.closest('label');
+      if (label) {
+        if (checkbox.checked) {
+          label.style.borderColor = 'var(--gold)';
+          label.style.background = 'rgba(212,175,55,0.1)';
+        } else {
+          label.style.borderColor = 'rgba(255,255,255,0.1)';
+          label.style.background = 'rgba(255,255,255,0.05)';
+        }
+        
+        checkbox.addEventListener('change', () => {
+          if (checkbox.checked) {
+            label.style.borderColor = 'var(--gold)';
+            label.style.background = 'rgba(212,175,55,0.1)';
+          } else {
+            label.style.borderColor = 'rgba(255,255,255,0.1)';
+            label.style.background = 'rgba(255,255,255,0.05)';
+          }
+        });
+      }
+    });
+  }
+  
+  // ========== DISPONIBILIDAD ==========
+  function loadAvailability(user) {
+    const incallCheckbox = document.getElementById('incall-option');
+    const outcallCheckbox = document.getElementById('outcall-option');
+    const travelCheckbox = document.getElementById('travel-option');
+    
+    if (incallCheckbox) incallCheckbox.checked = user.incall === 'true' || user.incall === true;
+    if (outcallCheckbox) outcallCheckbox.checked = user.outcall === 'true' || user.outcall === true;
+    if (travelCheckbox) travelCheckbox.checked = user.travel === 'true' || user.travel === true;
+  }
+
+  // ========== STATS ==========
+  function loadStats(user) {
+    // Buscar el perfil en approvedProfiles para obtener stats reales
+    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    const userProfile = approvedProfiles.find(p => p.userId === user.id || p.id === `profile-${user.id}`);
+    
+    let stats;
+    if (userProfile && userProfile.stats) {
+      stats = userProfile.stats;
+    } else {
+      stats = user.stats || { views: 0, likes: 0, recommendations: 0, experiences: 0 };
+    }
+    
+    // Actualizar visualización de stats
+    document.getElementById('stat-views').textContent = (stats.views || 0).toLocaleString();
+    document.getElementById('stat-likes').textContent = (stats.likes || 0).toLocaleString();
+    document.getElementById('stat-contacts').textContent = (stats.recommendations || 0).toLocaleString();
+    
+    // Contar instantes activos
+    const instantes = JSON.parse(localStorage.getItem(`instantes_${user.id}`) || '[]');
+    const activeInstantes = instantes.filter(i => {
+      const createdAt = new Date(i.createdAt);
+      const now = new Date();
+      const hoursAgo = (now - createdAt) / (1000 * 60 * 60);
+      return hoursAgo < 24;
+    });
+    document.getElementById('stat-stories').textContent = activeInstantes.length;
+    
+    // Actualizar stats en currentUser también
+    currentUser.stats = stats;
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+  }
+
+  // ========== INSTANTES ==========
+  function loadInstantes(userId) {
+    const instantes = JSON.parse(localStorage.getItem(`instantes_${userId}`) || '[]');
+    const grid = document.getElementById('instantes-grid');
+    const activeStatusesList = document.getElementById('active-statuses-list');
+    
+    // Filtrar instantes activos (menos de 24h)
+    const now = new Date();
+    const activeInstantes = instantes.filter(i => {
+      const createdAt = new Date(i.createdAt);
+      const hoursAgo = (now - createdAt) / (1000 * 60 * 60);
+      return hoursAgo < 24;
+    });
+    
+    if (grid) {
+      if (activeInstantes.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polygon points="10 8 16 12 10 16 10 8"></polygon>
+            </svg>
+            <p>No tienes instantes activos</p>
+            <p style="font-size: 13px; margin-top: 8px;">Sube tu primer instante para aparecer en el carrusel</p>
+          </div>
+        `;
+      } else {
+        grid.innerHTML = activeInstantes.map((instante, index) => {
+          const createdDate = new Date(instante.createdAt);
+          const hoursAgo = Math.max(1, Math.floor((now - createdDate) / (1000 * 60 * 60)));
+          const timeText = hoursAgo < 24 ? `Hace ${hoursAgo}h` : 'Hace 24h+';
+          return `
+            <div class="instante-card" data-id="${instante.id}">
+              <img src="${instante.image}" alt="Instante" />
+              <div class="instante-overlay">
+                <span class="instante-caption">${instante.caption || ''}</span>
+                <span class="instante-time">${timeText}</span>
+              </div>
+              <button class="instante-delete" onclick="deleteInstante('${instante.id}')">×</button>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  }
+
+  // ========== ESTADOS ==========
+  function loadEstados(userId) {
+    const estados = JSON.parse(localStorage.getItem(`estados_${userId}`) || '[]');
+    const estadosList = document.getElementById('estados-list');
+    const activeStatusesList = document.getElementById('active-statuses-list');
+    
+    // Filtrar estados activos
+    const now = new Date();
+    const activeEstados = estados.filter(e => {
+      const createdAt = new Date(e.createdAt);
+      const hoursAgo = (now - createdAt) / (1000 * 60 * 60);
+      return hoursAgo < e.duration;
+    });
+    
+    const statusColors = {
+      'disponible': 'green',
+      'novedad': 'purple',
+      'promo': 'orange',
+      'ocupada': 'red'
+    };
+    
+    const statusIcons = {
+      'disponible': '❤️',
+      'novedad': '✨',
+      'promo': '🔥',
+      'ocupada': '⏸️'
+    };
+    
+    const renderEstados = (list, showDelete = true) => {
+      if (!list) return;
+      
+      if (activeEstados.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <p>No tienes estados activos</p>
+          </div>
+        `;
+      } else {
+        list.innerHTML = activeEstados.map(estado => {
+          const hoursLeft = Math.max(0, estado.duration - Math.floor((now - new Date(estado.createdAt)) / (1000 * 60 * 60)));
+          return `
+            <div class="status-item">
+              <div class="status-item-left">
+                <span class="status-icon">${statusIcons[estado.type] || '💬'}</span>
+                <div>
+                  <div class="status-message">${estado.message}</div>
+                  <div class="status-time">${hoursLeft}h restantes</div>
+                </div>
+              </div>
+              ${showDelete ? `<button class="status-delete" onclick="deleteEstado('${estado.id}')">×</button>` : ''}
+            </div>
+          `;
+        }).join('');
+      }
+    };
+    
+    renderEstados(estadosList);
+    renderEstados(activeStatusesList, false);
+  }
+
+  // ========== MODAL INSTANTE ==========
+  const modalInstante = document.getElementById('modal-instante');
+  const btnNuevoInstante = document.getElementById('btn-nuevo-instante');
+  const closeModalInstante = document.getElementById('close-modal-instante');
+  const cancelInstante = document.getElementById('cancel-instante');
+  const formInstante = document.getElementById('form-instante');
+  const instanteUploadArea = document.getElementById('instante-upload-area');
+  const instanteFile = document.getElementById('instante-file');
+  const instantePreview = document.getElementById('instante-preview');
+  
+  let selectedInstanteImage = null;
+
+  btnNuevoInstante?.addEventListener('click', () => {
+    // Verificar límite antes de abrir modal
+    const canPublishResult = canPublish('instantes');
+    if (!canPublishResult.allowed) {
+      showToast(canPublishResult.reason);
+      return;
+    }
+    modalInstante.style.display = 'flex';
+  });
+
+  closeModalInstante?.addEventListener('click', () => {
+    modalInstante.style.display = 'none';
+    resetInstanteForm();
+  });
+
+  cancelInstante?.addEventListener('click', () => {
+    modalInstante.style.display = 'none';
+    resetInstanteForm();
+  });
+
+  instanteUploadArea?.addEventListener('click', () => {
+    instanteFile.click();
+  });
+
+  instanteFile?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        selectedInstanteImage = e.target.result;
+        instantePreview.src = selectedInstanteImage;
+        instantePreview.style.display = 'block';
+        instanteUploadArea.querySelector('.upload-placeholder').style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  formInstante?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    if (!selectedInstanteImage) {
+      alert('Por favor selecciona una imagen');
+      return;
+    }
+    
+    // Verificar si puede publicar usando el sistema de contador 24h
+    const canPublishResult = canPublish('instantes');
+    if (!canPublishResult.allowed) {
+      showToast(canPublishResult.reason);
+      return;
+    }
+    
+    const restrictions = getPlanRestrictions();
+    const caption = document.getElementById('instante-caption').value;
+    const instante = {
+      id: Date.now().toString(),
+      image: selectedInstanteImage,
+      caption: caption,
+      createdAt: new Date().toISOString(),
+      userId: currentUser.id,
+      duration: restrictions.instantesDuracion // Usar duración del plan
+    };
+    
+    // Guardar instante
+    const instantes = JSON.parse(localStorage.getItem(`instantes_${currentUser.id}`) || '[]');
+    instantes.unshift(instante);
+    localStorage.setItem(`instantes_${currentUser.id}`, JSON.stringify(instantes));
+    
+    // Incrementar el contador diario (persiste aunque se elimine)
+    const newCounter = incrementDailyCounter('instantes');
+    
+    // Guardar en instantes globales para el carrusel principal
+    const globalInstantes = JSON.parse(localStorage.getItem('globalInstantes') || '[]');
+    globalInstantes.unshift({
+      ...instante,
+      userName: currentUser.displayName,
+      userAvatar: currentUser.avatar || currentUser.profilePhotosData?.[0]?.data,
+      whatsapp: currentUser.whatsapp,
+      userBadge: currentUser.profileType || 'premium'
+    });
+    localStorage.setItem('globalInstantes', JSON.stringify(globalInstantes));
+    
+    // Cerrar modal y recargar
+    modalInstante.style.display = 'none';
+    resetInstanteForm();
+    loadInstantes(currentUser.id);
+    loadStats(currentUser);
+    updatePlanInfoTexts(); // Actualizar contadores en UI
+    loadMediaLimits(); // Actualizar información general
+    const remaining = restrictions.instantes - newCounter.count;
+    showToast(`¡Instante publicado! (${newCounter.count}/${restrictions.instantes} hoy, dura ${restrictions.instantesDuracion}h) - Restantes: ${remaining}`);
+  });
+
+  function resetInstanteForm() {
+    formInstante?.reset();
+    selectedInstanteImage = null;
+    if (instantePreview) {
+      instantePreview.style.display = 'none';
+      instantePreview.src = '';
+    }
+    if (instanteUploadArea) {
+      instanteUploadArea.querySelector('.upload-placeholder').style.display = 'flex';
+    }
+  }
+
+  // ========== MODAL ESTADO ==========
+  const modalEstado = document.getElementById('modal-estado');
+  const btnNuevoEstado = document.getElementById('btn-nuevo-estado');
+  const closeModalEstado = document.getElementById('close-modal-estado');
+  const cancelEstado = document.getElementById('cancel-estado');
+  const formEstado = document.getElementById('form-estado');
+  const estadoMensaje = document.getElementById('estado-mensaje');
+  const estadoChars = document.getElementById('estado-chars');
+
+  btnNuevoEstado?.addEventListener('click', () => {
+    // Verificar límite antes de abrir modal
+    const canPublishResult = canPublish('estados');
+    if (!canPublishResult.allowed) {
+      showToast(canPublishResult.reason);
+      return;
+    }
+    updateDurationOptions(); // Actualizar opciones según plan
+    modalEstado.style.display = 'flex';
+  });
+
+  closeModalEstado?.addEventListener('click', () => {
+    modalEstado.style.display = 'none';
+    formEstado?.reset();
+  });
+
+  cancelEstado?.addEventListener('click', () => {
+    modalEstado.style.display = 'none';
+    formEstado?.reset();
+  });
+
+  estadoMensaje?.addEventListener('input', () => {
+    estadoChars.textContent = estadoMensaje.value.length;
+  });
+
+  // Quick status buttons - verificar límite antes de abrir modal
+  document.querySelectorAll('.status-quick-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Verificar si puede publicar usando el sistema de contador 24h
+      const canPublishResult = canPublish('estados');
+      if (!canPublishResult.allowed) {
+        showToast(canPublishResult.reason);
+        return;
+      }
+      
+      const statusType = btn.dataset.status;
+      document.querySelector(`input[name="status-type"][value="${statusType}"]`).checked = true;
+      updateDurationOptions(); // Actualizar opciones según plan
+      modalEstado.style.display = 'flex';
+    });
+  });
+
+  // Función para actualizar estado de botones de estado rápido
+  function updateQuickStatusButtons() {
+    const canPublishResult = canPublish('estados');
+    document.querySelectorAll('.status-quick-btn').forEach(btn => {
+      btn.classList.toggle('disabled', !canPublishResult.allowed);
+      btn.title = !canPublishResult.allowed ? canPublishResult.reason : '';
+    });
+  }
+  
+  // Ejecutar al cargar
+  updateQuickStatusButtons();
+
+  formEstado?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    const statusType = document.querySelector('input[name="status-type"]:checked').value;
+    const message = estadoMensaje.value || getDefaultMessage(statusType);
+    const duration = parseInt(document.getElementById('estado-duracion').value);
+    
+    const estado = {
+      id: Date.now().toString(),
+      type: statusType,
+      message: message,
+      duration: duration,
+      createdAt: new Date().toISOString(),
+      userId: currentUser.id
+    };
+    
+    saveEstado(estado);
+    
+    modalEstado.style.display = 'none';
+    formEstado.reset();
+    estadoChars.textContent = '0';
+  });
+
+  function getDefaultMessage(type) {
+    const messages = {
+      'disponible': '¡Disponible ahora! 💋',
+      'novedad': '✨ Nueva novedad',
+      'promo': '🔥 Promoción especial',
+      'ocupada': 'Ocupada por el momento'
+    };
+    return messages[type] || 'Estado actualizado';
+  }
+
+  function saveEstado(estado) {
+    // Verificar si puede publicar usando el sistema de contador 24h
+    const canPublishResult = canPublish('estados');
+    if (!canPublishResult.allowed) {
+      showToast(canPublishResult.reason);
+      return;
+    }
+    
+    const restrictions = getPlanRestrictions();
+    
+    // Validar duración máxima
+    if (estado.duration > restrictions.estadosDuracion) {
+      estado.duration = restrictions.estadosDuracion;
+      showToast(`Duración limitada a ${restrictions.estadosDuracion}h por tu plan ${restrictions.planName}`);
+    }
+    
+    // Guardar estado
+    const estados = JSON.parse(localStorage.getItem(`estados_${currentUser.id}`) || '[]');
+    estados.unshift(estado);
+    localStorage.setItem(`estados_${currentUser.id}`, JSON.stringify(estados));
+    
+    // Incrementar el contador diario (persiste aunque se elimine)
+    const newCounter = incrementDailyCounter('estados');
+    
+    // Guardar en estados globales para el carrusel principal
+    const globalEstados = JSON.parse(localStorage.getItem('globalEstados') || '[]');
+    globalEstados.unshift({
+      ...estado,
+      userId: currentUser.id,
+      userName: currentUser.displayName,
+      userAvatar: currentUser.avatar || currentUser.profilePhotosData?.[0]?.data,
+      whatsapp: currentUser.whatsapp,
+      city: currentUser.city,
+      commune: currentUser.commune,
+      username: currentUser.username
+    });
+    localStorage.setItem('globalEstados', JSON.stringify(globalEstados));
+    
+    loadEstados(currentUser.id);
+    updatePlanInfoTexts(); // Actualizar contadores en UI
+    updateQuickStatusButtons(); // Actualizar botones de estado rápido
+    loadMediaLimits(); // Actualizar información general
+    const remaining = restrictions.estados - newCounter.count;
+    showToast(`¡Estado publicado! (${newCounter.count}/${restrictions.estados} hoy) - Restantes: ${remaining}`);
+  }
+
+  // ========== DELETE FUNCTIONS ==========
+  window.deleteInstante = (id) => {
+    if (!confirm('¿Eliminar este instante?')) return;
+    
+    let instantes = JSON.parse(localStorage.getItem(`instantes_${currentUser.id}`) || '[]');
+    instantes = instantes.filter(i => i.id !== id);
+    localStorage.setItem(`instantes_${currentUser.id}`, JSON.stringify(instantes));
+    
+    // También eliminar de globales
+    let globalInstantes = JSON.parse(localStorage.getItem('globalInstantes') || '[]');
+    globalInstantes = globalInstantes.filter(i => i.id !== id);
+    localStorage.setItem('globalInstantes', JSON.stringify(globalInstantes));
+    
+    loadInstantes(currentUser.id);
+    loadStats(currentUser);
+    showToast('Instante eliminado');
+  };
+
+  window.deleteEstado = (id) => {
+    if (!confirm('¿Eliminar este estado?')) return;
+    
+    let estados = JSON.parse(localStorage.getItem(`estados_${currentUser.id}`) || '[]');
+    estados = estados.filter(e => e.id !== id);
+    localStorage.setItem(`estados_${currentUser.id}`, JSON.stringify(estados));
+    
+    // También eliminar de globales
+    let globalEstados = JSON.parse(localStorage.getItem('globalEstados') || '[]');
+    globalEstados = globalEstados.filter(e => e.id !== id);
+    localStorage.setItem('globalEstados', JSON.stringify(globalEstados));
+    
+    loadEstados(currentUser.id);
+    showToast('Estado eliminado');
+  };
+
+  // ========== PROFILE EDIT ==========
+  const profileEditForm = document.getElementById('profile-edit-form');
+  
+  profileEditForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    // Actualizar datos del usuario
+    currentUser.displayName = document.getElementById('edit-display-name').value;
+    currentUser.age = document.getElementById('edit-age').value;
+    currentUser.tagline = document.getElementById('edit-tagline').value;
+    currentUser.bio = document.getElementById('edit-bio').value;
+    currentUser.city = document.getElementById('edit-city').value;
+    currentUser.commune = document.getElementById('edit-commune').value;
+    currentUser.whatsapp = document.getElementById('edit-whatsapp').value;
+    currentUser.telegram = document.getElementById('edit-telegram').value;
+    currentUser.priceHour = document.getElementById('price-1h').value;
+    currentUser.priceTwoHours = document.getElementById('price-2h').value;
+    currentUser.priceOvernight = document.getElementById('price-night').value;
+    
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    
+    // Actualizar también en approvedUsers
+    const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+    const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
+    if (userIndex !== -1) {
+      approvedUsers[userIndex] = { ...approvedUsers[userIndex], ...currentUser };
+      localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+    }
+    
+    // Actualizar perfil en carrusel si existe
+    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
+    if (profileIndex !== -1) {
+      approvedProfiles[profileIndex] = {
+        ...approvedProfiles[profileIndex],
+        displayName: currentUser.displayName,
+        title: currentUser.displayName,
+        physicalInfo: {
+          ...approvedProfiles[profileIndex].physicalInfo,
+          age: parseInt(currentUser.age) || 25,
+        },
+        commune: currentUser.commune,
+        prices: {
+          hour: { CLP: parseInt(currentUser.priceHour) || 150000, USD: Math.round((parseInt(currentUser.priceHour) || 150000) / 830) },
+          twoHours: { CLP: parseInt(currentUser.priceTwoHours) || 0, USD: Math.round((parseInt(currentUser.priceTwoHours) || 0) / 830) },
+          overnight: { CLP: parseInt(currentUser.priceOvernight) || 0, USD: Math.round((parseInt(currentUser.priceOvernight) || 0) / 830) }
+        }
+      };
+      localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+    }
+    
+    // Actualizar nombre en header
+    document.getElementById('user-display-name').textContent = currentUser.displayName;
+    
+    // Actualizar username en header
+    const usernameDisplay = document.getElementById('user-username-display');
+    if (usernameDisplay && currentUser.username) {
+      usernameDisplay.textContent = `@${currentUser.username}`;
+    }
+    
+    showToast('¡Perfil actualizado!');
+  });
+
+  // ========== GUARDAR TARIFAS ==========
+  const saveTarifasBtn = document.getElementById('save-tarifas-btn');
+  saveTarifasBtn?.addEventListener('click', () => {
+    currentUser.priceHour = document.getElementById('price-1h').value;
+    currentUser.priceTwoHours = document.getElementById('price-2h').value;
+    currentUser.priceOvernight = document.getElementById('price-night').value;
+    
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    
+    // Actualizar en approvedUsers
+    const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+    const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
+    if (userIndex !== -1) {
+      approvedUsers[userIndex] = { ...approvedUsers[userIndex], ...currentUser };
+      localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+    }
+    
+    // Actualizar perfil en carrusel
+    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
+    if (profileIndex !== -1) {
+      const priceHourCLP = parseInt(currentUser.priceHour) || 150000;
+      const priceTwoHoursCLP = parseInt(currentUser.priceTwoHours) || 0;
+      const priceOvernightCLP = parseInt(currentUser.priceOvernight) || 0;
+      
+      // Actualizar price (usado por tarjetas VIP/Premium)
+      approvedProfiles[profileIndex].price = {
+        CLP: priceHourCLP,
+        USD: Math.round(priceHourCLP / 830)
+      };
+      
+      // Actualizar prices (usado por modal de perfil completo)
+      approvedProfiles[profileIndex].prices = {
+        hour: { CLP: priceHourCLP, USD: Math.round(priceHourCLP / 830) },
+        twoHours: { CLP: priceTwoHoursCLP, USD: Math.round(priceTwoHoursCLP / 830) },
+        overnight: { CLP: priceOvernightCLP, USD: Math.round(priceOvernightCLP / 830) }
+      };
+      localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+    }
+    
+    showToast('¡Tarifas actualizadas!');
+  });
+
+  // ========== GUARDAR SERVICIOS ==========
+  const saveServicesBtn = document.getElementById('save-services-btn');
+  saveServicesBtn?.addEventListener('click', () => {
+    const servicesGrid = document.getElementById('services-grid');
+    const checkboxes = servicesGrid.querySelectorAll('input[name="services"]:checked');
+    const services = Array.from(checkboxes).map(cb => cb.value);
+    
+    currentUser.services = services;
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    
+    // Actualizar en approvedUsers
+    const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+    const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
+    if (userIndex !== -1) {
+      approvedUsers[userIndex] = { ...approvedUsers[userIndex], services };
+      localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+    }
+    
+    // Actualizar perfil en carrusel
+    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    const profileIndex = approvedProfiles.findIndex(p => p.userId === currentUser.id || p.id === `profile-${currentUser.id}`);
+    if (profileIndex !== -1) {
+      approvedProfiles[profileIndex].services = services;
+      localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+    }
+    
+    showToast('¡Servicios actualizados!');
+  });
+
+  // ========== GUARDAR DISPONIBILIDAD ==========
+  const saveAvailabilityBtn = document.getElementById('save-availability-btn');
+  saveAvailabilityBtn?.addEventListener('click', () => {
+    const incall = document.getElementById('incall-option')?.checked || false;
+    const outcall = document.getElementById('outcall-option')?.checked || false;
+    const travel = document.getElementById('travel-option')?.checked || false;
+    
+    currentUser.incall = incall;
+    currentUser.outcall = outcall;
+    currentUser.travel = travel;
+    
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    
+    // Actualizar en approvedUsers
+    const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+    const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
+    if (userIndex !== -1) {
+      approvedUsers[userIndex] = { ...approvedUsers[userIndex], incall, outcall, travel };
+      localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+    }
+    
+    // Actualizar perfil en carrusel
+    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
+    if (profileIndex !== -1) {
+      approvedProfiles[profileIndex].incall = incall;
+      approvedProfiles[profileIndex].outcall = outcall;
+      approvedProfiles[profileIndex].travel = travel;
+      localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+    }
+    
+    showToast('¡Disponibilidad actualizada!');
+  });
+
+  // ========== PHOTO UPLOAD ==========
+  const addPhotoBtn = document.getElementById('add-photo-btn');
+  const photoUpload = document.getElementById('photo-upload');
+  const photosGrid = document.getElementById('profile-photos-grid');
+  const addVideoBtn = document.getElementById('add-video-btn');
+  const videoUpload = document.getElementById('video-upload');
+  const videosGrid = document.getElementById('profile-videos-grid');
+  
+  // Variables para el editor
+  let currentEditingImage = null;
+  let currentEditingPhotoId = null;
+  let editorCanvas = null;
+  let editorCtx = null;
+  let originalImageData = null;
+  let isBlurToolActive = false;
+  let blurAreas = [];
+  let isDrawing = false;
+
+  // Cargar fotos/videos existentes y límites
+  loadMediaLimits();
+  loadSavedMedia();
+  updateDurationOptions(); // Actualizar opciones de duración según el plan
+  updatePlanInfoTexts(); // Actualizar info de plan en instantes y estados
+  
+  // Tabs de fotos/videos
+  document.querySelectorAll('.media-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.media-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.media-grid-container').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      const mediaType = tab.dataset.media;
+      document.getElementById(`${mediaType}-container`).classList.add('active');
+    });
+  });
+
+  function loadMediaLimits() {
+    const restrictions = getPlanRestrictions();
+    const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
+    const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
+    
+    // Usar contadores diarios que persisten aunque se eliminen
+    const instantesCounter = getDailyCounter('instantes');
+    const estadosCounterData = getDailyCounter('estados');
+    
+    // Actualizar contadores de fotos/videos
+    document.getElementById('photos-count').textContent = userPhotos.length;
+    document.getElementById('photos-max').textContent = restrictions.photos === 0 ? '∞' : restrictions.photos;
+    document.getElementById('videos-count').textContent = userVideos.length;
+    document.getElementById('videos-max').textContent = restrictions.videos === 0 ? '✗' : restrictions.videos;
+    
+    // Actualizar contadores de instantes y estados si existen
+    const instantesCounterEl = document.getElementById('instantes-count');
+    if (instantesCounterEl) {
+      instantesCounterEl.textContent = `${instantesCounter.count}/${restrictions.instantes === 0 ? '✗' : restrictions.instantes}`;
+    }
+    
+    const estadosCounterEl = document.getElementById('estados-count');
+    if (estadosCounterEl) {
+      estadosCounterEl.textContent = `${estadosCounterData.count}/${restrictions.estados}`;
+    }
+    
+    // Actualizar badge del plan
+    const planBadge = document.getElementById('plan-badge-info');
+    const planIcons = { vip: '👑', premium: '💫', luxury: '💎' };
+    const userPlan = currentUser.selectedPlan || 'vip';
+    if (planBadge) {
+      planBadge.innerHTML = `
+        <span class="plan-icon-small">${planIcons[userPlan] || '⭐'}</span>
+        <span>Plan ${restrictions.planName}</span>
+        <small>
+          Fotos: ${restrictions.photos === 0 ? '∞' : `${userPhotos.length}/${restrictions.photos}`} | 
+          Videos: ${restrictions.videos === 0 ? '✗' : `${userVideos.length}/${restrictions.videos}`} | 
+          Estados: ${estadosCounterData.count}/${restrictions.estados}/día (${restrictions.estadosDuracion}h) | 
+          Instantes: ${restrictions.instantes === 0 ? '✗' : `${instantesCounter.count}/${restrictions.instantes}/día (${restrictions.instantesDuracion}h)`}
+        </small>
+      `;
+    }
+    
+    // Deshabilitar botones si se alcanzó el límite (usa contador 24h)
+    const photosAtLimit = restrictions.photos !== 0 && userPhotos.length >= restrictions.photos;
+    const videosAtLimit = restrictions.videos === 0 || userVideos.length >= restrictions.videos;
+    const instantesAtLimit = restrictions.instantes === 0 || instantesCounter.count >= restrictions.instantes;
+    const estadosAtLimit = estadosCounterData.count >= restrictions.estados;
+    
+    if (addPhotoBtn) {
+      addPhotoBtn.classList.toggle('disabled', photosAtLimit);
+      if (photosAtLimit) {
+        addPhotoBtn.title = 'Límite de fotos alcanzado. Mejora tu plan para más fotos.';
+      }
+    }
+    if (addVideoBtn) {
+      addVideoBtn.classList.toggle('disabled', videosAtLimit);
+      if (videosAtLimit) {
+        addVideoBtn.title = restrictions.videos === 0 ? 
+          'Tu plan no permite videos. Mejora tu plan.' : 
+          'Límite de videos alcanzado. Mejora tu plan para más videos.';
+      }
+    }
+    
+    // Deshabilitar botones de instantes y estados
+    const addInstanteBtn = document.querySelector('[onclick="showModal(\'modal-instante\')"]');
+    if (addInstanteBtn) {
+      addInstanteBtn.classList.toggle('disabled', instantesAtLimit);
+      addInstanteBtn.title = instantesAtLimit ? 
+        (restrictions.instantes === 0 ? 'Tu plan no permite instantes' : 'Límite diario de instantes alcanzado') : 
+        'Agregar instante';
+    }
+    
+    // También el botón principal de nuevo instante
+    const btnNuevoInstanteMain = document.getElementById('btn-nuevo-instante');
+    if (btnNuevoInstanteMain) {
+      btnNuevoInstanteMain.classList.toggle('disabled', instantesAtLimit);
+      btnNuevoInstanteMain.title = instantesAtLimit ? 
+        (restrictions.instantes === 0 ? 'Tu plan no permite instantes' : `Límite diario alcanzado. Se reinicia a medianoche.`) : 
+        '';
+    }
+    
+    const addEstadoBtn = document.querySelector('[onclick="showModal(\'modal-estado\')"]');
+    if (addEstadoBtn) {
+      addEstadoBtn.classList.toggle('disabled', estadosAtLimit);
+      addEstadoBtn.title = estadosAtLimit ? 'Límite diario de estados alcanzado' : 'Agregar estado';
+    }
+    
+    // También el botón principal de nuevo estado
+    const btnNuevoEstadoMain = document.getElementById('btn-nuevo-estado');
+    if (btnNuevoEstadoMain) {
+      btnNuevoEstadoMain.classList.toggle('disabled', estadosAtLimit);
+      btnNuevoEstadoMain.title = estadosAtLimit ? 
+        `Límite diario alcanzado. Se reinicia a medianoche.` : '';
+    }
+  }
+
+  function loadSavedMedia() {
+    let userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
+    const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
+    
+    // Si no hay fotos guardadas, pero hay profilePhotosData del registro inicial, copiarlas
+    if (userPhotos.length === 0 && currentUser.profilePhotosData && currentUser.profilePhotosData.length > 0) {
+      console.log('Copiando fotos del registro inicial al perfil del usuario...');
+      userPhotos = currentUser.profilePhotosData.map((photo, index) => ({
+        id: `verification_photo_${index}_${Date.now()}`,
+        data: photo.base64,
+        createdAt: new Date().toISOString(),
+        isVerificationPhoto: true // Marcar como foto de verificación (no eliminable)
+      }));
+      localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
+    }
+    
+    // Cargar fotos
+    userPhotos.forEach(photo => {
+      addPhotoToGrid(photo.data, photo.id, false, photo.isVerificationPhoto || false);
+    });
+    
+    // Cargar videos
+    userVideos.forEach(video => {
+      addVideoToGrid(video.data, video.id, false);
+    });
+  }
+
+  addPhotoBtn?.addEventListener('click', () => {
+    const restrictions = getPlanRestrictions();
+    const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
+    
+    if (restrictions.photos !== 0 && userPhotos.length >= restrictions.photos) {
+      showToast(`Límite de ${restrictions.photos} fotos alcanzado. Mejora tu plan.`);
+      return;
+    }
+    photoUpload.click();
+  });
+
+  addVideoBtn?.addEventListener('click', () => {
+    console.log('Click en agregar video');
+    const restrictions = getPlanRestrictions();
+    const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
+    
+    if (restrictions.videos === 0) {
+      showToast(`Tu plan ${restrictions.planName} no permite videos. Mejora tu plan.`);
+      return;
+    }
+    
+    if (userVideos.length >= restrictions.videos) {
+      showToast(`Límite de ${restrictions.videos} videos alcanzado. Mejora tu plan.`);
+      return;
+    }
+    if (videoUpload) {
+      videoUpload.click();
+    } else {
+      console.error('videoUpload no encontrado');
+    }
+  });
+
+  photoUpload?.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    const restrictions = getPlanRestrictions();
+    const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
+    
+    let remaining = restrictions.photos === 0 ? files.length : restrictions.photos - userPhotos.length;
+    
+    files.slice(0, remaining).forEach(file => {
+      if (file.size > 15 * 1024 * 1024) {
+        showToast('Archivo muy grande. Máximo 15MB.');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        // Abrir editor para la foto
+        openImageEditor(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    if (files.length > remaining && remaining > 0) {
+      showToast(`Solo se pueden subir ${remaining} foto(s) más según tu plan.`);
+    }
+    
+    photoUpload.value = '';
+  });
+
+  videoUpload?.addEventListener('change', (e) => {
+    console.log('Video change event', e.target.files);
+    const file = e.target.files[0];
+    if (!file) {
+      console.log('No hay archivo seleccionado');
+      return;
+    }
+    
+    const restrictions = getPlanRestrictions();
+    const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
+    
+    if (restrictions.videos !== 0 && userVideos.length >= restrictions.videos) {
+      showToast(`Límite de ${restrictions.videos} videos alcanzado.`);
+      return;
+    }
+    
+    // Validar tamaño (máximo 50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      showToast('Video muy grande. Máximo 50MB.');
+      return;
+    }
+    
+    // Validar tipo de archivo
+    const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v'];
+    if (!validTypes.includes(file.type) && !file.name.match(/\.(mp4|webm|mov|m4v)$/i)) {
+      showToast('Formato no válido. Usa MP4, WebM o MOV.');
+      return;
+    }
+    
+    showToast('Procesando video...');
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      console.log('Video cargado');
+      applyVideoWatermarkAndSave(e.target.result);
+    };
+    reader.onerror = (err) => {
+      console.error('Error leyendo video:', err);
+      showToast('Error al cargar el video.');
+    };
+    reader.readAsDataURL(file);
+    
+    videoUpload.value = '';
+  });
+
+  // ========== EDITOR DE IMAGEN ==========
+  const modalEditor = document.getElementById('modal-editor');
+  const closeModalEditor = document.getElementById('close-modal-editor');
+  const resetEditorBtn = document.getElementById('reset-editor');
+  const saveEditorBtn = document.getElementById('save-editor');
+  const blurToolBtn = document.getElementById('blur-tool');
+  const blurSizeInput = document.getElementById('blur-size');
+  const blurIntensityInput = document.getElementById('blur-intensity');
+  const previewWatermarkCheckbox = document.getElementById('preview-watermark');
+
+  function openImageEditor(imageData, photoId = null) {
+    currentEditingImage = imageData;
+    currentEditingPhotoId = photoId;
+    blurAreas = [];
+    isBlurToolActive = false;
+    
+    if (!modalEditor) {
+      console.error('Modal del editor de imágenes no encontrado');
+      return;
+    }
+    
+    modalEditor.style.display = 'flex';
+    
+    // Inicializar canvas
+    editorCanvas = document.getElementById('editor-canvas');
+    if (!editorCanvas) {
+      console.error('Canvas del editor no encontrado');
+      return;
+    }
+    
+    editorCtx = editorCanvas.getContext('2d');
+    
+    // Agregar event listeners de canvas para blur drawing
+    const handleMouseDown = (e) => {
+      if (!isBlurToolActive) return;
+      isDrawing = true;
+      applyBlurAt(e);
+    };
+
+    const handleMouseMove = (e) => {
+      if (!isDrawing || !isBlurToolActive) return;
+      applyBlurAt(e);
+    };
+
+    const handleMouseUp = () => {
+      isDrawing = false;
+    };
+
+    // Remover listeners previos si existen
+    editorCanvas.removeEventListener('mousedown', handleMouseDown);
+    editorCanvas.removeEventListener('mousemove', handleMouseMove);
+    editorCanvas.removeEventListener('mouseup', handleMouseUp);
+    editorCanvas.removeEventListener('mouseleave', handleMouseUp);
+
+    // Agregar nuevos listeners
+    editorCanvas.addEventListener('mousedown', handleMouseDown);
+    editorCanvas.addEventListener('mousemove', handleMouseMove);
+    editorCanvas.addEventListener('mouseup', handleMouseUp);
+    editorCanvas.addEventListener('mouseleave', handleMouseUp);
+    
+    const img = new Image();
+    img.onload = () => {
+      // Ajustar tamaño del canvas
+      const maxWidth = 600;
+      const maxHeight = 500;
+      let width = img.width;
+      let height = img.height;
+      
+      if (width > maxWidth) {
+        height = (maxWidth / width) * height;
+        width = maxWidth;
+      }
+      if (height > maxHeight) {
+        width = (maxHeight / height) * width;
+        height = maxHeight;
+      }
+      
+      editorCanvas.width = width;
+      editorCanvas.height = height;
+      
+      // Dibujar imagen
+      editorCtx.drawImage(img, 0, 0, width, height);
+      originalImageData = editorCtx.getImageData(0, 0, width, height);
+      
+      // Aplicar marca de agua si está activada
+      const previewWatermarkCheckbox = document.getElementById('preview-watermark');
+      if (previewWatermarkCheckbox?.checked) {
+        drawWatermark();
+      }
+    };
+    
+    img.onerror = () => {
+      console.error('Error al cargar la imagen en el editor');
+      showToast('Error al cargar la imagen');
+      modalEditor.style.display = 'none';
+    };
+    
+    img.src = imageData;
+  }
+
+  closeModalEditor?.addEventListener('click', () => {
+    modalEditor.style.display = 'none';
+    currentEditingImage = null;
+    currentEditingPhotoId = null;
+    blurAreas = [];
+    isBlurToolActive = false;
+    if (blurToolBtn) blurToolBtn.classList.remove('active');
+  });
+
+  resetEditorBtn?.addEventListener('click', () => {
+    if (originalImageData && editorCtx) {
+      editorCtx.putImageData(originalImageData, 0, 0);
+      blurAreas = [];
+      if (previewWatermarkCheckbox?.checked) {
+        drawWatermark();
+      }
+      showToast('Imagen reiniciada');
+    }
+  });
+
+  blurToolBtn?.addEventListener('click', () => {
+    isBlurToolActive = !isBlurToolActive;
+    blurToolBtn.classList.toggle('active', isBlurToolActive);
+    editorCanvas.style.cursor = isBlurToolActive ? 'crosshair' : 'default';
+  });
+
+  blurSizeInput?.addEventListener('input', () => {
+    document.getElementById('blur-size-value').textContent = blurSizeInput.value + 'px';
+  });
+
+  blurIntensityInput?.addEventListener('input', () => {
+    document.getElementById('blur-intensity-value').textContent = blurIntensityInput.value;
+  });
+
+  previewWatermarkCheckbox?.addEventListener('change', () => {
+    redrawCanvas();
+  });
+
+  function applyBlurAt(e) {
+    if (!editorCanvas) return;
+    const rect = editorCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const size = parseInt(blurSizeInput?.value || 50);
+    const intensity = parseInt(blurIntensityInput?.value || 15);
+    
+    blurAreas.push({ x, y, size, intensity });
+    redrawCanvas();
+  }
+
+  function redrawCanvas() {
+    if (!editorCtx || !originalImageData) return;
+    
+    // Restaurar imagen original
+    editorCtx.putImageData(originalImageData, 0, 0);
+    
+    // Aplicar blur a las áreas marcadas
+    blurAreas.forEach(area => {
+      applyBlurEffect(area.x, area.y, area.size, area.intensity);
+    });
+    
+    // Aplicar marca de agua si está activada
+    if (previewWatermarkCheckbox?.checked) {
+      drawWatermark();
+    }
+  }
+
+  function applyBlurEffect(centerX, centerY, size, intensity) {
+    if (!editorCtx || !editorCanvas) return;
+    
+    const radius = size / 2;
+    
+    // Obtener el área que vamos a difuminar
+    const startX = Math.max(0, Math.floor(centerX - radius));
+    const startY = Math.max(0, Math.floor(centerY - radius));
+    const endX = Math.min(editorCanvas.width, Math.ceil(centerX + radius));
+    const endY = Math.min(editorCanvas.height, Math.ceil(centerY + radius));
+    const areaWidth = endX - startX;
+    const areaHeight = endY - startY;
+    
+    if (areaWidth <= 0 || areaHeight <= 0) return;
+    
+    // Crear canvas temporal para el blur
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = areaWidth;
+    tempCanvas.height = areaHeight;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    // Copiar el área al canvas temporal
+    tempCtx.drawImage(editorCanvas, startX, startY, areaWidth, areaHeight, 0, 0, areaWidth, areaHeight);
+    
+    // Aplicar blur al canvas temporal
+    tempCtx.filter = `blur(${intensity}px)`;
+    tempCtx.drawImage(tempCanvas, 0, 0);
+    tempCtx.filter = 'none';
+    
+    // Obtener los datos de imagen difuminados
+    const blurredData = tempCtx.getImageData(0, 0, areaWidth, areaHeight);
+    const originalData = editorCtx.getImageData(startX, startY, areaWidth, areaHeight);
+    
+    // Mezclar con máscara circular
+    for (let y = 0; y < areaHeight; y++) {
+      for (let x = 0; x < areaWidth; x++) {
+        const globalX = startX + x;
+        const globalY = startY + y;
+        
+        // Calcular distancia al centro
+        const dx = globalX - centerX;
+        const dy = globalY - centerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < radius) {
+          // Dentro del círculo - aplicar blur con gradiente suave
+          const factor = 1 - (distance / radius) * 0.3; // Gradiente suave
+          const i = (y * areaWidth + x) * 4;
+          
+          originalData.data[i] = blurredData.data[i];     // R
+          originalData.data[i + 1] = blurredData.data[i + 1]; // G
+          originalData.data[i + 2] = blurredData.data[i + 2]; // B
+          // Mantener alpha original
+        }
+      }
+    }
+    
+    // Poner los datos de vuelta
+    editorCtx.putImageData(originalData, startX, startY);
+  }
+
+  function drawWatermark() {
+    if (!editorCtx || !editorCanvas) return;
+    
+    const width = editorCanvas.width;
+    const height = editorCanvas.height;
+    
+    editorCtx.save();
+    
+    // Marca de agua más visible con sombra
+    editorCtx.globalAlpha = 0.18; // Más visible
+    editorCtx.font = 'bold 28px "Playfair Display", serif';
+    editorCtx.fillStyle = '#FFFFFF';
+    editorCtx.strokeStyle = 'rgba(0,0,0,0.3)';
+    editorCtx.lineWidth = 1;
+    editorCtx.textAlign = 'center';
+    editorCtx.textBaseline = 'middle';
+    editorCtx.shadowColor = 'rgba(0,0,0,0.4)';
+    editorCtx.shadowBlur = 3;
+    editorCtx.shadowOffsetX = 1;
+    editorCtx.shadowOffsetY = 1;
+    
+    // Rotación diagonal
+    editorCtx.translate(width / 2, height / 2);
+    editorCtx.rotate(-Math.PI / 6); // -30 grados
+    
+    // Patrón repetitivo más visible
+    const text = 'SalaOscura';
+    const spacing = 100;
+    
+    for (let y = -height; y < height * 2; y += spacing) {
+      for (let x = -width; x < width * 2; x += spacing * 1.8) {
+        editorCtx.fillText(text, x, y);
+        editorCtx.strokeText(text, x, y);
+      }
+    }
+    
+    editorCtx.restore();
+    
+    // Marca de agua en esquina (más visible y elegante)
+    editorCtx.save();
+    editorCtx.globalAlpha = 0.35;
+    editorCtx.font = 'italic 18px "Playfair Display", serif';
+    editorCtx.fillStyle = '#D4AF37';
+    editorCtx.textAlign = 'right';
+    editorCtx.textBaseline = 'bottom';
+    editorCtx.shadowColor = 'rgba(0,0,0,0.7)';
+    editorCtx.shadowBlur = 6;
+    editorCtx.shadowOffsetX = 2;
+    editorCtx.shadowOffsetY = 2;
+    editorCtx.fillText('SalaOscura', width - 15, height - 15);
+    editorCtx.restore();
+  }
+
+  saveEditorBtn?.addEventListener('click', () => {
+    if (!editorCanvas) return;
+    
+    // Asegurar que la marca de agua esté aplicada
+    if (!previewWatermarkCheckbox?.checked) {
+      drawWatermark();
+    }
+    
+    // Obtener imagen final
+    const finalImageData = editorCanvas.toDataURL('image/jpeg', 0.9);
+    
+    const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
+    
+    // Si estamos editando una foto existente
+    if (currentEditingPhotoId) {
+      const existingPhotoIndex = userPhotos.findIndex(p => p.id === currentEditingPhotoId);
+      if (existingPhotoIndex !== -1) {
+        // Actualizar foto existente
+        userPhotos[existingPhotoIndex].data = finalImageData;
+        userPhotos[existingPhotoIndex].editedAt = new Date().toISOString();
+        localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
+        
+        // Actualizar imagen en el grid
+        const photoSlot = document.querySelector(`.photo-slot[data-id="${currentEditingPhotoId}"]`);
+        if (photoSlot) {
+          photoSlot.querySelector('img').src = finalImageData;
+        }
+        
+        // Sincronizar cambios
+        syncPhotoToProfiles();
+        
+        showToast('¡Foto actualizada con éxito!');
+      }
+    } else {
+      // Guardar como foto nueva
+      const photoId = Date.now().toString();
+      userPhotos.push({ id: photoId, data: finalImageData, createdAt: new Date().toISOString() });
+      localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
+      
+      // Añadir al grid
+      addPhotoToGrid(finalImageData, photoId, true);
+      
+      // Actualizar límites
+      loadMediaLimits();
+      
+      showToast('¡Foto guardada con marca de agua!');
+    }
+    
+    // Cerrar modal
+    modalEditor.style.display = 'none';
+    currentEditingImage = null;
+    currentEditingPhotoId = null;
+    blurAreas = [];
+  });
+
+  function addPhotoToGrid(imageData, photoId, isNew, isVerificationPhoto = false) {
+    const photoSlot = document.createElement('div');
+    photoSlot.className = 'photo-slot';
+    photoSlot.dataset.id = photoId;
+    if (isVerificationPhoto) {
+      photoSlot.dataset.verification = 'true';
+    }
+    
+    // Verificar si es la foto de perfil actual
+    const isProfilePhoto = currentUser.avatar === imageData;
+    
+    // Las fotos de verificación no pueden eliminarse, solo editarse
+    const deleteButtonHTML = isVerificationPhoto 
+      ? '' // No mostrar botón de eliminar para fotos de verificación
+      : '<button class="photo-delete" title="Eliminar">×</button>';
+    
+    const verificationBadgeHTML = isVerificationPhoto 
+      ? '<div class="verification-photo-badge" style="position: absolute; top: 4px; right: 4px; background: rgba(139,92,246,0.9); color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600;">🔒 Verificación</div>'
+      : '';
+    
+    photoSlot.innerHTML = `
+      <img src="${imageData}" alt="Foto" />
+      <div class="photo-overlay">
+        <button class="photo-edit" title="Editar (difuminar)">✏️</button>
+        ${deleteButtonHTML}
+      </div>
+      <div class="photo-overlay-center">
+        <button class="photo-profile" title="Establecer como foto de perfil">${isProfilePhoto ? '⭐' : '👤'}</button>
+      </div>
+      ${verificationBadgeHTML}
+      ${isProfilePhoto ? '<div class="profile-photo-badge">Foto de perfil</div>' : ''}
+    `;
+    
+    // Eventos
+    const deleteBtn = photoSlot.querySelector('.photo-delete');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', () => {
+        deletePhoto(photoId);
+        photoSlot.remove();
+      });
+    }
+    
+    photoSlot.querySelector('.photo-edit').addEventListener('click', () => {
+      openImageEditor(imageData, photoId);
+    });
+    
+    photoSlot.querySelector('.photo-profile').addEventListener('click', () => {
+      setAsProfilePhoto(imageData, photoId);
+    });
+    
+    photosGrid.insertBefore(photoSlot, addPhotoBtn);
+    
+    // Si es una foto nueva, sincronizar con approvedUsers y approvedProfiles
+    if (isNew) {
+      syncPhotoToProfiles();
+    }
+  }
+
+  function setAsProfilePhoto(imageData, photoId) {
+    // Actualizar currentUser
+    currentUser.avatar = imageData;
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    
+    // Actualizar en approvedUsers
+    const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+    const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
+    if (userIndex !== -1) {
+      approvedUsers[userIndex].avatar = imageData;
+      
+      // Reorganizar profilePhotosData para que la foto de perfil sea la primera
+      if (approvedUsers[userIndex].profilePhotosData) {
+        const photos = approvedUsers[userIndex].profilePhotosData;
+        const profilePhotoIndex = photos.findIndex(p => p.base64 === imageData);
+        if (profilePhotoIndex > 0) {
+          const [profilePhoto] = photos.splice(profilePhotoIndex, 1);
+          photos.unshift(profilePhoto);
+        } else if (profilePhotoIndex === -1) {
+          // Si la foto no está en el array, agregarla al inicio
+          photos.unshift({ base64: imageData, name: `photo_profile_${photoId}` });
+        }
+        approvedUsers[userIndex].profilePhotosData = photos;
+      }
+      
+      localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+    }
+    
+    // Actualizar en approvedProfiles
+    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    const profileIndex = approvedProfiles.findIndex(p => p.userId === currentUser.id || p.id === `profile-${currentUser.id}`);
+    if (profileIndex !== -1) {
+      approvedProfiles[profileIndex].avatar = imageData;
+      
+      // Reorganizar profilePhotosData para que la foto de perfil sea la primera
+      if (approvedProfiles[profileIndex].profilePhotosData) {
+        const photos = approvedProfiles[profileIndex].profilePhotosData;
+        const profilePhotoIndex = photos.findIndex(p => p.base64 === imageData);
+        if (profilePhotoIndex > 0) {
+          const [profilePhoto] = photos.splice(profilePhotoIndex, 1);
+          photos.unshift(profilePhoto);
+        } else if (profilePhotoIndex === -1) {
+          // Si la foto no está en el array, agregarla al inicio
+          photos.unshift({ base64: imageData, name: `photo_profile_${photoId}` });
+        }
+        approvedProfiles[profileIndex].profilePhotosData = photos;
+      }
+      
+      localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+    }
+    
+    // También actualizar photos_userId para mantener consistencia
+    const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
+    const photoIndex = userPhotos.findIndex(p => p.id === photoId);
+    if (photoIndex > 0) {
+      const [photo] = userPhotos.splice(photoIndex, 1);
+      userPhotos.unshift(photo);
+      localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
+    }
+    
+    // Actualizar avatar en el header
+    const avatarImg = document.getElementById('user-avatar');
+    if (avatarImg) {
+      avatarImg.src = imageData;
+    }
+    
+    // Recargar grid de fotos para mostrar la nueva foto de perfil marcada
+    const photosGrid = document.getElementById('profile-photos-grid');
+    const addPhotoBtn = document.getElementById('add-photo-btn');
+    if (photosGrid && addPhotoBtn) {
+      // Limpiar grid excepto el botón de agregar
+      Array.from(photosGrid.children).forEach(child => {
+        if (child.id !== 'add-photo-btn') child.remove();
+      });
+      // Recargar fotos
+      loadSavedMedia();
+    }
+    
+    showToast('✨ Foto de perfil actualizada');
+  }
+
+  function syncPhotoToProfiles() {
+    const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
+    
+    // Actualizar en approvedUsers
+    const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+    const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
+    if (userIndex !== -1) {
+      approvedUsers[userIndex].profilePhotosData = userPhotos.map(photo => ({
+        base64: photo.data,
+        name: `photo_${photo.id}`
+      }));
+      localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+    }
+    
+    // Actualizar en approvedProfiles
+    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
+    if (profileIndex !== -1) {
+      approvedProfiles[profileIndex].profilePhotosData = userPhotos.map(photo => ({
+        base64: photo.data,
+        name: `photo_${photo.id}`
+      }));
+      approvedProfiles[profileIndex].photos = userPhotos.length;
+      localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+    }
+  }
+
+  function deletePhoto(photoId) {
+    let userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
+    userPhotos = userPhotos.filter(p => p.id !== photoId);
+    localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
+    loadMediaLimits();
+    showToast('Foto eliminada');
+    
+    // Sincronizar con otros perfiles
+    syncPhotoToProfiles();
+  }
+
+  // ========== VIDEOS CON MARCA DE AGUA ==========
+  function applyVideoWatermarkAndSave(videoData) {
+    // Para videos, guardamos y aplicamos overlay CSS para la marca de agua
+    // (La marca de agua real en video requiere procesamiento del lado del servidor)
+    const videoId = Date.now().toString();
+    const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
+    userVideos.push({ 
+      id: videoId, 
+      data: videoData, 
+      createdAt: new Date().toISOString(),
+      hasWatermark: true 
+    });
+    localStorage.setItem(`videos_${currentUser.id}`, JSON.stringify(userVideos));
+    
+    addVideoToGrid(videoData, videoId, true);
+    loadMediaLimits();
+    showToast('¡Video guardado!');
+  }
+
+  function addVideoToGrid(videoData, videoId, isNew) {
+    const videoSlot = document.createElement('div');
+    videoSlot.className = 'video-slot';
+    videoSlot.dataset.id = videoId;
+    videoSlot.innerHTML = `
+      <video src="${videoData}" muted></video>
+      <div class="video-play-icon">▶</div>
+      <div class="video-watermark">SalaOscura</div>
+      <div class="video-overlay">
+        <button class="video-delete" title="Eliminar">×</button>
+      </div>
+    `;
+    
+    // Preview al hover
+    const video = videoSlot.querySelector('video');
+    videoSlot.addEventListener('mouseenter', () => {
+      video.play().catch(() => {});
+    });
+    videoSlot.addEventListener('mouseleave', () => {
+      video.pause();
+      video.currentTime = 0;
+    });
+    
+    // Click para ver completo
+    videoSlot.addEventListener('click', (e) => {
+      if (e.target.classList.contains('video-delete')) return;
+      openVideoModal(videoData);
+    });
+    
+    videoSlot.querySelector('.video-delete').addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteVideo(videoId);
+      videoSlot.remove();
+    });
+    
+    videosGrid.insertBefore(videoSlot, addVideoBtn);
+  }
+
+  function deleteVideo(videoId) {
+    let userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
+    userVideos = userVideos.filter(v => v.id !== videoId);
+    localStorage.setItem(`videos_${currentUser.id}`, JSON.stringify(userVideos));
+    loadMediaLimits();
+    showToast('Video eliminado');
+  }
+
+  function openVideoModal(videoData) {
+    const modal = document.createElement('div');
+    modal.className = 'video-fullscreen-modal';
+    modal.innerHTML = `
+      <div class="video-modal-content">
+        <button class="video-modal-close">&times;</button>
+        <video src="${videoData}" controls autoplay></video>
+        <div class="video-watermark-overlay">SalaOscura</div>
+      </div>
+    `;
+    
+    modal.querySelector('.video-modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+    
+    document.body.appendChild(modal);
+  }
+
+  // ========== PAYMENT HISTORY ==========
+  function loadPaymentHistory(user) {
+    const paymentHistoryContainer = document.getElementById('payment-history');
+    if (!paymentHistoryContainer) return;
+
+    // Usar historial real si existe, sino crear uno basado en la aprobación
+    let paymentHistory = user.paymentHistory || [];
+    
+    if (paymentHistory.length === 0 && user.approvedAt) {
+      // Crear historial basado en la fecha de aprobación
+      paymentHistory = [{
+        date: user.approvedAt,
+        amount: user.planInfo?.price || 0,
+        plan: user.selectedPlan || 'premium',
+        duration: user.planInfo?.duration || 30,
+        receiptData: null
+      }];
+    }
+
+    if (paymentHistory.length === 0) {
+      paymentHistoryContainer.innerHTML = `
+        <div class="empty-state" style="text-align: center; padding: 20px; color: var(--muted);">
+          <p>No hay historial de pagos disponible</p>
+        </div>
+      `;
+      return;
+    }
+
+    const planNames = {
+      'premium': 'Premium Select',
+      'vip': 'VIP Black', 
+      'luxury': 'Luxury & Exclusive'
+    };
+
+    paymentHistoryContainer.innerHTML = paymentHistory.map(payment => `
+      <div class="history-item">
+        <div class="history-info">
+          <span class="history-plan">${planNames[payment.plan] || payment.plan}</span>
+          <span class="history-date">${new Date(payment.date).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+          <span class="history-duration">${payment.duration} días</span>
+        </div>
+        <span class="history-amount">$${parseInt(payment.amount || 0).toLocaleString('es-CL')} CLP</span>
+      </div>
+    `).join('');
+  }
+
+  // ========== TOAST ==========
+  function showToast(message) {
+    const existingToast = document.querySelector('.toast');
+    if (existingToast) existingToast.remove();
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #D4AF37, #F4D03F);
+      color: #0A0A0A;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 9999;
+      animation: toastIn 300ms ease;
+      box-shadow: 0 8px 24px rgba(212, 175, 55, 0.4);
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.animation = 'toastOut 300ms ease forwards';
+      setTimeout(() => toast.remove(), 300);
+    }, 2500);
+  }
+
+  // ========== MODAL RENOVAR PLAN ==========
+  const btnRenew = document.getElementById('btn-renew');
+  const modalRenewPlan = document.getElementById('modal-renew-plan');
+  const closeModalRenew = document.getElementById('close-modal-renew');
+  const formRenewPlan = document.getElementById('form-renew-plan');
+
+  // Obtener precios de los planes desde localStorage (configurados en admin)
+  function getPlanPrices() {
+    const stored = localStorage.getItem('luxuryPlans');
+    if (stored) {
+      const plans = JSON.parse(stored);
+      return {
+        'premium': plans.premium?.prices || { 7: 29990, 15: 54990, 30: 79990 },
+        'vip': plans.vip?.prices || { 7: 19990, 15: 34990, 30: 49990 },
+        'luxury': plans.luxury?.prices || { 7: 59990, 15: 99990, 30: 149990 }
+      };
+    }
+    // Precios por defecto si no hay configuración
+    return {
+      'premium': { 7: 29990, 15: 54990, 30: 79990 },
+      'vip': { 7: 19990, 15: 34990, 30: 49990 },
+      'luxury': { 7: 59990, 15: 99990, 30: 149990 }
+    };
+  }
+
+  function updateRenewPlanInfo() {
+    const planNames = {
+      'premium': 'Premium Select',
+      'vip': 'VIP Black',
+      'luxury': 'Luxury & Exclusive'
+    };
+    
+    // Obtener precios dinámicos desde admin
+    const planPrices = getPlanPrices();
+
+    document.getElementById('renew-plan-name').textContent = planNames[currentUser.selectedPlan] || currentUser.selectedPlan;
+    
+    // Calcular fecha de vencimiento actual
+    let currentExpiry;
+    
+    // Verificar si hay una fecha de vencimiento válida
+    if (currentUser.planExpiry) {
+      currentExpiry = new Date(currentUser.planExpiry);
+    } else if (currentUser.approvedAt) {
+      // Si no hay fecha de vencimiento, calcular desde fecha de aprobación + duración del plan
+      const approvedDate = new Date(currentUser.approvedAt);
+      const planDuration = currentUser.planInfo?.duration || 30;
+      currentExpiry = new Date(approvedDate);
+      currentExpiry.setDate(currentExpiry.getDate() + planDuration);
+    } else if (currentUser.registrationDate) {
+      // Fallback a fecha de registro + 30 días
+      const regDate = new Date(currentUser.registrationDate);
+      currentExpiry = new Date(regDate);
+      currentExpiry.setDate(currentExpiry.getDate() + 30);
+    } else {
+      // Si no hay ninguna fecha, usar 30 días desde hoy
+      currentExpiry = new Date();
+      currentExpiry.setDate(currentExpiry.getDate() + 30);
+    }
+    
+    // Validar que sea una fecha válida
+    if (isNaN(currentExpiry.getTime())) {
+      currentExpiry = new Date();
+      currentExpiry.setDate(currentExpiry.getDate() + 30);
+    }
+    
+    // Calcular días restantes
+    const now = new Date();
+    const daysRemaining = Math.ceil((currentExpiry - now) / (1000 * 60 * 60 * 24));
+    
+    // Mostrar fecha de vencimiento actual con días restantes
+    const expiryText = currentExpiry.toLocaleDateString('es-CL', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+    
+    const daysText = daysRemaining > 0 ? ` (${daysRemaining} días restantes)` : ' (Vencido)';
+    document.getElementById('renew-current-expiry').textContent = expiryText + daysText;
+    document.getElementById('renew-current-expiry').style.color = daysRemaining <= 7 ? '#EF4444' : daysRemaining <= 15 ? '#F59E0B' : '#10B981';
+
+    // Calcular nueva fecha basado en duración seleccionada
+    const updateNewExpiry = () => {
+      const selectedDuration = parseInt(document.querySelector('input[name="renew-duration"]:checked')?.value || 30);
+      const newExpiry = new Date(currentExpiry);
+      newExpiry.setDate(newExpiry.getDate() + selectedDuration);
+      
+      // Calcular días totales desde hoy
+      const totalDaysFromNow = Math.ceil((newExpiry - now) / (1000 * 60 * 60 * 24));
+      
+      document.getElementById('renew-new-expiry').textContent = newExpiry.toLocaleDateString('es-CL', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }) + ` (+${selectedDuration} días = ${totalDaysFromNow} días desde hoy)`;
+
+      // Actualizar precio dinámico desde admin
+      const price = planPrices[currentUser.selectedPlan]?.[selectedDuration] || 0;
+      document.getElementById('renew-plan-price').textContent = `$${price.toLocaleString('es-CL')} CLP`;
+    };
+
+    // Agregar listeners a los radio buttons
+    document.querySelectorAll('input[name="renew-duration"]').forEach(radio => {
+      radio.addEventListener('change', updateNewExpiry);
+    });
+
+    // Calcular inicial
+    updateNewExpiry();
+  }
+
+  btnRenew?.addEventListener('click', () => {
+    modalRenewPlan.style.display = 'flex';
+    updateRenewPlanInfo();
+  });
+
+  closeModalRenew?.addEventListener('click', () => {
+    modalRenewPlan.style.display = 'none';
+    formRenewPlan?.reset();
+  });
+
+  modalRenewPlan?.addEventListener('click', (e) => {
+    if (e.target === modalRenewPlan) {
+      modalRenewPlan.style.display = 'none';
+      formRenewPlan?.reset();
+    }
+  });
+
+  formRenewPlan?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    const receiptInput = document.getElementById('renew-receipt');
+    const receiptFile = receiptInput?.files[0];
+    const selectedDuration = parseInt(document.querySelector('input[name="renew-duration"]:checked')?.value || 30);
+    
+    if (!receiptFile) {
+      showNotification('Por favor adjunta el comprobante de pago', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      // Calcular fecha de vencimiento actual (misma lógica que updateRenewPlanInfo)
+      let currentExpiry;
+      if (currentUser.planExpiry) {
+        currentExpiry = new Date(currentUser.planExpiry);
+      } else if (currentUser.approvedAt) {
+        const approvedDate = new Date(currentUser.approvedAt);
+        const planDuration = currentUser.planInfo?.duration || 30;
+        currentExpiry = new Date(approvedDate);
+        currentExpiry.setDate(currentExpiry.getDate() + planDuration);
+      } else {
+        currentExpiry = new Date();
+        currentExpiry.setDate(currentExpiry.getDate() + 30);
+      }
+      
+      if (isNaN(currentExpiry.getTime())) {
+        currentExpiry = new Date();
+        currentExpiry.setDate(currentExpiry.getDate() + 30);
+      }
+      
+      const newExpiry = new Date(currentExpiry);
+      newExpiry.setDate(newExpiry.getDate() + selectedDuration);
+      
+      // Obtener precio dinámico
+      const planPrices = getPlanPrices();
+      const price = planPrices[currentUser.selectedPlan]?.[selectedDuration] || 0;
+
+      const renewalRequest = {
+        id: Date.now().toString(),
+        userId: currentUser.id,
+        username: currentUser.username,
+        displayName: currentUser.displayName,
+        email: currentUser.email,
+        currentPlan: currentUser.selectedPlan,
+        currentExpiry: currentExpiry.toISOString(),
+        newExpiry: newExpiry.toISOString(),
+        duration: selectedDuration,
+        price: price,
+        receiptData: e.target.result,
+        receiptName: receiptFile.name,
+        requestDate: new Date().toISOString(),
+        status: 'pending',
+        type: 'renewal'
+      };
+
+      // Guardar solicitud pendiente
+      const pendingRequests = JSON.parse(localStorage.getItem('pendingPlanRequests') || '[]');
+      pendingRequests.push(renewalRequest);
+      localStorage.setItem('pendingPlanRequests', JSON.stringify(pendingRequests));
+
+      showNotification('✅ Solicitud de renovación enviada. Te notificaremos cuando sea aprobada.', 'success');
+      modalRenewPlan.style.display = 'none';
+      formRenewPlan.reset();
+    };
+    
+    reader.readAsDataURL(receiptFile);
+  });
+
+  // ========== MODAL MEJORA DE PLAN ==========
+  const btnUpgrade = document.getElementById('btn-upgrade');
+  const modalUpgradePlan = document.getElementById('modal-upgrade-plan');
+  const closeModalUpgrade = document.getElementById('close-modal-upgrade');
+  const upgradeStep1 = document.getElementById('upgrade-plan-step1');
+  const upgradeStep2 = document.getElementById('upgrade-plan-step2');
+  const formUpgradePlan = document.getElementById('form-upgrade-plan');
+  let selectedUpgradePlan = null;
+  let upgradePlanPrices = {};
+
+  // Función para obtener precios de planes
+  function getUpgradePlanPrices() {
+    const luxuryPlans = JSON.parse(localStorage.getItem('luxuryPlans') || '{}');
+    return {
+      premium: luxuryPlans.premium?.prices || { 7: 12990, 15: 22990, 30: 29990 },
+      vip: luxuryPlans.vip?.prices || { 7: 24990, 15: 44990, 30: 59990 },
+      'luxury-exclusive': luxuryPlans.luxury?.prices || { 7: 39990, 15: 69990, 30: 89990 }
+    };
+  }
+
+  // Función para obtener features de los planes
+  function getUpgradePlanFeatures() {
+    const luxuryPlans = JSON.parse(localStorage.getItem('luxuryPlans') || '{}');
+    return {
+      premium: luxuryPlans.premium?.features || ['Perfil destacado', 'Hasta 10 fotos', '2 videos', '5 estados por día', 'Badge Premium', 'Instantes destacados'],
+      vip: luxuryPlans.vip?.features || ['Todo de Premium', 'Hasta 15 fotos', '4 videos', '7 estados por día', 'Badge VIP exclusivo', 'Prioridad en búsquedas', 'Duración estados 12h'],
+      'luxury-exclusive': luxuryPlans.luxury?.features || ['Todo de VIP', 'Hasta 25 fotos', '6 videos', '10 estados por día', 'Badge Diamond', 'Máxima visibilidad', 'Duración estados 24h', 'Soporte prioritario']
+    };
+  }
+
+  // Nombres y configuración de planes
+  const upgradeplanConfig = {
+    'premium': { name: 'Premium Select', icon: '⭐' },
+    'vip': { name: 'VIP Black', icon: '👑', featured: true },
+    'luxury-exclusive': { name: 'Luxury & Exclusive', icon: '💎' }
+  };
+
+  // Función para renderizar las tarjetas de planes
+  function renderUpgradePlanCards() {
+    const container = document.getElementById('plans-comparison-container');
+    if (!container) return;
+
+    upgradePlanPrices = getUpgradePlanPrices();
+    const planFeatures = getUpgradePlanFeatures();
+    const planHierarchy = { 'premium': 1, 'vip': 2, 'luxury': 3, 'luxury-exclusive': 3 };
+    const currentLevel = planHierarchy[currentUser.selectedPlan] || 1;
+
+    const plansOrder = ['premium', 'vip', 'luxury-exclusive'];
+    let html = '<div class="plans-comparison">';
+
+    plansOrder.forEach(planKey => {
+      const config = upgradeplanConfig[planKey];
+      const prices = upgradePlanPrices[planKey];
+      const features = planFeatures[planKey];
+      const planLevel = planHierarchy[planKey];
+      const isDisabled = planLevel <= currentLevel;
+      const isFeatured = config.featured;
+      const isCurrentPlan = currentUser.selectedPlan === planKey || 
+                           (currentUser.selectedPlan === 'luxury' && planKey === 'luxury-exclusive');
+      
+      // Mostrar solo 4 features inicialmente
+      const visibleFeatures = features.slice(0, 4);
+      const hiddenFeatures = features.slice(4);
+      const hasMoreFeatures = hiddenFeatures.length > 0;
+
+      html += `
+        <div class="plan-option ${isFeatured ? 'featured' : ''} ${isDisabled ? 'disabled' : ''}" data-plan="${planKey}">
+          ${isFeatured ? '<div class="plan-badge">Más Popular</div>' : ''}
+          ${isCurrentPlan ? '<div class="plan-badge" style="background: linear-gradient(135deg, #10B981, #059669);">Actual</div>' : ''}
+          <div class="plan-header">
+            <span class="plan-icon">${config.icon}</span>
+            <h4>${config.name}</h4>
+            <div class="plan-price">$${prices[30].toLocaleString('es-CL')} <span>CLP/mes</span></div>
+          </div>
+          <ul class="plan-features-list" id="features-${planKey}">
+            ${visibleFeatures.map(f => `<li>✓ ${f}</li>`).join('')}
+            ${hiddenFeatures.map(f => `<li class="hidden-feature">✓ ${f}</li>`).join('')}
+          </ul>
+          ${hasMoreFeatures ? `<button type="button" class="btn-ver-mas" data-plan="${planKey}">Ver más (+${hiddenFeatures.length})</button>` : ''}
+          <button class="btn-select-plan ${isFeatured ? 'featured' : ''}" data-plan="${planKey}" ${isDisabled ? 'disabled' : ''}>
+            ${isCurrentPlan ? 'Plan Actual' : isDisabled ? 'No disponible' : 'Seleccionar'}
+          </button>
+        </div>
+      `;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Añadir listeners a los nuevos botones
+    container.querySelectorAll('.btn-select-plan:not([disabled])').forEach(btn => {
+      btn.addEventListener('click', handleUpgradePlanSelect);
+    });
+    
+    // Añadir listeners a los botones "Ver más"
+    container.querySelectorAll('.btn-ver-mas').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const planKey = e.target.dataset.plan;
+        const featuresList = document.getElementById(`features-${planKey}`);
+        if (featuresList) {
+          featuresList.classList.toggle('expanded');
+          e.target.textContent = featuresList.classList.contains('expanded') ? 'Ver menos' : `Ver más (+${featuresList.querySelectorAll('.hidden-feature').length})`;
+        }
+      });
+    });
+  }
+
+  // Handler para selección de plan
+  function handleUpgradePlanSelect(e) {
+    selectedUpgradePlan = e.target.dataset.plan;
+    
+    // Validar que sea un upgrade válido
+    const planHierarchy = { 'premium': 1, 'vip': 2, 'luxury': 3, 'luxury-exclusive': 3 };
+    const currentLevel = planHierarchy[currentUser.selectedPlan] || 1;
+    const newLevel = planHierarchy[selectedUpgradePlan] || 1;
+    
+    if (newLevel <= currentLevel) {
+      showNotification('Debes seleccionar un plan superior al actual', 'error');
+      return;
+    }
+
+    // Mostrar step 2
+    upgradeStep1.style.display = 'none';
+    upgradeStep2.style.display = 'block';
+    
+    const config = upgradeplanConfig[selectedUpgradePlan];
+    document.getElementById('selected-plan-name').textContent = config.name;
+    document.getElementById('upgrade-plan-name').textContent = config.name;
+
+    // Calcular fechas
+    updateUpgradeInfo();
+  }
+
+  // Función para actualizar la información de la mejora
+  function updateUpgradeInfo() {
+    if (!selectedUpgradePlan) return;
+
+    const durationRadio = document.querySelector('input[name="upgrade-duration"]:checked');
+    const duration = parseInt(durationRadio?.value || 30);
+    const prices = upgradePlanPrices[selectedUpgradePlan];
+    const price = prices[duration] || prices[30];
+
+    // Actualizar texto de duración
+    document.getElementById('upgrade-duration-text').textContent = `${duration} días`;
+
+    // Actualizar precio
+    document.getElementById('upgrade-plan-price').textContent = `$${price.toLocaleString('es-CL')} CLP`;
+
+    // Calcular fechas
+    const currentExpiry = currentUser.planExpiry ? new Date(currentUser.planExpiry) : new Date();
+    const now = new Date();
+    
+    // Formatear fecha de vencimiento actual
+    const expiryFormatted = currentExpiry.toLocaleDateString('es-CL', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    });
+    document.getElementById('upgrade-current-expiry-step2').textContent = expiryFormatted;
+
+    // Calcular nueva fecha de vencimiento (desde el vencimiento actual + duración)
+    const startDate = currentExpiry > now ? currentExpiry : now;
+    const newExpiry = new Date(startDate);
+    newExpiry.setDate(newExpiry.getDate() + duration);
+    
+    const newExpiryFormatted = newExpiry.toLocaleDateString('es-CL', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    });
+    document.getElementById('upgrade-new-expiry').textContent = newExpiryFormatted;
+  }
+
+  // Abrir modal
+  btnUpgrade?.addEventListener('click', () => {
+    renderUpgradePlanCards();
+    
+    // Mostrar info del plan actual
+    const planConfig = upgradeplanConfig[currentUser.selectedPlan] || 
+                       (currentUser.selectedPlan === 'luxury' ? upgradeplanConfig['luxury-exclusive'] : null);
+    const currentPlanName = planConfig?.name || 'Básico';
+    document.getElementById('upgrade-current-plan-name').textContent = currentPlanName;
+    
+    // Fecha de vencimiento actual
+    let expiryFormatted;
+    if (currentUser.planExpiry) {
+      const currentExpiry = new Date(currentUser.planExpiry);
+      if (!isNaN(currentExpiry.getTime())) {
+        expiryFormatted = currentExpiry.toLocaleDateString('es-CL', {
+          day: '2-digit', month: 'short', year: 'numeric'
+        });
+      } else {
+        expiryFormatted = 'No definido';
+      }
+    } else {
+      expiryFormatted = 'No definido';
+    }
+    document.getElementById('upgrade-current-expiry').textContent = expiryFormatted;
+    
+    modalUpgradePlan.style.display = 'flex';
+    upgradeStep1.style.display = 'block';
+    upgradeStep2.style.display = 'none';
+    selectedUpgradePlan = null;
+  });
+
+  closeModalUpgrade?.addEventListener('click', () => {
+    modalUpgradePlan.style.display = 'none';
+    upgradeStep1.style.display = 'block';
+    upgradeStep2.style.display = 'none';
+    formUpgradePlan?.reset();
+  });
+
+  modalUpgradePlan?.addEventListener('click', (e) => {
+    if (e.target === modalUpgradePlan) {
+      modalUpgradePlan.style.display = 'none';
+      upgradeStep1.style.display = 'block';
+      upgradeStep2.style.display = 'none';
+      formUpgradePlan?.reset();
+    }
+  });
+
+  // Listeners para cambio de duración
+  document.querySelectorAll('input[name="upgrade-duration"]').forEach(radio => {
+    radio.addEventListener('change', updateUpgradeInfo);
+  });
+
+  // Botón volver en step 2
+  const btnBackToPlans = document.getElementById('btn-back-to-plans');
+  btnBackToPlans?.addEventListener('click', () => {
+    upgradeStep1.style.display = 'block';
+    upgradeStep2.style.display = 'none';
+    selectedUpgradePlan = null;
+  });
+
+  formUpgradePlan?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    const receiptInput = document.getElementById('upgrade-receipt');
+    const receiptFile = receiptInput?.files[0];
+    
+    if (!receiptFile) {
+      showNotification('Por favor adjunta el comprobante de pago', 'error');
+      return;
+    }
+
+    const durationRadio = document.querySelector('input[name="upgrade-duration"]:checked');
+    const duration = parseInt(durationRadio?.value || 30);
+    const prices = upgradePlanPrices[selectedUpgradePlan];
+    const price = prices[duration] || prices[30];
+
+    // Calcular nueva fecha de vencimiento
+    const currentExpiry = currentUser.planExpiry ? new Date(currentUser.planExpiry) : new Date();
+    const now = new Date();
+    const startDate = currentExpiry > now ? currentExpiry : now;
+    const newExpiry = new Date(startDate);
+    newExpiry.setDate(newExpiry.getDate() + duration);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const upgradeRequest = {
+        id: `upgrade_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        userId: currentUser.id,
+        username: currentUser.username,
+        displayName: currentUser.displayName || currentUser.username,
+        email: currentUser.email || '',
+        currentPlan: currentUser.selectedPlan,
+        newPlan: selectedUpgradePlan,
+        currentExpiry: currentUser.planExpiry,
+        duration: duration,
+        price: price,
+        newExpiry: newExpiry.toISOString(),
+        receiptData: e.target.result,
+        receiptName: receiptFile.name,
+        requestDate: new Date().toISOString(),
+        status: 'pending',
+        type: 'upgrade'
+      };
+
+      // Guardar solicitud pendiente
+      const pendingRequests = JSON.parse(localStorage.getItem('pendingPlanRequests') || '[]');
+      pendingRequests.push(upgradeRequest);
+      localStorage.setItem('pendingPlanRequests', JSON.stringify(pendingRequests));
+
+      showNotification('Solicitud de mejora enviada. Pendiente de aprobación', 'success');
+      modalUpgradePlan.style.display = 'none';
+      upgradeStep1.style.display = 'block';
+      upgradeStep2.style.display = 'none';
+      formUpgradePlan.reset();
+      selectedUpgradePlan = null;
+    };
+    
+    reader.readAsDataURL(receiptFile);
+  });
+
+  // ========== MENCIONES DEL FORO ==========
+  function loadMenciones() {
+    const mencionesList = document.getElementById('menciones-list');
+    if (!mencionesList) return;
+
+    // Obtener menciones del localStorage (integración con foro Sala Oscura)
+    const allMentions = JSON.parse(localStorage.getItem('salaOscuraMentions') || '{}');
+    
+    // Buscar menciones para el usuario actual por email
+    const userEmail = currentUser.email || '';
+    const userMentions = allMentions[userEmail] || [];
+
+    if (userMentions.length === 0) {
+      mencionesList.innerHTML = `
+        <div class="empty-state">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+          </svg>
+          <p>No tienes menciones todavía</p>
+          <p style="font-size: 13px; margin-top: 8px;">Cuando alguien te mencione con @ en Sala Oscura aparecerá aquí</p>
+        </div>
+      `;
+      return;
+    }
+
+    // Contar menciones no leídas
+    const unreadCount = userMentions.filter(m => !m.read).length;
+    
+    mencionesList.innerHTML = `
+      ${unreadCount > 0 ? `<div class="menciones-unread-badge" style="background: #D4AF37; color: #000; padding: 8px 16px; border-radius: 8px; margin-bottom: 16px; font-weight: 600;">📬 ${unreadCount} mención${unreadCount > 1 ? 'es' : ''} nueva${unreadCount > 1 ? 's' : ''}</div>` : ''}
+      ${userMentions.map((mention, index) => {
+        const timeAgo = getTimeAgo(new Date(mention.fecha));
+        return `
+          <div class="mencion-item ${!mention.read ? 'unread' : ''}" style="background: ${!mention.read ? 'rgba(212,175,55,0.1)' : 'rgba(255,255,255,0.03)'}; border: 1px solid ${!mention.read ? 'rgba(212,175,55,0.3)' : 'rgba(255,255,255,0.1)'}; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+            <div class="mencion-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+              <div class="mencion-author" style="display: flex; align-items: center; gap: 12px;">
+                <div class="mencion-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(212,175,55,0.2); border: 2px solid #D4AF37; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #D4AF37;">
+                  ${(mention.mentionedBy || 'U').charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div class="mencion-name" style="color: #fff; font-weight: 600;">${mention.mentionedBy || 'Usuario'}</div>
+                  <div class="mencion-time" style="color: #888; font-size: 12px;">${timeAgo}</div>
+                </div>
+              </div>
+              ${!mention.read ? '<span style="background: #D4AF37; color: #000; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700;">NUEVO</span>' : ''}
+            </div>
+            <div class="mencion-content" style="color: #ccc; font-size: 14px; margin-bottom: 12px;">
+              Te mencionaron en: <strong style="color: #D4AF37;">"${mention.postTitle || 'Publicación'}"</strong>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <a href="salaoscura.html?post=${mention.postId}" class="mencion-thread" style="display: inline-flex; align-items: center; gap: 6px; color: #D4AF37; text-decoration: none; font-size: 13px; font-weight: 600;" onclick="markMentionAsRead('${userEmail}', ${index})">
+                <span>Ver hilo completo</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </a>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    `;
+  }
+
+  // Marcar mención como leída
+  window.markMentionAsRead = function(email, index) {
+    const allMentions = JSON.parse(localStorage.getItem('salaOscuraMentions') || '{}');
+    if (allMentions[email] && allMentions[email][index]) {
+      allMentions[email][index].read = true;
+      localStorage.setItem('salaOscuraMentions', JSON.stringify(allMentions));
+    }
+  };
+
+  function getTimeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + ' años';
+    
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + ' meses';
+    
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + ' días';
+    
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + ' horas';
+    
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + ' minutos';
+    
+    return 'Hace un momento';
+  }
+
+  // Cargar menciones al iniciar
+  loadMenciones();
+
+  // Agregar keyframes
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    @keyframes toastOut {
+      from { opacity: 1; transform: translateX(-50%) translateY(0); }
+      to { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    }
+    .photo-delete {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 24px;
+      height: 24px;
+      background: rgba(0,0,0,0.7);
+      border: none;
+      border-radius: 50%;
+      color: white;
+      cursor: pointer;
+      display: none;
+    }
+    .photo-slot:hover .photo-delete {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // ========== NAVEGACIÓN MÓVIL ==========
+  const navToggle = document.querySelector('.nav-toggle');
+  const siteNav = document.querySelector('.site-nav');
+  
+  if (navToggle && siteNav) {
+    navToggle.addEventListener('click', () => {
+      const open = siteNav.classList.toggle('open');
+      navToggle.setAttribute('aria-expanded', String(open));
+    });
+  }
+});

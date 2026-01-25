@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Panel de Administración — Proyecto Chic</title>
+  <title>Panel de Administración — Sala Oscura</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
@@ -21,9 +21,6 @@
     .admin-btn:hover { transform: scale(1.05); box-shadow: 0 10px 30px rgba(212,175,55,0.35); }
     .admin-delete-all { background: #DC2626; color: white; }
     .admin-delete-all:hover { background: #B91C1C; box-shadow: 0 10px 30px rgba(220,38,38,0.35); }
-    .demo-badge { position: absolute; top: 12px; left: 12px; background: #F59E0B; color: #000; padding: 6px 10px; border-radius: 16px; font-size: 11px; font-weight: 700; z-index: 2; }
-    .demo-delete-btn { position: absolute; top: 12px; left: 48px; width: 32px; height: 32px; border-radius: 50%; background: #DC2626; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; z-index: 3; transition: all 200ms ease; }
-    .demo-delete-btn:hover { transform: scale(1.1) rotate(90deg); background: #B91C1C; }
     .admin-grid { width: var(--container); margin: 0 auto; padding: 0 32px 40px; }
     .login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
     .login-card { background: linear-gradient(180deg, #0A0A0A, #1A1A1A); border: 1px solid var(--gold); border-radius: 16px; padding: 40px; max-width: 400px; width: 100%; }
@@ -44,10 +41,27 @@
     .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
     .empty-text { color: var(--muted); font-size: 18px; margin-bottom: 24px; }
     .admin-tabs { display: flex; gap: 12px; }
-    .admin-tab { background: rgba(255,255,255,0.08); color: var(--text); border: none; padding: 10px 16px; border-radius: 20px; cursor: pointer; font-weight: 600; transition: all 200ms ease; }
+    .admin-tab { background: rgba(255,255,255,0.08); color: var(--text); border: none; padding: 10px 16px; border-radius: 20px; cursor: pointer; font-weight: 600; transition: all 200ms ease; position: relative; }
     .admin-tab.active { background: var(--gold); color: #0A0A0A; }
+    .admin-tab-badge { position: absolute; top: -6px; right: -6px; background: #DC2626; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; animation: pulse-badge 2s infinite; }
+    @keyframes pulse-badge { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220,38,38,0.7); } 50% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(220,38,38,0); } }
     .admin-tab-content { display: none; }
     .admin-tab-content.active { display: block; }
+    
+    /* Secciones colapsables */
+    .collapsible-section { margin-top: 48px; padding-top: 32px; border-top: 1px solid rgba(212,175,55,0.2); }
+    .collapsible-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px 16px; background: rgba(255,255,255,0.03); border-radius: 12px; margin-bottom: 20px; transition: all 200ms ease; }
+    .collapsible-header:hover { background: rgba(255,255,255,0.06); }
+    .collapsible-header h2 { margin: 0; color: var(--gold); font-size: 20px; }
+    .collapsible-toggle { width: 32px; height: 32px; border-radius: 50%; background: rgba(212,175,55,0.15); display: flex; align-items: center; justify-content: center; transition: transform 300ms ease; }
+    .collapsible-toggle svg { width: 16px; height: 16px; stroke: var(--gold); transition: transform 300ms ease; }
+    .collapsible-section.collapsed .collapsible-toggle svg { transform: rotate(-90deg); }
+    .collapsible-content { overflow: hidden; transition: max-height 300ms ease, opacity 200ms ease; max-height: 5000px; opacity: 1; }
+    .collapsible-section.collapsed .collapsible-content { max-height: 0; opacity: 0; padding: 0; margin: 0; }
+    
+    .admin-filter-btn { background: rgba(255,255,255,0.08); color: var(--text); border: 1px solid rgba(255,255,255,0.12); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 500; font-size: 13px; transition: all 200ms ease; }
+    .admin-filter-btn:hover { background: rgba(255,255,255,0.12); border-color: rgba(212,175,55,0.3); }
+    .admin-filter-btn.active { background: rgba(212,175,55,0.15); color: var(--gold); border-color: var(--gold); }
     .admin-section { width: var(--container); margin: 0 auto; padding: 20px 32px; }
     .admin-section h2 { font-family: "Playfair Display", serif; font-size: 24px; color: var(--text); margin: 0 0 20px 0; }
     .admin-list { display: grid; gap: 12px; }
@@ -68,12 +82,13 @@
     .status-rechazado { background: rgba(220,38,38,0.2); color: #DC2626; }
     
     /* Formulario de publicación */
-    .publicacion-form { background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.2); border-radius: 12px; padding: 24px; }
+    .publicacion-form { background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.2); border-radius: 12px; padding: 24px; max-height: 80vh; overflow-y: auto; }
     .form-group { margin-bottom: 20px; }
     .form-group label { display: block; color: var(--text); font-weight: 600; margin-bottom: 8px; font-size: 14px; }
-    .form-group input, .form-group select { width: 100%; background: rgba(0,0,0,0.4); color: var(--text); border: 1px solid rgba(212,175,55,0.3); border-radius: 8px; padding: 12px; font-family: inherit; transition: all 200ms ease; }
-    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 2px rgba(212,175,55,0.1); }
-    .form-group input::placeholder { color: rgba(255,255,255,0.3); }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; background: rgba(0,0,0,0.4); color: var(--text); border: 1px solid rgba(212,175,55,0.3); border-radius: 8px; padding: 12px; font-family: inherit; transition: all 200ms ease; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 2px rgba(212,175,55,0.1); }
+    .form-group input::placeholder, .form-group textarea::placeholder { color: rgba(255,255,255,0.3); }
+    .form-group input:disabled, .form-group select:disabled, .form-group textarea:disabled { opacity: 0.5; cursor: not-allowed; }
     .form-group select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D4AF37' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 12px center; background-size: 20px; padding-right: 40px; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .form-actions { display: flex; gap: 12px; margin-top: 24px; }
@@ -97,11 +112,41 @@
     .admin-delete-pub-btn { background: #DC2626; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 200ms ease; }
     .admin-delete-pub-btn:hover { background: #B91C1C; transform: scale(1.05); }
     
+    /* Secciones colapsables */
+    .collapsible-section { background: rgba(255,255,255,0.03); border: 1px solid rgba(212,175,55,0.2); border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+    .collapsible-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; cursor: pointer; background: rgba(212,175,55,0.08); transition: background 200ms ease; }
+    .collapsible-header:hover { background: rgba(212,175,55,0.15); }
+    .collapsible-title { color: var(--gold); font-size: 18px; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 10px; }
+    .collapsible-icon { font-size: 20px; transition: transform 300ms ease; }
+    .collapsible-section.collapsed .collapsible-icon { transform: rotate(-90deg); }
+    .collapsible-content { padding: 20px; display: block; }
+    .collapsible-section.collapsed .collapsible-content { display: none; }
+    
     @media (max-width: 576px) {
       .form-row { grid-template-columns: 1fr; }
     }
+    
+    /* Responsive para grid de planes */
+    .plans-admin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    @media (max-width: 1200px) {
+      .plans-admin-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .plans-admin-grid { grid-template-columns: 1fr; }
+    }
+    .plan-admin-card { max-height: none; overflow: visible; }
   </style>
-  <link rel="icon" href="assets/logo-premium.png.png" type="image/png" />
+  <link rel="icon" href="assets/logo-premium.png" type="image/png" />
+  <script>
+    function toggleCollapsible(sectionId) {
+      const section = document.getElementById(sectionId);
+      if (section) {
+        section.classList.toggle('collapsed');
+      }
+    }
+  </script>
+  <script src="config.js"></script>
+  <script src="api.js"></script>
   <script defer src="admin.js"></script>
 </head>
 <body class="admin-page">
@@ -123,163 +168,636 @@
   <div id="admin-content" style="display: none;">
     <div class="admin-toolbar">
       <div class="admin-tabs">
-        <button class="admin-tab active" data-tab="demos">Demos</button>
-        <button class="admin-tab" data-tab="crear-publicacion">Crear Publicación</button>
-        <button class="admin-tab" data-tab="registros">Registros Pendientes</button>
-        <button class="admin-tab" data-tab="publicaciones">Publicaciones Pendientes</button>
-        <button class="admin-tab" data-tab="testimonios">Testimonios</button>
-        <button class="admin-tab" data-tab="mensajes">Mensajes de Contacto</button>
+        <button class="admin-tab active" data-tab="planes">Planes</button>
+        <button class="admin-tab" data-tab="servicios-nosotros">Servicios y Nosotros</button>
+        <button class="admin-tab" data-tab="registros" id="registros-tab-btn">
+          Registros Pendientes
+          <span class="admin-tab-badge" id="registros-badge" style="display: none;">0</span>
+        </button>
+        <button class="admin-tab" data-tab="registros-aprobados">
+          Aprobados
+          <span class="admin-tab-badge" id="aprobados-badge" style="display: none; background: #10B981;">0</span>
+        </button>
+        <button class="admin-tab" data-tab="registros-rechazados">
+          Rechazados
+          <span class="admin-tab-badge" id="rechazados-badge" style="display: none; background: #DC2626;">0</span>
+        </button>
+        <button class="admin-tab" data-tab="mensajes" id="mensajes-tab-btn">
+          Mensajes de Contacto
+          <span class="admin-tab-badge" id="mensajes-badge" style="display: none;">0</span>
+        </button>
+        <button class="admin-tab" data-tab="renovaciones" id="renovaciones-tab-btn">
+          Solicitudes Plan
+          <span class="admin-tab-badge" id="renovaciones-badge" style="display: none;">0</span>
+        </button>
       </div>
-      <button class="admin-btn admin-delete-all" id="delete-all-demos">Eliminar todas las demos</button>
     </div>
 
-    <!-- Tab: Demos -->
-    <div id="demos-tab" class="admin-tab-content active">
-      <div class="admin-grid">
-        <div id="admin-grid" class="experiencias-grid">
-          <!-- Las tarjetas se cargarán aquí -->
-        </div>
-        <div id="empty-state" class="empty-state" style="display: none;">
-          <div class="empty-icon">📁</div>
-          <p class="empty-text">Aún no hay servicios publicados</p>
-          <button class="btn cta-gold">Publicar Primer Servicio</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tab: Crear/Editar Publicación -->
-    <div id="crear-publicacion-tab" class="admin-tab-content" style="display: none;">
+    <!-- Tab: Planes -->
+    <div id="planes-tab" class="admin-tab-content active">
       <div class="admin-section">
-        <h2>Crear / Editar Publicación</h2>
-        <form id="publicacion-form" class="publicacion-form">
-          <div class="form-group">
-            <label for="pub-title">Título de la Publicación</label>
-            <input type="text" id="pub-title" placeholder="Ej: Ferrari F8 Tributo" required />
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="pub-category">Categoría</label>
-              <select id="pub-category" required>
-                <option value="">Seleccionar categoría</option>
-                <option value="premium">Premium</option>
-                <option value="sport">Sport</option>
-                <option value="luxury">Luxury</option>
-                <option value="classic">Classic</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="pub-featured">Estado</label>
-              <select id="pub-featured" required>
-                <option value="">Seleccionar estado</option>
-                <option value="nuevo">Nuevo</option>
-                <option value="destacado">Destacado</option>
-                <option value="popular">Popular</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="pub-badge">Badge</label>
-              <select id="pub-badge" required>
-                <option value="verified">✓ Verificado</option>
-                <option value="top-rated">⭐ Top Rated</option>
-                <option value="premium">👑 Premium Member</option>
-                <option value="trending">🔥 Trending</option>
-                <option value="nuevo">🆕 Nuevo</option>
-                <option value="elite">💎 Elite</option>
-              </select>
+        
+        <!-- Sección Colapsable: Planes de Suscripción -->
+        <div class="collapsible-section" style="margin-top: 0; padding-top: 0; border-top: none;" id="section-planes">
+          <div class="collapsible-header" onclick="toggleCollapsible('section-planes')">
+            <h2>💎 Planes de Suscripción</h2>
+            <div class="collapsible-toggle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
             </div>
           </div>
-
-          <div class="form-row">
+          <div class="collapsible-content">
+            <p style="color: var(--muted); margin-bottom: 24px;">Modifica los precios por duración y características de cada plan. Los cambios se reflejarán en el formulario de registro.</p>
+        
+            <div class="plans-admin-grid">
+          
+          <!-- Plan VIP -->
+          <div class="plan-admin-card" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; padding: 24px;">
+            <h3 style="color: var(--gold); margin-bottom: 20px; text-align: center;">👑 VIP Black</h3>
+            
             <div class="form-group">
-              <label for="pub-price-clp">Precio (CLP)</label>
-              <input type="number" id="pub-price-clp" placeholder="Ej: 285000" min="0" required />
+              <label for="plan-vip-description">Descripción del Plan</label>
+              <input type="text" id="plan-vip-description" value="Visibilidad premium para destacar" placeholder="Breve descripción" />
             </div>
-
+            
+            <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+              <label style="color: var(--gold); font-size: 13px; font-weight: 600; display: block; margin-bottom: 12px;">🎯 Restricción de Tarifa (por hora)</label>
+              <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="plan-vip-tarifa-min" style="font-size: 12px;">Mínimo $</label>
+                  <input type="number" id="plan-vip-tarifa-min" value="100000" placeholder="100000" />
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="plan-vip-tarifa-max" style="font-size: 12px;">Máximo $</label>
+                  <input type="number" id="plan-vip-tarifa-max" value="199999" placeholder="199999" />
+                </div>
+              </div>
+              <small style="color: var(--muted); font-size: 11px; margin-top: 8px; display: block;">Solo perfiles con tarifa en este rango pueden elegir este plan</small>
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+              <label style="color: var(--gold); font-size: 13px; font-weight: 600; display: block; margin-bottom: 12px;">💰 Precios por Duración (CLP)</label>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="plan-vip-price-7" style="font-size: 12px;">7 días</label>
+                <input type="number" id="plan-vip-price-7" value="19990" placeholder="19990" />
+              </div>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="plan-vip-price-15" style="font-size: 12px;">15 días</label>
+                <input type="number" id="plan-vip-price-15" value="34990" placeholder="34990" />
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="plan-vip-price-30" style="font-size: 12px;">30 días</label>
+                <input type="number" id="plan-vip-price-30" value="49990" placeholder="49990" />
+              </div>
+            </div>
+            
             <div class="form-group">
-              <label for="pub-price-usd">Precio (USD)</label>
-              <input type="number" id="pub-price-usd" placeholder="Ej: 350" min="0" required />
+              <label for="plan-vip-photos">Máximo de Fotos</label>
+              <input type="number" id="plan-vip-photos" value="10" placeholder="10" />
             </div>
-          </div>
-
-          <div class="form-row">
+            
             <div class="form-group">
-              <label for="pub-whatsapp">WhatsApp (opcional)</label>
-              <input type="text" id="pub-whatsapp" placeholder="Ej: +56912345678" />
+              <label for="plan-vip-videos">Máximo de Videos</label>
+              <input type="number" id="plan-vip-videos" value="2" placeholder="2" />
             </div>
-
+            
+            <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+              <label style="color: var(--gold); font-size: 13px; font-weight: 600; display: block; margin-bottom: 12px;">📸 Instantes (Historias)</label>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="plan-vip-instantes" style="font-size: 12px;">Máximo por día</label>
+                <input type="number" id="plan-vip-instantes" value="3" placeholder="3" />
+                <small style="color: var(--muted);">0 = No puede subir instantes</small>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="plan-vip-instantes-duracion" style="font-size: 12px;">Duración máxima (horas)</label>
+                <input type="number" id="plan-vip-instantes-duracion" value="12" placeholder="12" />
+                <small style="color: var(--muted);">Cuántas horas dura visible el instante</small>
+              </div>
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+              <label style="color: var(--gold); font-size: 13px; font-weight: 600; display: block; margin-bottom: 12px;">📢 Estados (Disponibilidad)</label>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="plan-vip-estados" style="font-size: 12px;">Máximo por día</label>
+                <input type="number" id="plan-vip-estados" value="2" placeholder="2" />
+                <small style="color: var(--muted);">0 = No puede publicar estados</small>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="plan-vip-estados-duracion" style="font-size: 12px;">Duración máxima (horas)</label>
+                <input type="number" id="plan-vip-estados-duracion" value="6" placeholder="6" />
+                <small style="color: var(--muted);">Cuántas horas dura visible el estado</small>
+              </div>
+            </div>
+            
             <div class="form-group">
-              <label for="pub-location">Ubicación</label>
-              <input type="text" id="pub-location" placeholder="Ej: Santiago, Chile" required />
+              <label for="plan-vip-features">Características (una por línea)</label>
+              <textarea id="plan-vip-features" rows="6" style="width: 100%; background: rgba(0,0,0,0.4); color: var(--text); border: 1px solid rgba(212,175,55,0.3); border-radius: 8px; padding: 12px; font-family: inherit; resize: vertical;">Perfil verificado
+Apareces en sección VIP
+Badge VIP exclusivo
+Hasta 10 fotos
+2 videos
+Estadísticas básicas</textarea>
+            </div>
+            
+            <div class="form-group">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="plan-vip-active" checked style="accent-color: var(--gold);" />
+                <span style="color: var(--text);">Plan Activo</span>
+              </label>
             </div>
           </div>
-
-          <div class="form-group">
-            <label for="pub-socials">Redes Sociales (opcional)</label>
-            <input type="text" id="pub-socials" placeholder="Ej: @instagram, facebook.com/..." />
+          
+          <!-- Plan Premium -->
+          <div class="plan-admin-card" style="background: rgba(255,255,255,0.05); border: 2px solid var(--gold); border-radius: 12px; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 8px;"><span style="background: var(--gold); color: #0A0A0A; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">MÁS POPULAR</span></div>
+            <h3 style="color: var(--gold); margin-bottom: 20px; text-align: center;">⭐ Premium Select</h3>
+            
+            <div class="form-group">
+              <label for="plan-premium-description">Descripción del Plan</label>
+              <input type="text" id="plan-premium-description" value="La mejor relación calidad-precio" placeholder="Breve descripción" />
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+              <label style="color: var(--gold); font-size: 13px; font-weight: 600; display: block; margin-bottom: 12px;">🎯 Restricción de Tarifa (por hora)</label>
+              <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="plan-premium-tarifa-min" style="font-size: 12px;">Mínimo $</label>
+                  <input type="number" id="plan-premium-tarifa-min" value="200000" placeholder="200000" />
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="plan-premium-tarifa-max" style="font-size: 12px;">Máximo $</label>
+                  <input type="number" id="plan-premium-tarifa-max" value="999999999" placeholder="Sin límite" />
+                </div>
+              </div>
+              <small style="color: var(--muted); font-size: 11px; margin-top: 8px; display: block;">Solo perfiles con tarifa en este rango pueden elegir este plan</small>
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+              <label style="color: var(--gold); font-size: 13px; font-weight: 600; display: block; margin-bottom: 12px;">💰 Precios por Duración (CLP)</label>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="plan-premium-price-7" style="font-size: 12px;">7 días</label>
+                <input type="number" id="plan-premium-price-7" value="29990" placeholder="29990" />
+              </div>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="plan-premium-price-15" style="font-size: 12px;">15 días</label>
+                <input type="number" id="plan-premium-price-15" value="54990" placeholder="54990" />
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="plan-premium-price-30" style="font-size: 12px;">30 días</label>
+                <input type="number" id="plan-premium-price-30" value="79990" placeholder="79990" />
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="plan-premium-photos">Máximo de Fotos</label>
+              <input type="number" id="plan-premium-photos" value="15" placeholder="15" />
+            </div>
+            
+            <div class="form-group">
+              <label for="plan-premium-videos">Máximo de Videos</label>
+              <input type="number" id="plan-premium-videos" value="4" placeholder="4" />
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+              <label style="color: var(--gold); font-size: 13px; font-weight: 600; display: block; margin-bottom: 12px;">📸 Instantes (Historias)</label>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="plan-premium-instantes" style="font-size: 12px;">Máximo por día</label>
+                <input type="number" id="plan-premium-instantes" value="5" placeholder="5" />
+                <small style="color: var(--muted);">0 = No puede subir instantes</small>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="plan-premium-instantes-duracion" style="font-size: 12px;">Duración máxima (horas)</label>
+                <input type="number" id="plan-premium-instantes-duracion" value="24" placeholder="24" />
+                <small style="color: var(--muted);">Cuántas horas dura visible el instante</small>
+              </div>
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+              <label style="color: var(--gold); font-size: 13px; font-weight: 600; display: block; margin-bottom: 12px;">📢 Estados (Disponibilidad)</label>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="plan-premium-estados" style="font-size: 12px;">Máximo por día</label>
+                <input type="number" id="plan-premium-estados" value="5" placeholder="5" />
+                <small style="color: var(--muted);">0 = No puede publicar estados</small>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="plan-premium-estados-duracion" style="font-size: 12px;">Duración máxima (horas)</label>
+                <input type="number" id="plan-premium-estados-duracion" value="12" placeholder="12" />
+                <small style="color: var(--muted);">Cuántas horas dura visible el estado</small>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="plan-premium-features">Características (una por línea)</label>
+              <textarea id="plan-premium-features" rows="8" style="width: 100%; background: rgba(0,0,0,0.4); color: var(--text); border: 1px solid rgba(212,175,55,0.3); border-radius: 8px; padding: 12px; font-family: inherit; resize: vertical;">Todo lo de VIP
+Apareces en Premium Select
+Badge Premium dorado
+Hasta 15 fotos
+4 videos
+Estadísticas avanzadas
+Prioridad en búsquedas
+Soporte prioritario</textarea>
+            </div>
+            
+            <div class="form-group">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="plan-premium-active" checked style="accent-color: var(--gold);" />
+                <span style="color: var(--text);">Plan Activo</span>
+              </label>
+            </div>
+            
+            <div class="form-group">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="plan-premium-featured" checked style="accent-color: var(--gold);" />
+                <span style="color: var(--text);">Destacar como "Más Popular"</span>
+              </label>
+            </div>
           </div>
-
-          <div class="form-group">
-            <label for="pub-photos">Número de Fotos</label>
-            <input type="number" id="pub-photos" placeholder="Ej: 12" min="1" value="12" required />
+          
+          <!-- Plan Luxury -->
+          <div class="plan-admin-card" style="background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(212,175,55,0.1)); border: 1px solid rgba(139,92,246,0.5); border-radius: 12px; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 8px;"><span style="background: linear-gradient(135deg, #8B5CF6, #D4AF37); color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">⚡ LIMITADO</span></div>
+            <h3 style="background: linear-gradient(135deg, #8B5CF6, #D4AF37); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 20px; text-align: center;">💎 Luxury & Exclusive</h3>
+            
+            <div class="form-group">
+              <label for="plan-luxury-description">Descripción del Plan</label>
+              <input type="text" id="plan-luxury-description" value="Exclusividad total, sin límites" placeholder="Breve descripción" />
+            </div>
+            
+            <div style="background: rgba(139,92,246,0.15); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid rgba(139,92,246,0.3);">
+              <label style="color: #A78BFA; font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px;">🎯 Restricción de Tarifa</label>
+              <p style="color: var(--muted); font-size: 12px; margin: 0;">✨ <strong style="color: #A78BFA;">Sin restricción</strong> - Disponible para todas las tarifas desde $100.000/hora</p>
+            </div>
+            
+            <div class="form-group">
+              <label for="plan-luxury-cupos">Límite de Cupos Disponibles</label>
+              <input type="number" id="plan-luxury-cupos" value="50" placeholder="50" />
+              <small style="color: var(--muted);">Perfiles activos permitidos en este plan (0 = ilimitado)</small>
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+              <label style="color: #A78BFA; font-size: 13px; font-weight: 600; display: block; margin-bottom: 12px;">💰 Precios por Duración (CLP)</label>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="plan-luxury-price-7" style="font-size: 12px;">7 días</label>
+                <input type="number" id="plan-luxury-price-7" value="59990" placeholder="59990" />
+              </div>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="plan-luxury-price-15" style="font-size: 12px;">15 días</label>
+                <input type="number" id="plan-luxury-price-15" value="99990" placeholder="99990" />
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="plan-luxury-price-30" style="font-size: 12px;">30 días</label>
+                <input type="number" id="plan-luxury-price-30" value="149990" placeholder="149990" />
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="plan-luxury-photos">Máximo de Fotos</label>
+              <input type="number" id="plan-luxury-photos" value="0" placeholder="0 = Ilimitado" />
+              <small style="color: var(--muted);">0 = Ilimitado</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="plan-luxury-videos">Máximo de Videos</label>
+              <input type="number" id="plan-luxury-videos" value="0" placeholder="0 = Ilimitado" />
+              <small style="color: var(--muted);">0 = Ilimitado</small>
+            </div>
+            
+            <div style="background: rgba(139,92,246,0.15); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid rgba(139,92,246,0.3);">
+              <label style="color: #A78BFA; font-size: 13px; font-weight: 600; display: block; margin-bottom: 12px;">📸 Instantes (Historias)</label>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="plan-luxury-instantes" style="font-size: 12px;">Máximo por día</label>
+                <input type="number" id="plan-luxury-instantes" value="0" placeholder="0 = Ilimitado" />
+                <small style="color: var(--muted);">0 = Ilimitado</small>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="plan-luxury-instantes-duracion" style="font-size: 12px;">Duración máxima (horas)</label>
+                <input type="number" id="plan-luxury-instantes-duracion" value="48" placeholder="48" />
+                <small style="color: var(--muted);">Cuántas horas dura visible el instante</small>
+              </div>
+            </div>
+            
+            <div style="background: rgba(139,92,246,0.15); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 1px solid rgba(139,92,246,0.3);">
+              <label style="color: #A78BFA; font-size: 13px; font-weight: 600; display: block; margin-bottom: 12px;">📢 Estados (Disponibilidad)</label>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="plan-luxury-estados" style="font-size: 12px;">Máximo por día</label>
+                <input type="number" id="plan-luxury-estados" value="0" placeholder="0 = Ilimitado" />
+                <small style="color: var(--muted);">0 = Ilimitado</small>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="plan-luxury-estados-duracion" style="font-size: 12px;">Duración máxima (horas)</label>
+                <input type="number" id="plan-luxury-estados-duracion" value="24" placeholder="24" />
+                <small style="color: var(--muted);">Cuántas horas dura visible el estado</small>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="plan-luxury-features">Características (una por línea)</label>
+              <textarea id="plan-luxury-features" rows="9" style="width: 100%; background: rgba(0,0,0,0.4); color: var(--text); border: 1px solid rgba(212,175,55,0.3); border-radius: 8px; padding: 12px; font-family: inherit; resize: vertical;">Todo lo de Premium
+Carrusel principal destacado
+Badge Luxury diamante
+Fotos ilimitadas
+Videos ilimitados
+Estadísticas completas
+Máxima visibilidad
+Gestor de cuenta personal
+Verificación prioritaria</textarea>
+            </div>
+            
+            <div class="form-group">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="plan-luxury-active" checked style="accent-color: var(--gold);" />
+                <span style="color: var(--text);">Plan Activo</span>
+              </label>
+            </div>
+            
+            <div class="form-group">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="plan-luxury-limited" checked style="accent-color: var(--gold);" />
+                <span style="color: var(--text);">Mostrar "Disponibilidad limitada"</span>
+              </label>
+            </div>
           </div>
-
-          <div class="form-group">
-            <label for="pub-videos">Número de Videos</label>
-            <input type="number" id="pub-videos" placeholder="Ej: 2" min="0" value="2" required />
-          </div>
-
-          <div class="form-actions">
-            <button type="button" id="form-reset-btn" class="form-btn form-btn-secondary">Limpiar</button>
-            <button type="submit" id="form-submit-btn" class="form-btn form-btn-primary">Crear Publicación</button>
-          </div>
-
-          <div id="form-message" class="form-message" style="display: none;"></div>
-        </form>
-
-        <h3 style="margin-top: 40px; margin-bottom: 20px;">Publicaciones Creadas</h3>
-        <div id="publicaciones-creadas-list" class="admin-list">
-          <!-- Las publicaciones creadas se cargarán aquí -->
+          
         </div>
-        <div id="publicaciones-creadas-empty" class="empty-state" style="display: none;">
-          <div class="empty-icon">📝</div>
-          <p class="empty-text">No hay publicaciones creadas aún</p>
+        
+        <div style="margin-top: 32px; display: flex; gap: 16px; justify-content: center;">
+          <button type="button" id="save-plans-btn" class="admin-btn" style="padding: 14px 32px; font-size: 16px;">💾 Guardar Cambios en Planes</button>
+          <button type="button" id="reset-plans-btn" class="admin-btn" style="background: rgba(255,255,255,0.1); color: var(--text); padding: 14px 32px; font-size: 16px;">↩️ Restaurar Valores Predeterminados</button>
         </div>
+        
+        <div id="plans-message" class="form-message" style="display: none; margin-top: 16px;"></div>
+          </div>
+        </div>
+        
+        <!-- Sección Colapsable: Códigos de Descuento -->
+        <div class="collapsible-section collapsed" id="section-codigos">
+          <div class="collapsible-header" onclick="toggleCollapsible('section-codigos')">
+            <h2>🎟️ Códigos de Descuento</h2>
+            <div class="collapsible-toggle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
+            </div>
+          </div>
+          <div class="collapsible-content">
+          
+          <!-- Formulario para crear código -->
+          <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+            <h3 style="color: var(--text); margin-bottom: 20px;">Crear Nuevo Código</h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; align-items: end;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="new-code-name">Código *</label>
+                <input type="text" id="new-code-name" placeholder="Ej: PROMO2026" style="text-transform: uppercase;" />
+              </div>
+              
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="new-code-type">Tipo de Descuento *</label>
+                <select id="new-code-type">
+                  <option value="percentage">Porcentaje (%)</option>
+                  <option value="free">Gratis (100%)</option>
+                </select>
+              </div>
+              
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="new-code-value">Valor del Descuento</label>
+                <input type="number" id="new-code-value" placeholder="Ej: 20" min="0" max="100" />
+                <small style="color: var(--muted);">% de descuento (0-100)</small>
+              </div>
+              
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="new-code-uses">Usos Máximos</label>
+                <input type="number" id="new-code-uses" placeholder="0 = ilimitado" min="0" value="0" />
+                <small style="color: var(--muted);">0 = sin límite</small>
+              </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; align-items: end;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="new-code-plans">Aplica a Planes</label>
+                <select id="new-code-plans">
+                  <option value="all">Todos los planes</option>
+                  <option value="vip">Solo VIP</option>
+                  <option value="premium">Solo Premium</option>
+                  <option value="luxury">Solo Luxury</option>
+                </select>
+              </div>
+              
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="new-code-expiry">Fecha de Expiración</label>
+                <input type="date" id="new-code-expiry" />
+                <small style="color: var(--muted);">Dejar vacío = sin expiración</small>
+              </div>
+              
+              <button type="button" id="create-code-btn" class="admin-btn" style="height: 44px;">➕ Crear Código</button>
+            </div>
+          </div>
+          
+          <!-- Lista de códigos existentes -->
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(212,175,55,0.2); border-radius: 12px; padding: 24px;">
+            <h3 style="color: var(--text); margin-bottom: 16px;">Códigos Activos</h3>
+            <div id="discount-codes-list" class="admin-list">
+              <!-- Los códigos se cargarán aquí -->
+            </div>
+            <div id="discount-codes-empty" class="empty-state" style="display: none; padding: 32px;">
+              <div class="empty-icon">🎟️</div>
+              <p class="empty-text">No hay códigos de descuento creados</p>
+            </div>
+          </div>
+          </div>
+        </div>
+        
+        <!-- Sección Colapsable: Datos Bancarios -->
+        <div class="collapsible-section collapsed" id="section-bancarios">
+          <div class="collapsible-header" onclick="toggleCollapsible('section-bancarios')">
+            <h2>💳 Datos Bancarios para Transferencias</h2>
+            <div class="collapsible-toggle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
+            </div>
+          </div>
+          <div class="collapsible-content">
+          
+          <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+              <div class="form-group">
+                <label for="bank-name">Nombre del Banco</label>
+                <input type="text" id="bank-name" placeholder="Ej: Banco Estado" value="Banco Estado" />
+              </div>
+              
+              <div class="form-group">
+                <label for="bank-account-type">Tipo de Cuenta</label>
+                <select id="bank-account-type">
+                  <option value="Cuenta Corriente">Cuenta Corriente</option>
+                  <option value="Cuenta Vista">Cuenta Vista</option>
+                  <option value="Cuenta de Ahorro">Cuenta de Ahorro</option>
+                  <option value="Cuenta RUT">Cuenta RUT</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="bank-account-number">Número de Cuenta</label>
+                <input type="text" id="bank-account-number" placeholder="Ej: 1234567890" value="1234567890" />
+              </div>
+              
+              <div class="form-group">
+                <label for="bank-rut">RUT del Titular</label>
+                <input type="text" id="bank-rut" placeholder="Ej: 12.345.678-9" value="12.345.678-9" />
+              </div>
+              
+              <div class="form-group">
+                <label for="bank-holder">Nombre del Titular</label>
+                <input type="text" id="bank-holder" placeholder="Ej: Luxury Services SpA" value="Luxury Services SpA" />
+              </div>
+              
+              <div class="form-group">
+                <label for="bank-email">Correo para Comprobantes</label>
+                <input type="email" id="bank-email" placeholder="Ej: pagos@luxury.cl" value="pagos@luxury.cl" />
+              </div>
+            </div>
+            
+            <div style="margin-top: 20px; display: flex; gap: 16px;">
+              <button type="button" id="save-bank-btn" class="admin-btn">💾 Guardar Datos Bancarios</button>
+            </div>
+          </div>
+          
+          <!-- Opciones de Pago -->
+          <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(139,92,246,0.3); border-radius: 12px; padding: 24px;">
+            <h3 style="color: #8B5CF6; margin-bottom: 20px;">⚙️ Opciones de Pago</h3>
+            
+            <div style="display: grid; gap: 16px;">
+              <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 16px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                <input type="checkbox" id="allow-pay-later" checked style="accent-color: var(--gold); width: 20px; height: 20px;" />
+                <div>
+                  <span style="color: var(--text); font-weight: 600;">Permitir "Pagar después de la entrevista"</span>
+                  <p style="color: var(--muted); margin: 4px 0 0 0; font-size: 13px;">
+                    Si está activado, los usuarios pueden optar por pagar después de que su entrevista sea aprobada.
+                  </p>
+                </div>
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 16px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                <input type="checkbox" id="require-transfer-receipt" checked style="accent-color: var(--gold); width: 20px; height: 20px;" />
+                <div>
+                  <span style="color: var(--text); font-weight: 600;">Requerir comprobante de transferencia</span>
+                  <p style="color: var(--muted); margin: 4px 0 0 0; font-size: 13px;">
+                    Si está activado, los usuarios deben adjuntar comprobante antes de enviar el formulario (excepto si eligen pagar después).
+                  </p>
+                </div>
+              </label>
+              
+              <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 16px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                <input type="checkbox" id="require-interview" checked style="accent-color: var(--gold); width: 20px; height: 20px;" />
+                <div>
+                  <span style="color: var(--text); font-weight: 600;">Requerir entrevista de verificación</span>
+                  <p style="color: var(--muted); margin: 4px 0 0 0; font-size: 13px;">
+                    Si está activado, todos los nuevos perfiles deben agendar y pasar una entrevista de verificación.
+                  </p>
+                </div>
+              </label>
+            </div>
+            
+            <div style="margin-top: 20px;">
+              <button type="button" id="save-payment-options-btn" class="admin-btn">💾 Guardar Opciones de Pago</button>
+            </div>
+          </div>
+          </div>
+        </div>
+        
+        <!-- Sección Colapsable: Configuración de Horarios de Entrevista -->
+        <div class="collapsible-section collapsed" id="section-horarios">
+          <div class="collapsible-header" onclick="toggleCollapsible('section-horarios')">
+            <h2>📅 Configuración de Horarios de Entrevista</h2>
+            <div class="collapsible-toggle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
+            </div>
+          </div>
+          <div class="collapsible-content">
+          
+          <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(139,92,246,0.3); border-radius: 12px; padding: 24px;">
+            <p style="color: var(--muted); margin-bottom: 20px;">Define los horarios disponibles para las entrevistas de verificación.</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+              <div class="form-group">
+                <label for="interview-start-time">Hora de Inicio</label>
+                <input type="time" id="interview-start-time" value="10:00" />
+              </div>
+              
+              <div class="form-group">
+                <label for="interview-end-time">Hora de Término</label>
+                <input type="time" id="interview-end-time" value="20:00" />
+              </div>
+              
+              <div class="form-group">
+                <label for="interview-interval">Intervalo entre Citas</label>
+                <select id="interview-interval">
+                  <option value="15">Cada 15 minutos</option>
+                  <option value="30" selected>Cada 30 minutos</option>
+                  <option value="60">Cada 1 hora</option>
+                </select>
+              </div>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 16px; background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3); border-radius: 8px;">
+              <h4 style="color: #8B5CF6; margin: 0 0 12px 0;">Vista Previa de Horarios Disponibles:</h4>
+              <div id="interview-times-preview" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <!-- Los horarios se mostrarán aquí -->
+              </div>
+            </div>
+            
+            <div style="margin-top: 20px;">
+              <button type="button" id="save-interview-schedule-btn" class="admin-btn">💾 Guardar Horarios de Entrevista</button>
+            </div>
+          </div>
+          </div>
+        </div>
+        
+        <div id="bank-message" class="form-message" style="display: none; margin-top: 16px;"></div>
       </div>
     </div>
 
     <!-- Tab: Registros Pendientes -->
-    <div id="registros-tab" class="admin-tab-content" style="display: none;">
+    <div id="registros-tab" class="admin-tab-content">
       <div class="admin-section">
         <h2>Registros Pendientes de Aprobación</h2>
         <div id="registros-list" class="admin-list">
           <!-- Los registros se cargarán aquí -->
         </div>
-        <div id="registros-empty" class="empty-state" style="display: none;">
-          <div class="empty-icon">✓</div>
+        <div id="registros-empty" class="empty-state">
+          <div class="empty-icon">📋</div>
           <p class="empty-text">No hay registros pendientes</p>
         </div>
       </div>
     </div>
 
-    <!-- Tab: Publicaciones Pendientes -->
-    <div id="publicaciones-tab" class="admin-tab-content" style="display: none;">
+    <!-- Tab: Registros Aprobados -->
+    <div id="registros-aprobados-tab" class="admin-tab-content">
       <div class="admin-section">
-        <h2>Publicaciones Pendientes de Aprobación</h2>
-        <div id="publicaciones-list" class="admin-list">
-          <!-- Las publicaciones se cargarán aquí -->
+        <h2>✅ Registros Aprobados</h2>
+        <p style="color: var(--muted); margin-bottom: 20px;">Historial de perfiles aprobados con datos de verificación archivados.</p>
+        <div id="registros-aprobados-list" class="admin-list">
+          <!-- Los registros aprobados se cargarán aquí -->
         </div>
-        <div id="publicaciones-empty" class="empty-state" style="display: none;">
-          <div class="empty-icon">✓</div>
-          <p class="empty-text">No hay publicaciones pendientes</p>
+        <div id="registros-aprobados-empty" class="empty-state">
+          <div class="empty-icon">📂</div>
+          <p class="empty-text">No hay registros aprobados</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Registros Rechazados -->
+    <div id="registros-rechazados-tab" class="admin-tab-content">
+      <div class="admin-section">
+        <h2>❌ Registros Rechazados</h2>
+        <p style="color: var(--muted); margin-bottom: 20px;">Historial de perfiles rechazados con datos de verificación archivados por motivos legales.</p>
+        <div id="registros-rechazados-list" class="admin-list">
+          <!-- Los registros rechazados se cargarán aquí -->
+        </div>
+        <div id="registros-rechazados-empty" class="empty-state">
+          <div class="empty-icon">📂</div>
+          <p class="empty-text">No hay registros rechazados</p>
         </div>
       </div>
     </div>
 
     <!-- Tab: Mensajes de Contacto -->
-    <div id="mensajes-tab" class="admin-tab-content" style="display: none;">
+    <div id="mensajes-tab" class="admin-tab-content">
       <div class="admin-section">
         <h2>Mensajes de Contacto</h2>
         <div id="mensajes-list" class="admin-list">
@@ -292,17 +810,286 @@
       </div>
     </div>
 
-    <!-- Tab: Testimonios -->
-    <div id="testimonios-tab" class="admin-tab-content" style="display: none;">
+    <!-- Tab: Solicitudes de Plan (Renovaciones y Mejoras) -->
+    <div id="renovaciones-tab" class="admin-tab-content">
       <div class="admin-section">
-        <h2>Testimonios Pendientes de Aprobación</h2>
-        <div id="testimonios-list" class="admin-list">
-          <!-- Los testimonios se cargarán aquí -->
+        <h2>🔄 Solicitudes de Plan</h2>
+        <p style="color: var(--muted); margin-bottom: 24px;">Aquí aparecen las solicitudes de renovación y mejora de plan de las clientas. Revisa el comprobante de pago antes de aprobar.</p>
+        
+        <!-- Filtros de tipo de solicitud -->
+        <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+          <button class="admin-filter-btn active" data-filter="all" onclick="filterPlanRequests('all')">
+            Todas <span id="filter-count-all" style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; margin-left: 4px; font-size: 11px;">0</span>
+          </button>
+          <button class="admin-filter-btn" data-filter="renewal" onclick="filterPlanRequests('renewal')">
+            🔄 Renovaciones <span id="filter-count-renewal" style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; margin-left: 4px; font-size: 11px;">0</span>
+          </button>
+          <button class="admin-filter-btn" data-filter="upgrade" onclick="filterPlanRequests('upgrade')">
+            ⬆️ Mejoras <span id="filter-count-upgrade" style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; margin-left: 4px; font-size: 11px;">0</span>
+          </button>
         </div>
-        <div id="testimonios-empty" class="empty-state" style="display: none;">
-          <div class="empty-icon">💬</div>
-          <p class="empty-text">No hay testimonios pendientes</p>
+        
+        <div id="renovaciones-list" class="admin-list">
+          <!-- Las solicitudes se cargarán aquí -->
         </div>
+        <div id="renovaciones-empty" class="empty-state" style="display: none;">
+          <div class="empty-icon">📋</div>
+          <p class="empty-text">No hay solicitudes pendientes</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Servicios y Nosotros -->
+    <div id="servicios-nosotros-tab" class="admin-tab-content">
+      <div class="admin-section">
+        <h2>Gestión de Servicios, Datos y Configuración</h2>
+        
+        <!-- SECCIÓN SERVICIOS - COLAPSABLE -->
+        <div class="collapsible-section" id="section-servicios">
+          <div class="collapsible-header" data-section="section-servicios">
+            <h3 class="collapsible-title">📋 Servicios</h3>
+            <span class="collapsible-icon">▼</span>
+          </div>
+          <div class="collapsible-content">
+            <!-- Toggle Activo/Inactivo -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+              <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                <input type="checkbox" id="servicios-active" checked style="width: 20px; height: 20px; accent-color: var(--gold);" />
+                <span style="color: var(--text); font-weight: 600;">Sección Activa</span>
+              </label>
+              <p style="color: var(--muted); margin: 12px 0 0 32px; font-size: 12px;">Si está desactivada, los botones no aparecerán en el sitio.</p>
+            </div>
+
+            <!-- Formulario de Servicios -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+              <h4 style="color: var(--gold); margin: 0 0 16px 0; font-size: 14px;">Servicios Ofrecidos</h4>
+              <div id="servicios-list" style="display: grid; gap: 12px; margin-bottom: 12px; max-height: 600px; overflow-y: auto;">
+                <!-- Los servicios se cargarán aquí -->
+              </div>
+              <button type="button" id="add-servicio-btn" class="admin-btn" style="width: 100%; padding: 10px; font-size: 13px;">+ Agregar Servicio</button>
+            </div>
+
+            <!-- FAQ -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; padding: 16px;">
+              <h4 style="color: var(--gold); margin: 0 0 16px 0; font-size: 14px;">Preguntas Frecuentes</h4>
+              <div id="faq-list" style="display: grid; gap: 12px; margin-bottom: 12px; max-height: 600px; overflow-y: auto;">
+                <!-- Las preguntas se cargarán aquí -->
+              </div>
+              <button type="button" id="add-faq-btn" class="admin-btn" style="width: 100%; padding: 10px; font-size: 13px;">+ Agregar Pregunta</button>
+            </div>
+
+            <!-- Botón Guardar -->
+            <button type="button" id="save-servicios-btn" class="admin-btn" style="width: 100%; padding: 12px; margin-top: 16px; font-size: 14px;">💾 Guardar Servicios</button>
+            <div id="servicios-message" class="form-message" style="display: none; margin-top: 12px; padding: 8px; font-size: 12px;"></div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN NOSOTROS - COLAPSABLE -->
+        <div class="collapsible-section" id="section-nosotros">
+          <div class="collapsible-header" data-section="section-nosotros">
+            <h3 class="collapsible-title">🏢 Nosotros</h3>
+            <span class="collapsible-icon">▼</span>
+          </div>
+          <div class="collapsible-content">
+            <!-- Toggle Activo/Inactivo -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+              <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                <input type="checkbox" id="nosotros-active" checked style="width: 20px; height: 20px; accent-color: var(--gold);" />
+                <span style="color: var(--text); font-weight: 600;">Sección Activa</span>
+              </label>
+              <p style="color: var(--muted); margin: 12px 0 0 32px; font-size: 12px;">Si está desactivada, los botones no aparecerán en el sitio.</p>
+            </div>
+
+            <!-- Información de Contacto Principal -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+              <h4 style="color: var(--gold); margin: 0 0 16px 0; font-size: 14px;">📞 Información de Contacto</h4>
+              
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="nosotros-nombre" style="font-size: 12px;">Nombre de la Empresa</label>
+                <input type="text" id="nosotros-nombre" placeholder="Ej: Sala Oscura" style="font-size: 13px;" />
+              </div>
+
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="nosotros-email" style="font-size: 12px;">Email de Contacto</label>
+                <input type="email" id="nosotros-email" placeholder="contacto@salaoscura.com" style="font-size: 13px;" />
+              </div>
+
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="nosotros-telefono" style="font-size: 12px;">Teléfono de Contacto</label>
+                <input type="tel" id="nosotros-telefono" placeholder="+56 9 0000 0000" style="font-size: 13px;" />
+              </div>
+
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="nosotros-whatsapp" style="font-size: 12px;">WhatsApp</label>
+                <input type="tel" id="nosotros-whatsapp" placeholder="+56 9 0000 0000" style="font-size: 13px;" />
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="nosotros-direccion" style="font-size: 12px;">Dirección/Ubicación</label>
+                <input type="text" id="nosotros-direccion" placeholder="Ej: Santiago, Chile" style="font-size: 13px;" />
+              </div>
+            </div>
+
+            <!-- Información Adicional Dinámica -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+              <h4 style="color: var(--gold); margin: 0 0 16px 0; font-size: 14px;">ℹ️ Información Adicional</h4>
+              <div id="nosotros-info-list" style="display: grid; gap: 12px; margin-bottom: 12px;">
+                <!-- Los campos adicionales se cargarán aquí -->
+              </div>
+              <button type="button" id="add-nosotros-info-btn" class="admin-btn" style="width: 100%; padding: 10px; font-size: 13px;">+ Agregar Información</button>
+            </div>
+
+            <!-- Información Legal -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+              <h4 style="color: var(--gold); margin: 0 0 16px 0; font-size: 14px;">⚖️ Información Legal</h4>
+              <div class="form-group" style="margin-bottom: 0;">
+                <textarea id="nosotros-legal" rows="10" placeholder="Información legal, términos y condiciones..." style="width: 100%; background: rgba(0,0,0,0.4); color: var(--text); border: 1px solid rgba(212,175,55,0.3); border-radius: 8px; padding: 8px; font-family: inherit; resize: vertical; font-size: 12px; min-height: 200px;"></textarea>
+              </div>
+            </div>
+
+            <!-- Botón Guardar -->
+            <button type="button" id="save-nosotros-btn" class="admin-btn" style="width: 100%; padding: 12px; margin-top: 16px; font-size: 14px;">💾 Guardar Información</button>
+            <div id="nosotros-message" class="form-message" style="display: none; margin-top: 12px; padding: 8px; font-size: 12px;"></div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN CONFIGURACIÓN DE CORREO - COLAPSABLE -->
+        <div class="collapsible-section" id="section-correo">
+          <div class="collapsible-header" data-section="section-correo">
+            <h3 class="collapsible-title">📧 Configuración de Correo</h3>
+            <span class="collapsible-icon">▼</span>
+          </div>
+          <div class="collapsible-content">
+            <p style="color: var(--muted); margin: 0 0 20px 0; font-size: 13px;">
+              Configura el servicio de correo para recibir notificaciones cuando alguien llene el formulario de contacto.
+            </p>
+
+            <!-- Toggle Notificaciones Activas -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+              <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                <input type="checkbox" id="correo-active" style="width: 20px; height: 20px; accent-color: var(--gold);" />
+                <span style="color: var(--text); font-weight: 600;">Notificaciones por Correo Activas</span>
+              </label>
+              <p style="color: var(--muted); margin: 12px 0 0 32px; font-size: 12px;">Los mensajes de contacto se enviarán automáticamente al correo configurado.</p>
+            </div>
+
+            <!-- Selección de Proveedor -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+              <h4 style="color: var(--gold); margin: 0 0 16px 0; font-size: 14px;">🔧 Proveedor de Correo</h4>
+              
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="correo-provider" style="font-size: 12px;">Seleccionar Servicio</label>
+                <select id="correo-provider" style="font-size: 13px;">
+                  <option value="">-- Seleccionar proveedor --</option>
+                  <option value="smtp">SMTP Personalizado</option>
+                  <option value="sendgrid">SendGrid</option>
+                  <option value="mailgun">Mailgun</option>
+                  <option value="ses">Amazon SES</option>
+                  <option value="gmail">Gmail SMTP</option>
+                  <option value="outlook">Outlook/Office 365</option>
+                </select>
+              </div>
+
+              <!-- Configuración SMTP -->
+              <div id="smtp-config" style="display: none;">
+                <div class="form-group" style="margin-bottom: 12px;">
+                  <label for="smtp-host" style="font-size: 12px;">Servidor SMTP</label>
+                  <input type="text" id="smtp-host" placeholder="smtp.ejemplo.com" style="font-size: 13px;" />
+                </div>
+                <div class="form-row" style="margin-bottom: 12px;">
+                  <div class="form-group">
+                    <label for="smtp-port" style="font-size: 12px;">Puerto</label>
+                    <input type="number" id="smtp-port" placeholder="587" style="font-size: 13px;" />
+                  </div>
+                  <div class="form-group">
+                    <label for="smtp-secure" style="font-size: 12px;">Seguridad</label>
+                    <select id="smtp-secure" style="font-size: 13px;">
+                      <option value="tls">TLS</option>
+                      <option value="ssl">SSL</option>
+                      <option value="none">Ninguna</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 12px;">
+                  <label for="smtp-user" style="font-size: 12px;">Usuario/Email</label>
+                  <input type="text" id="smtp-user" placeholder="usuario@ejemplo.com" style="font-size: 13px;" />
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="smtp-pass" style="font-size: 12px;">Contraseña / App Password</label>
+                  <input type="password" id="smtp-pass" placeholder="••••••••" style="font-size: 13px;" />
+                </div>
+              </div>
+
+              <!-- Configuración API (SendGrid, Mailgun, etc) -->
+              <div id="api-config" style="display: none;">
+                <div class="form-group" style="margin-bottom: 12px;">
+                  <label for="api-key" style="font-size: 12px;">API Key</label>
+                  <input type="password" id="api-key" placeholder="Tu API Key" style="font-size: 13px;" />
+                </div>
+                <div class="form-group" style="margin-bottom: 0;" id="api-domain-group" style="display: none;">
+                  <label for="api-domain" style="font-size: 12px;">Dominio (solo Mailgun)</label>
+                  <input type="text" id="api-domain" placeholder="mg.tudominio.com" style="font-size: 13px;" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Email de Destino -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+              <h4 style="color: var(--gold); margin: 0 0 16px 0; font-size: 14px;">📬 Correos de Notificación</h4>
+              
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="correo-from" style="font-size: 12px;">Email Remitente (From)</label>
+                <input type="email" id="correo-from" placeholder="noreply@salaoscura.com" style="font-size: 13px;" />
+              </div>
+
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="correo-to" style="font-size: 12px;">Email de Destino (donde recibirás las notificaciones)</label>
+                <input type="email" id="correo-to" placeholder="admin@salaoscura.com" style="font-size: 13px;" />
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="correo-cc" style="font-size: 12px;">CC (opcional, separar por comas)</label>
+                <input type="text" id="correo-cc" placeholder="otro@email.com, otro2@email.com" style="font-size: 13px;" />
+              </div>
+            </div>
+
+            <!-- Plantilla de Correo -->
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+              <h4 style="color: var(--gold); margin: 0 0 16px 0; font-size: 14px;">📝 Plantilla del Correo</h4>
+              
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="correo-subject" style="font-size: 12px;">Asunto del Correo</label>
+                <input type="text" id="correo-subject" placeholder="Nuevo mensaje de contacto - {nombre}" style="font-size: 13px;" />
+                <small style="color: var(--muted); font-size: 11px;">Variables: {nombre}, {email}, {telefono}, {fecha}</small>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="correo-template" style="font-size: 12px;">Plantilla del Mensaje</label>
+                <textarea id="correo-template" rows="8" style="width: 100%; background: rgba(0,0,0,0.4); color: var(--text); border: 1px solid rgba(212,175,55,0.3); border-radius: 8px; padding: 8px; font-family: monospace; resize: vertical; font-size: 12px;">Nuevo mensaje de contacto recibido:
+
+Nombre: {nombre}
+Email: {email}
+Teléfono: {telefono}
+Fecha: {fecha}
+
+Mensaje:
+{mensaje}
+
+---
+Este mensaje fue enviado desde el formulario de contacto de Sala Oscura.</textarea>
+                <small style="color: var(--muted); font-size: 11px;">Variables: {nombre}, {email}, {telefono}, {mensaje}, {fecha}</small>
+              </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div style="display: flex; gap: 12px; margin-top: 16px;">
+              <button type="button" id="test-correo-btn" class="admin-btn" style="flex: 1; padding: 12px; font-size: 14px; background: rgba(255,255,255,0.1); color: var(--text);">🧪 Enviar Prueba</button>
+              <button type="button" id="save-correo-btn" class="admin-btn" style="flex: 1; padding: 12px; font-size: 14px;">💾 Guardar Configuración</button>
+            </div>
+            <div id="correo-message" class="form-message" style="display: none; margin-top: 12px; padding: 8px; font-size: 12px;"></div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>

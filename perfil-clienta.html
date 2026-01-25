@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mi Panel — Sala Oscura</title>
+  <meta name="description" content="Panel de control - Gestiona tu perfil exclusivo" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="perfil-clienta.css" />
+  <link rel="icon" href="assets/logo-premium.png" type="image/png" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="logo" href="index.html" aria-label="Inicio">
+        <img src="assets/logo-premium.png" alt="Logo" />
+      </a>
+      <nav class="site-nav" aria-label="Principal">
+        <ul>
+          <li><a class="btn-foro" href="salaoscura.html">Sala Oscura</a></li>
+          <li><button class="nav-cta nav-logout-btn" id="logout-btn">Cerrar Sesión</button></li>
+        </ul>
+      </nav>
+      <button class="nav-toggle" aria-label="Abrir menú" aria-expanded="false">☰</button>
+    </div>
+  </header>
+
+  <main class="profile-main">
+    <!-- Panel de Control Header -->
+    <section class="dashboard-header">
+      <div class="container">
+        <div class="dashboard-welcome">
+          <div class="welcome-avatar">
+            <img id="user-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" alt="Avatar" />
+            <span class="online-indicator"></span>
+          </div>
+          <div class="welcome-info">
+            <h1 class="welcome-name">Hola, <span id="user-display-name">Valentina</span> 👋</h1>
+            <p class="welcome-username" id="user-username-display" style="color: var(--gold); font-size: 14px; margin: 4px 0 8px; opacity: 0.9;">@username</p>
+            <p class="welcome-status">Panel de Control</p>
+          </div>
+          
+          <!-- Toggle de Visibilidad del Perfil -->
+          <div class="profile-visibility-toggle">
+            <div class="visibility-status" id="visibility-status">
+              <span class="visibility-icon" id="visibility-icon">🔴</span>
+              <span class="visibility-text" id="visibility-text">Perfil Oculto</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="profile-visibility-toggle" />
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="visibility-label" id="visibility-label">Activar Perfil</span>
+          </div>
+        </div>
+        
+        <!-- Tabs de navegación -->
+        <div class="dashboard-tabs">
+          <button class="tab-btn active" data-tab="overview">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            Resumen
+          </button>
+          <button class="tab-btn" data-tab="instantes">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+            Instantes
+          </button>
+          <button class="tab-btn" data-tab="estados">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            Estados
+          </button>
+          <button class="tab-btn" data-tab="plan">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+            Mi Plan
+          </button>
+          <button class="tab-btn" data-tab="menciones">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+            Menciones
+          </button>
+          <button class="tab-btn" data-tab="perfil">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            Mi Perfil
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab Content: Resumen -->
+    <section class="tab-content active" id="tab-overview">
+      <div class="container">
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon views">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </div>
+            <div class="stat-data">
+              <span class="stat-number" id="stat-views">1,234</span>
+              <span class="stat-name">Visitas hoy</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon likes">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            </div>
+            <div class="stat-data">
+              <span class="stat-number" id="stat-likes">567</span>
+              <span class="stat-name">Me Gusta</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon contacts">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <div class="stat-data">
+              <span class="stat-number" id="stat-contacts">0</span>
+              <span class="stat-name">Recomendaciones</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon stories">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+            </div>
+            <div class="stat-data">
+              <span class="stat-number" id="stat-stories">12</span>
+              <span class="stat-name">Instantes activos</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Estados Activos -->
+        <div class="active-statuses">
+          <h2 class="section-title-small">Tus Estados Activos</h2>
+          <div class="statuses-list" id="active-statuses-list">
+            <!-- Se cargan dinámicamente -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab Content: Instantes -->
+    <section class="tab-content" id="tab-instantes">
+      <div class="container">
+        <div class="instantes-header">
+          <h2 class="section-title-small">Mis Instantes</h2>
+          <button class="btn-primary" id="btn-nuevo-instante">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Nuevo Instante
+          </button>
+        </div>
+        
+        <p class="instantes-info" id="instantes-info-text">Los instantes aparecerán en el carrusel de la página principal. <span id="instantes-plan-info"></span></p>
+        
+        <div class="instantes-grid" id="instantes-grid">
+          <!-- Se cargan dinámicamente -->
+        </div>
+
+        <!-- Modal Subir Instante -->
+        <div class="modal-overlay" id="modal-instante" style="display: none;">
+          <div class="modal-content">
+            <button class="modal-close" id="close-modal-instante">&times;</button>
+            <h3 class="modal-title">Subir Instante</h3>
+            <form id="form-instante">
+              <div class="form-group">
+                <label>Imagen o Video</label>
+                <div class="upload-area" id="instante-upload-area">
+                  <input type="file" id="instante-file" accept="image/*,video/*" hidden />
+                  <div class="upload-placeholder">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                    <p>Click para subir imagen o video</p>
+                    <span>Máx. 15MB • JPG, PNG, MP4</span>
+                  </div>
+                  <img id="instante-preview" class="upload-preview" style="display: none;" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="instante-caption">Texto (opcional)</label>
+                <input type="text" id="instante-caption" placeholder="Añade un mensaje a tu instante..." maxlength="100" />
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn-secondary" id="cancel-instante">Cancelar</button>
+                <button type="submit" class="btn-primary">Publicar Instante</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab Content: Estados -->
+    <section class="tab-content" id="tab-estados">
+      <div class="container">
+        <div class="estados-header">
+          <h2 class="section-title-small">Mis Estados y Mensajes</h2>
+          <button class="btn-primary" id="btn-nuevo-estado">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Nuevo Estado
+          </button>
+        </div>
+
+        <p class="estados-info" id="estados-info-text">Publica estados que aparecerán en el carrusel de la página principal. <span id="estados-plan-info"></span></p>
+
+        <!-- Botones de estado rápido -->
+        <div class="quick-status-buttons">
+          <button class="status-quick-btn disponible" data-status="disponible">
+            <span class="status-icon">❤️</span>
+            Disponible
+          </button>
+          <button class="status-quick-btn novedad" data-status="novedad">
+            <span class="status-icon">✨</span>
+            Novedad
+          </button>
+          <button class="status-quick-btn promo" data-status="promo">
+            <span class="status-icon">🔥</span>
+            Promoción
+          </button>
+          <button class="status-quick-btn ocupada" data-status="ocupada">
+            <span class="status-icon">⏸️</span>
+            Ocupada
+          </button>
+        </div>
+
+        <!-- Lista de estados -->
+        <div class="estados-list" id="estados-list">
+          <!-- Se cargan dinámicamente -->
+        </div>
+
+        <!-- Modal Nuevo Estado -->
+        <div class="modal-overlay" id="modal-estado" style="display: none;">
+          <div class="modal-content">
+            <button class="modal-close" id="close-modal-estado">&times;</button>
+            <h3 class="modal-title">Publicar Estado</h3>
+            <form id="form-estado">
+              <div class="form-group">
+                <label>Tipo de Estado</label>
+                <div class="status-type-selector">
+                  <label class="status-type-option">
+                    <input type="radio" name="status-type" value="disponible" checked />
+                    <span class="status-type-card">
+                      <span class="status-icon">❤️</span>
+                      Disponible
+                    </span>
+                  </label>
+                  <label class="status-type-option">
+                    <input type="radio" name="status-type" value="novedad" />
+                    <span class="status-type-card">
+                      <span class="status-icon">✨</span>
+                      Novedad
+                    </span>
+                  </label>
+                  <label class="status-type-option">
+                    <input type="radio" name="status-type" value="promo" />
+                    <span class="status-type-card">
+                      <span class="status-icon">🔥</span>
+                      Promoción
+                    </span>
+                  </label>
+                  <label class="status-type-option">
+                    <input type="radio" name="status-type" value="ocupada" />
+                    <span class="status-type-card">
+                      <span class="status-icon">⏸️</span>
+                      Ocupada
+                    </span>
+                  </label>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="estado-mensaje">Mensaje</label>
+                <textarea id="estado-mensaje" placeholder="Escribe tu mensaje..." rows="3" maxlength="150"></textarea>
+                <span class="char-count"><span id="estado-chars">0</span>/150</span>
+              </div>
+              <div class="form-group">
+                <label for="estado-duracion">Duración <span id="duracion-plan-info" style="font-size: 12px; color: #D4AF37;"></span></label>
+                <select id="estado-duracion">
+                  <!-- Opciones se cargan dinámicamente según el plan -->
+                </select>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn-secondary" id="cancel-estado">Cancelar</button>
+                <button type="submit" class="btn-primary">Publicar Estado</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab Content: Plan -->
+    <section class="tab-content" id="tab-plan">
+      <div class="container">
+        <h2 class="section-title-small">Mi Plan Actual</h2>
+        
+        <div class="plan-current">
+          <div class="plan-card-current" id="plan-info">
+            <div class="plan-badge">
+              <span class="plan-icon" id="plan-icon">👑</span>
+              <span class="plan-name" id="current-plan-name">VIP</span>
+            </div>
+            <div class="plan-details">
+              <div class="plan-detail">
+                <span class="detail-label">Estado</span>
+                <span class="detail-value active" id="plan-status">Activo</span>
+              </div>
+              <div class="plan-detail">
+                <span class="detail-label">Vencimiento</span>
+                <span class="detail-value" id="plan-expiry">15 Feb 2026</span>
+              </div>
+              <div class="plan-detail">
+                <span class="detail-label">Días restantes</span>
+                <span class="detail-value" id="plan-days">34 días</span>
+              </div>
+            </div>
+            <div class="plan-features">
+              <h4>Beneficios incluidos:</h4>
+              <ul id="plan-features-list">
+                <li>✓ Perfil destacado</li>
+                <li>✓ Hasta 10 fotos</li>
+                <li>✓ Badge VIP</li>
+                <li>✓ Instantes ilimitados</li>
+                <li>✓ Estados destacados</li>
+              </ul>
+            </div>
+            <div class="plan-actions">
+              <button class="btn-renew" id="btn-renew">Renovar Plan</button>
+              <button class="btn-upgrade" id="btn-upgrade">Mejorar Plan</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="plan-history">
+          <h3>Historial de Pagos</h3>
+          <div class="history-list" id="payment-history">
+            <div class="history-item">
+              <div class="history-info">
+                <span class="history-plan">Plan VIP</span>
+                <span class="history-date">12 Ene 2026</span>
+              </div>
+              <span class="history-amount">$89.990 CLP</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab Content: Menciones -->
+    <section class="tab-content" id="tab-menciones">
+      <div class="container">
+        <h2 class="section-title-small">💬 Menciones en el Foro</h2>
+        <p style="color: #888; margin-bottom: 24px;">Aquí podrás ver todas las veces que te mencionaron en el Foro Sala Oscura</p>
+        
+        <div class="menciones-list" id="menciones-list">
+          <!-- Se cargan dinámicamente desde el foro -->
+          <div class="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+            <p>No tienes menciones todavía</p>
+            <p style="font-size: 13px; margin-top: 8px;">Cuando alguien te mencione en el foro aparecerá aquí</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab Content: Mi Perfil -->
+    <section class="tab-content" id="tab-perfil">
+      <div class="container">
+        <!-- Sección de Fotos y Videos (ancho completo) -->
+        <div class="profile-media-section">
+          <h2 class="section-title-small">📷 Mis Fotos y Videos</h2>
+          
+          <!-- Indicador de límites según plan -->
+          <div class="media-limits-info" id="media-limits-info">
+            <div class="limit-badge photos-limit">
+              <span class="limit-icon">📷</span>
+              <span class="limit-text"><span id="photos-count">0</span>/<span id="photos-max">10</span> fotos</span>
+            </div>
+            <div class="limit-badge videos-limit">
+              <span class="limit-icon">🎬</span>
+              <span class="limit-text"><span id="videos-count">0</span>/<span id="videos-max">2</span> videos</span>
+            </div>
+            <div class="plan-badge-info" id="plan-badge-info">
+              <span class="plan-icon-small">👑</span>
+              <span>Plan VIP</span>
+            </div>
+          </div>
+
+          <!-- Tabs Fotos/Videos -->
+          <div class="media-tabs">
+            <button class="media-tab active" data-media="photos">📷 Fotos</button>
+            <button class="media-tab" data-media="videos">🎬 Videos</button>
+          </div>
+
+          <!-- Grid de fotos -->
+          <div class="media-grid-container active" id="photos-container">
+            <div class="photos-grid" id="profile-photos-grid">
+              <div class="photo-slot add-photo" id="add-photo-btn">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>Agregar foto</span>
+              </div>
+            </div>
+            <input type="file" id="photo-upload" accept="image/*" multiple hidden />
+          </div>
+
+          <!-- Grid de videos -->
+          <div class="media-grid-container" id="videos-container">
+            <div class="videos-grid" id="profile-videos-grid">
+              <div class="video-slot add-video" id="add-video-btn">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                </svg>
+                <span>Agregar video</span>
+              </div>
+            </div>
+            <input type="file" id="video-upload" accept="video/mp4,video/webm,video/quicktime" hidden />
+          </div>
+
+          <p class="media-info-note">
+            <span class="watermark-note">🔒 Todas tus fotos y videos llevarán marca de agua "SalaOscura" sutil</span>
+          </p>
+        </div>
+
+        <!-- Grid de información del perfil -->
+        <div class="profile-edit-grid">
+          <!-- Info del perfil -->
+          <div class="profile-edit-section">
+            <h2 class="section-title-small">📝 Información</h2>
+            <form id="profile-edit-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Nombre artístico</label>
+                  <input type="text" id="edit-display-name" value="Valentina" />
+                </div>
+                <div class="form-group">
+                  <label>Fecha de Nacimiento</label>
+                  <input type="text" id="edit-birthdate" readonly disabled style="background: rgba(255,255,255,0.05); cursor: not-allowed; color: rgba(255,255,255,0.8);" />
+                  <small style="color: #888; font-size: 11px;">No modificable por seguridad</small>
+                </div>
+                <div class="form-group">
+                  <label>Edad</label>
+                  <input type="number" id="edit-age" min="18" max="60" readonly disabled style="background: rgba(255,255,255,0.05); cursor: not-allowed; color: rgba(255,255,255,0.8);" />
+                  <small style="color: #888; font-size: 11px;">Calculada automáticamente</small>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Tagline</label>
+                <input type="text" id="edit-tagline" value="✨ Experiencia VIP exclusiva • Atención personalizada" maxlength="60" />
+              </div>
+              <div class="form-group">
+                <label>Bio</label>
+                <textarea id="edit-bio" rows="4">Hola amor 💋 Soy Valentina, una chica sofisticada y apasionada...</textarea>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Ciudad</label>
+                  <input type="text" id="edit-city" value="Santiago" />
+                </div>
+                <div class="form-group">
+                  <label>Comuna *</label>
+                  <input type="text" id="edit-commune" value="Las Condes" required placeholder="Ej: Las Condes, Providencia" />
+                  <small style="color: #888; font-size: 11px;">La comuna es obligatoria para mostrar tu ubicación</small>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Correo electrónico</label>
+                <input type="email" id="edit-email" value="" readonly disabled style="background: rgba(255,255,255,0.05); cursor: not-allowed;" />
+                <small style="color: #888; font-size: 11px;">El correo no puede ser modificado</small>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>WhatsApp</label>
+                  <input type="tel" id="edit-whatsapp" value="+56912345678" />
+                </div>
+                <div class="form-group">
+                  <label>Telegram (opcional)</label>
+                  <input type="text" id="edit-telegram" value="@valentina_vip" />
+                </div>
+              </div>
+              <button type="submit" class="btn-primary btn-save">Guardar Cambios</button>
+            </form>
+          </div>
+
+          <!-- Tarifas -->
+          <div class="profile-edit-section">
+            <h2 class="section-title-small">💰 Mis Tarifas</h2>
+            <div class="tarifas-edit">
+              <div class="tarifa-row">
+                <label>1 hora</label>
+                <input type="number" id="price-1h" placeholder="150000" />
+                <span>CLP</span>
+              </div>
+              <div class="tarifa-row">
+                <label>2 horas</label>
+                <input type="number" id="price-2h" placeholder="Opcional" />
+                <span>CLP</span>
+              </div>
+              <div class="tarifa-row">
+                <label>Noche completa</label>
+                <input type="number" id="price-night" placeholder="Opcional" />
+                <span>CLP</span>
+              </div>
+            </div>
+            <button type="button" class="btn-secondary btn-save-tarifas" id="save-tarifas-btn" style="margin-top: 16px;">Guardar Tarifas</button>
+          </div>
+          
+          <!-- Servicios Ofrecidos -->
+          <div class="profile-edit-section">
+            <h2 class="section-title-small">💋 Servicios Ofrecidos</h2>
+            <p style="color: var(--muted); font-size: 13px; margin-bottom: 16px;">Selecciona los servicios que ofreces</p>
+            <div class="services-grid" id="services-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px;">
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="oral" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Oral con preservativo</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="americana" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Americana</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="penetracion" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Penetración</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="masajes" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Masajes</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="juguetes" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Juguetes</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="fantasias" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Fantasías</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="parejas" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Parejas</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="despedidas" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Despedidas</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="viajes" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Viajes</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="eyaculacion-facial" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Eyaculación facial</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="eyaculacion-cuerpo" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Eyaculación en cuerpo</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="striptease" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Striptease</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="baile" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Baile</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="roll-play" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Roll Play</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="girlfriend" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Girlfriend Experience</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="pornstar" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Pornstar Experience</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="beso-negro" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Beso negro</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="lluvia-dorada" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Lluvia dorada</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="dominacion" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Dominación</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="sumision" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Sumisión</span>
+              </label>
+              <!-- Servicios adicionales -->
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="oral-sin-condon" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Oral sin condón 💰</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="anal" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Anal 💰</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="trios" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Tríos 💰</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="videollamada" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Videollamada</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="grabaciones" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Grabaciones 💰</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="besos" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Besos</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="fetiche-pies" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Fetiche de pies</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="squirt" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Squirt 💰</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="bondage" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Bondage 💰</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="spanking" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Spanking</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="strap-on" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Strap-on 💰</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="masaje-prostatico" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Masaje prostático 💰</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="facesitting" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Facesitting</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="swingers" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Swingers 💰</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="pernocte" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Pernocte 💰</span>
+              </label>
+              <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
+                <input type="checkbox" name="services" value="otros" style="accent-color: var(--gold);" />
+                <span style="color: var(--text); font-size: 13px;">Otros servicios 😏</span>
+              </label>
+            </div>
+            <p style="color: var(--muted); font-size: 12px; margin-top: 12px; font-style: italic;">💰 = Algunos servicios pueden tener costo extra. Consulta detalles específicos.</p>
+            <button type="button" class="btn-secondary btn-save-services" id="save-services-btn" style="margin-top: 16px;">Guardar Servicios</button>
+          </div>
+          
+          <!-- Disponibilidad -->
+          <div class="profile-edit-section">
+            <h2 class="section-title-small">📍 Disponibilidad</h2>
+            <div class="availability-options" style="display: flex; flex-direction: column; gap: 12px;">
+              <label class="availability-checkbox" style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                <input type="checkbox" id="incall-option" style="accent-color: var(--gold); width: 18px; height: 18px;" />
+                <div>
+                  <span style="color: var(--text); font-weight: 500;">Incall</span>
+                  <span style="color: var(--muted); font-size: 12px; display: block;">Atiendo en mi lugar</span>
+                </div>
+              </label>
+              <label class="availability-checkbox" style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                <input type="checkbox" id="outcall-option" style="accent-color: var(--gold); width: 18px; height: 18px;" />
+                <div>
+                  <span style="color: var(--text); font-weight: 500;">Outcall</span>
+                  <span style="color: var(--muted); font-size: 12px; display: block;">Voy al lugar del cliente</span>
+                </div>
+              </label>
+              <label class="availability-checkbox" style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">
+                <input type="checkbox" id="travel-option" style="accent-color: var(--gold); width: 18px; height: 18px;" />
+                <div>
+                  <span style="color: var(--text); font-weight: 500;">Disponible para viajes</span>
+                  <span style="color: var(--muted); font-size: 12px; display: block;">Puedo viajar a otras ciudades</span>
+                </div>
+              </label>
+            </div>
+            <button type="button" class="btn-secondary btn-save-availability" id="save-availability-btn" style="margin-top: 16px;">Guardar Disponibilidad</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal Renovar Plan -->
+  <div class="modal-overlay" id="modal-renew-plan" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+      <button class="modal-close" id="close-modal-renew">&times;</button>
+      <h3 class="modal-title">🔄 Renovar Plan</h3>
+      <p style="color: #888; margin-bottom: 24px; text-align: center;">Renueva tu plan actual y mantén todos tus beneficios</p>
+      
+      <form id="form-renew-plan" style="display: flex; flex-direction: column; gap: 20px;">
+        <div class="plan-renew-info">
+          <div class="info-row">
+            <span class="info-label">Plan actual:</span>
+            <span class="info-value" id="renew-plan-name">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Fecha de vencimiento actual:</span>
+            <span class="info-value" id="renew-current-expiry">-</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Duración de la renovación *</label>
+          <div class="duration-options" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+            <label class="duration-option" style="display: flex; align-items: center; padding: 12px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.12); border-radius: 10px; cursor: pointer; transition: all 300ms;">
+              <input type="radio" name="renew-duration" value="7" required style="margin-right: 8px;">
+              <span>7 días</span>
+            </label>
+            <label class="duration-option" style="display: flex; align-items: center; padding: 12px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.12); border-radius: 10px; cursor: pointer; transition: all 300ms;">
+              <input type="radio" name="renew-duration" value="15" required style="margin-right: 8px;">
+              <span>15 días</span>
+            </label>
+            <label class="duration-option" style="display: flex; align-items: center; padding: 12px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.12); border-radius: 10px; cursor: pointer; transition: all 300ms;">
+              <input type="radio" name="renew-duration" value="30" checked required style="margin-right: 8px;">
+              <span>30 días</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="plan-renew-info" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px;">
+          <div class="info-row">
+            <span class="info-label">Nueva fecha de vencimiento:</span>
+            <span class="info-value" id="renew-new-expiry" style="color: var(--gold); font-weight: 600;">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Monto a pagar:</span>
+            <span class="info-value" id="renew-plan-price" style="color: var(--gold); font-weight: 600;">-</span>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Comprobante de pago *</label>
+          <input type="file" id="renew-receipt" accept="image/*,.pdf" required style="padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: var(--text);" />
+          <small style="color: #888; font-size: 11px; margin-top: 4px; display: block;">Sube tu comprobante de transferencia o depósito</small>
+        </div>
+        
+        <button type="submit" class="btn-primary" style="width: 100%;">Enviar Solicitud de Renovación</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Mejora de Plan -->
+  <div class="modal-overlay" id="modal-upgrade-plan" style="display: none;">
+    <!-- Paso 1: Selección de plan -->
+    <div class="modal-content" id="upgrade-plan-step1" style="max-width: 750px;">
+      <button class="modal-close" id="close-modal-upgrade">&times;</button>
+      <h3 class="modal-title" style="font-size: 22px; margin-bottom: 8px;">⭐ Mejora tu Plan</h3>
+      <p style="color: var(--gold); font-size: 12px; margin-bottom: 16px; text-align: center;">
+        📅 Plan actual: <strong><span id="upgrade-current-plan-name">-</span></strong> · Vence: <span id="upgrade-current-expiry">-</span>
+      </p>
+      
+      <!-- Cargando dinámicamente -->
+      <div class="plans-comparison" id="plans-comparison-container">
+        <!-- Los planes se cargan dinámicamente -->
+      </div>
+    </div>
+    
+    <!-- Paso 2: Selección de duración y pago -->
+    <div class="modal-content upgrade-payment-form" id="upgrade-plan-step2" style="display: none; max-width: 600px;">
+      <button class="btn-back" id="btn-back-to-plans">&larr; Volver a planes</button>
+      <h3 class="modal-title" style="margin-top: 20px;">💳 Completar Mejora de Plan</h3>
+      <p style="color: #888; margin-bottom: 24px; text-align: center;">Has seleccionado el plan <strong id="selected-plan-name" style="color: var(--gold);">-</strong></p>
+      
+      <form id="form-upgrade-plan" style="display: flex; flex-direction: column; gap: 20px;">
+        <!-- Selector de duración -->
+        <div class="form-group">
+          <label>Duración del plan *</label>
+          <div class="duration-options" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+            <label class="duration-option" style="display: flex; align-items: center; padding: 12px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.12); border-radius: 10px; cursor: pointer; transition: all 300ms;">
+              <input type="radio" name="upgrade-duration" value="7" required style="margin-right: 8px;">
+              <span>7 días</span>
+            </label>
+            <label class="duration-option" style="display: flex; align-items: center; padding: 12px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.12); border-radius: 10px; cursor: pointer; transition: all 300ms;">
+              <input type="radio" name="upgrade-duration" value="15" required style="margin-right: 8px;">
+              <span>15 días</span>
+            </label>
+            <label class="duration-option" style="display: flex; align-items: center; padding: 12px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.12); border-radius: 10px; cursor: pointer; transition: all 300ms;">
+              <input type="radio" name="upgrade-duration" value="30" checked required style="margin-right: 8px;">
+              <span>30 días</span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="plan-upgrade-info">
+          <div class="info-row">
+            <span class="info-label">Plan seleccionado:</span>
+            <span class="info-value" id="upgrade-plan-name">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Duración:</span>
+            <span class="info-value" id="upgrade-duration-text">30 días</span>
+          </div>
+          <div class="info-row" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; margin-top: 8px;">
+            <span class="info-label">Tu plan actual vence:</span>
+            <span class="info-value" id="upgrade-current-expiry-step2" style="color: #F59E0B;">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Nuevo plan inicia:</span>
+            <span class="info-value" id="upgrade-start-date" style="color: #10B981;">Al finalizar el actual</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Nueva fecha de vencimiento:</span>
+            <span class="info-value" id="upgrade-new-expiry" style="color: var(--gold); font-weight: 600;">-</span>
+          </div>
+          <div class="info-row" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; margin-top: 8px;">
+            <span class="info-label">Monto a pagar:</span>
+            <span class="info-value" id="upgrade-plan-price" style="color: var(--gold); font-size: 20px; font-weight: 700;">-</span>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Comprobante de pago *</label>
+          <input type="file" id="upgrade-receipt" accept="image/*,.pdf" required style="padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: var(--text);" />
+          <small style="color: #888; font-size: 11px; margin-top: 4px; display: block;">Sube tu comprobante de transferencia o depósito</small>
+        </div>
+        
+        <button type="submit" class="btn-primary" style="width: 100%;">Enviar Solicitud de Mejora</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Editor de Imagen (fuera del grid para mejor visualización) -->
+  <div class="modal-overlay" id="modal-editor" style="display: none;">
+    <div class="modal-content modal-editor-content">
+      <button class="modal-close" id="close-modal-editor">&times;</button>
+      <h3 class="modal-title">✨ Editor de Imagen</h3>
+      
+      <div class="editor-workspace">
+        <!-- Canvas para edición -->
+        <div class="editor-canvas-container">
+          <canvas id="editor-canvas"></canvas>
+        </div>
+        
+        <!-- Herramientas -->
+        <div class="editor-tools">
+          <h4>🛠️ Herramientas</h4>
+          
+          <div class="tool-section">
+            <label class="tool-label">Difuminar Cara</label>
+            <p class="tool-description">Activa el difuminado y arrastra sobre la zona a ocultar</p>
+            <div class="blur-controls">
+              <button type="button" class="tool-btn" id="blur-tool">
+                <span>🔘</span> Activar Difuminado
+              </button>
+              <div class="blur-size-control">
+                <label>Tamaño del pincel:</label>
+                <input type="range" id="blur-size" min="20" max="100" value="50" />
+                <span id="blur-size-value">50px</span>
+              </div>
+              <div class="blur-intensity-control">
+                <label>Intensidad:</label>
+                <input type="range" id="blur-intensity" min="5" max="30" value="15" />
+                <span id="blur-intensity-value">15</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="tool-section">
+            <label class="tool-label">Marca de agua</label>
+            <label class="watermark-toggle">
+              <input type="checkbox" id="preview-watermark" checked />
+              <span>Vista previa marca de agua</span>
+            </label>
+          </div>
+          
+          <div class="editor-actions">
+            <button type="button" class="btn-secondary" id="reset-editor">🔄 Reiniciar</button>
+            <button type="button" class="btn-primary" id="save-editor">💾 Guardar Imagen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <a class="logo" href="index.html">
+          <img src="assets/logo-premium.png.png" alt="Logo" />
+        </a>
+        <p class="footer-copy">© <span id="year"></span> Sala Oscura. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="perfil-clienta.js"></script>
+</body>
+</html>

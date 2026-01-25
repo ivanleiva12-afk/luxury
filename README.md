@@ -1,4 +1,4 @@
-# Proyecto Chic — Sitio de Servicios
+# Sala Oscura — Sitio de Servicios
 
 Sitio web estático para presentar y vender servicios (diseño web, branding y gestión de redes). Incluye secciones de Hero, Servicios, Sobre nosotros y Contacto con formulario (mailto).
 
@@ -26,7 +26,7 @@ Opción 2: servidor local (recomendado)
 Si tienes Python instalado:
 
 ```powershell
-cd "c:\Users\186926932\Desktop\proyectochic"
+cd "c:\Users\186926932\Desktop\salaoscura"
 python -m http.server 5173
 ```
 
@@ -35,7 +35,7 @@ Luego visita: http://localhost:5173
 Con Node.js y `npx`:
 
 ```powershell
-cd "c:\Users\186926932\Desktop\proyectochic"
+cd "c:\Users\186926932\Desktop\salaoscura"
 npx serve -p 5173
 ```
 
