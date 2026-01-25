@@ -2,6 +2,9 @@
 // La clave admin se obtiene desde AWS DynamoDB
 let ADMIN_PASSWORD = null;
 
+// Variables globales - se cargan desde AWS
+let registros = [];
+
 // Cargar clave admin desde AWS al inicio
 async function loadAdminPassword() {
   try {
@@ -11,6 +14,58 @@ async function loadAdminPassword() {
   } catch (error) {
     console.error('Error cargando clave admin:', error);
     ADMIN_PASSWORD = 'admin2026'; // fallback si falla
+  }
+}
+
+// Cargar registros desde AWS
+async function loadRegistrosFromAPI() {
+  try {
+    registros = await DataService.getPendingRegistros();
+    console.log('Registros cargados desde AWS:', registros.length);
+  } catch (error) {
+    console.error('Error cargando registros:', error);
+    registros = [];
+  }
+}
+
+// Inicializar datos por defecto en AWS si no existen
+async function initializeDefaultData() {
+  try {
+    // Verificar servicios
+    const servicios = await DataService.getServiciosConfig();
+    if (!servicios || !servicios.active) {
+      const serviciosDefault = {
+        active: true,
+        servicios: [
+          { nombre: 'Luxury & Exclusive', descripcion: 'Servicio de exclusividad total sin límites', duracion: '1-2 horas', precio: 149990, incluye: 'Atención personalizada\nExclusividad total\nFlexibilidad de horarios\nAmbiente privado' },
+          { nombre: 'VIP Black', descripcion: 'Visibilidad premium para destacar', duracion: '1 hora', precio: 49990, incluye: 'Perfil destacado\nVisibilidad extra\nSoporte prioritario' },
+          { nombre: 'Premium Select', descripcion: 'La mejor relación calidad-precio', duracion: '45 minutos', precio: 79990, incluye: 'Selección de modelos\nFecha flexible\nConfidencialidad garantizada' }
+        ],
+        faq: [
+          { pregunta: '¿Cómo contratar un servicio?', respuesta: 'Puedes contactarnos a través de WhatsApp o correo para coordinar un servicio de acuerdo a tus necesidades.' },
+          { pregunta: '¿Cuáles son los métodos de pago?', respuesta: 'Aceptamos transferencia bancaria, depósito, y otros métodos de pago según lo coordines con el administrador.' }
+        ]
+      };
+      await DataService.setConfig('servicios', serviciosDefault);
+    }
+    
+    // Verificar nosotros
+    const nosotros = await DataService.getNosotrosConfig();
+    if (!nosotros || !nosotros.active) {
+      const nosotrosDefault = {
+        active: true,
+        nombre: 'Sala Negra',
+        email: 'contacto@salanegra.com',
+        telefono: '+56 9 0000 0000',
+        whatsapp: '+56 9 0000 0000',
+        direccion: 'Santiago, Chile',
+        info: [],
+        legal: 'Sala Negra es una plataforma de servicios. Todos los servicios ofrecidos son entre adultos mayores de 18 años. La plataforma no se responsabiliza por acuerdos privados realizados fuera del sitio.'
+      };
+      await DataService.setConfig('nosotros', nosotrosDefault);
+    }
+  } catch (error) {
+    console.error('Error inicializando datos:', error);
   }
 }
 
@@ -86,37 +141,10 @@ if (loginBtn) {
       adminContent.style.display = 'block';
       adminHeader.style.display = 'block';
     
-      // Inicializar datos si no existen
-      if (!localStorage.getItem('servicios')) {
-        const serviciosDefault = {
-          active: true,
-          servicios: [
-            { nombre: 'Luxury & Exclusive', descripcion: 'Servicio de exclusividad total sin límites', duracion: '1-2 horas', precio: 149990, incluye: 'Atención personalizada\nExclusividad total\nFlexibilidad de horarios\nAmbiente privado' },
-            { nombre: 'VIP Black', descripcion: 'Visibilidad premium para destacar', duracion: '1 hora', precio: 49990, incluye: 'Perfil destacado\nVisibilidad extra\nSoporte prioritario' },
-            { nombre: 'Premium Select', descripcion: 'La mejor relación calidad-precio', duracion: '45 minutos', precio: 79990, incluye: 'Selección de modelos\nFecha flexible\nConfidencialidad garantizada' }
-          ],
-          faq: [
-            { pregunta: '¿Cómo contratar un servicio?', respuesta: 'Puedes contactarnos a través de WhatsApp o correo para coordinar un servicio de acuerdo a tus necesidades.' },
-            { pregunta: '¿Cuáles son los métodos de pago?', respuesta: 'Aceptamos transferencia bancaria, depósito, y otros métodos de pago según lo coordines con el administrador.' }
-          ]
-        };
-        localStorage.setItem('servicios', JSON.stringify(serviciosDefault));
-      }
+      // Inicializar datos desde AWS si no existen
+      await initializeDefaultData();
     
-      if (!localStorage.getItem('nosotros')) {
-        const nosotrosDefault = {
-          active: true,
-          nombre: 'Sala Oscura',
-          email: 'contacto@salaoscura.com',
-          telefono: '+56 9 0000 0000',
-          whatsapp: '+56 9 0000 0000',
-          direccion: 'Santiago, Chile',
-          info: [],
-          legal: 'Sala Oscura es una plataforma de servicios. Todos los servicios ofrecidos son entre adultos mayores de 18 años. La plataforma no se responsabiliza por acuerdos privados realizados fuera del sitio.'
-        };
-        localStorage.setItem('nosotros', JSON.stringify(nosotrosDefault));
-      }
-    
+      await loadRegistrosFromAPI();
       renderRegistros();
     
       // Inicializar secciones colapsables
@@ -205,7 +233,7 @@ adminTabs.forEach(tab => {
 });
 
 // Registros (Usuarios pendientes de aprobación)
-let registros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
+// Variable 'registros' ya está definida globalmente y se carga desde AWS
 
 const renderRegistros = () => {
   const list = document.getElementById('registros-list');
@@ -421,7 +449,7 @@ window.closeVerificationModal = () => {
   }
 };
 
-window.approveRegistro = (id) => {
+window.approveRegistro = async (id) => {
   const reg = registros.find(r => r.id === id);
   if (reg) {
     reg.status = 'aprobado';
@@ -458,8 +486,8 @@ window.approveRegistro = (id) => {
       paymentReceiptData: reg.transferReceiptData || null
     };
     
-    // Obtener configuraciones de planes del admin
-    const plansConfig = JSON.parse(localStorage.getItem('plansConfig') || '{}');
+    // Obtener configuraciones de planes del admin desde AWS
+    const plansConfig = await DataService.getPlansConfig() || {};
     
     // Determinar restricciones según el plan (usando configuraciones del admin)
     const getConfigValue = (plan, key, defaultValue) => {
@@ -520,8 +548,8 @@ window.approveRegistro = (id) => {
       rating: 5.0
     };
     
-    // Guardar en pendingRegistros
-    localStorage.setItem('pendingRegistros', JSON.stringify(registros));
+    // Guardar en AWS pendingRegistros
+    await DataService.updateRegistro(reg.id, reg);
     
     // ============================================
     // CREAR currentUser para que la usuaria pueda acceder a su panel
@@ -574,18 +602,17 @@ window.approveRegistro = (id) => {
     
     console.log('✅ Aprobando usuario:', approvedUser.email, 'con contraseña:', approvedUser.password ? 'SÍ' : 'NO');
     
-    // Guardar lista de usuarios aprobados para login futuro
-    const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+    // Guardar lista de usuarios aprobados para login futuro en AWS
+    const approvedUsers = await DataService.getApprovedUsers() || [];
     const existingUserIndex = approvedUsers.findIndex(u => u.id === approvedUser.id);
     if (existingUserIndex !== -1) {
-      approvedUsers[existingUserIndex] = approvedUser;
+      await DataService.updateUser(approvedUser.id, approvedUser);
     } else {
-      approvedUsers.push(approvedUser);
+      await DataService.addApprovedUser(approvedUser);
     }
-    localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
     
-    // Guardar perfil aprobado para los carruseles
-    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    // Guardar perfil aprobado para los carruseles en AWS
+    const approvedProfiles = await DataService.getApprovedProfiles() || [];
     
     // Crear objeto de perfil para el carrusel
     // IMPORTANTE: Solo guardar datos que realmente existen, no inventar valores por defecto
@@ -677,16 +704,14 @@ window.approveRegistro = (id) => {
     // Verificar si ya existe y actualizar, o agregar nuevo
     const existingIndex = approvedProfiles.findIndex(p => p.id === carouselProfile.id);
     if (existingIndex !== -1) {
-      approvedProfiles[existingIndex] = carouselProfile;
+      await DataService.updateProfile(carouselProfile.id, carouselProfile);
     } else {
-      approvedProfiles.push(carouselProfile);
+      await DataService.addApprovedProfile(carouselProfile);
     }
     
-    localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
-    
-    // Mantener el registro en pendingRegistros (no eliminar por temas legales)
+    // Mantener el registro en AWS pendingRegistros (no eliminar por temas legales)
     // El registro queda archivado con status 'aprobado'
-    localStorage.setItem('pendingRegistros', JSON.stringify(registros));
+    await DataService.updateRegistro(reg.id, reg);
     
     renderRegistros();
     renderRegistrosAprobados();
@@ -696,7 +721,7 @@ window.approveRegistro = (id) => {
   }
 };
 
-window.rejectRegistro = (id) => {
+window.rejectRegistro = async (id) => {
   const reason = prompt('Motivo del rechazo (se enviará al usuario):');
   if (reason === null) return; // Cancelled
   
@@ -706,9 +731,9 @@ window.rejectRegistro = (id) => {
     reg.rejectedAt = new Date().toISOString();
     reg.rejectionReason = reason;
     
-    // Mantener el registro en pendingRegistros (no eliminar por temas legales)
+    // Mantener el registro en AWS pendingRegistros (no eliminar por temas legales)
     // El registro queda archivado con status 'rechazado'
-    localStorage.setItem('pendingRegistros', JSON.stringify(registros));
+    await DataService.updateRegistro(reg.id, reg);
     
     renderRegistros();
     renderRegistrosRechazados();
@@ -718,11 +743,11 @@ window.rejectRegistro = (id) => {
   }
 };
 
-window.confirmInterview = (id) => {
+window.confirmInterview = async (id) => {
   const reg = registros.find(r => r.id === id);
   if (reg) {
     reg.interviewStatus = 'confirmada';
-    localStorage.setItem('pendingRegistros', JSON.stringify(registros));
+    await DataService.updateRegistro(reg.id, reg);
     renderRegistros();
     
     // Formatear fecha para el mensaje
@@ -785,9 +810,21 @@ if (!document.querySelector('style[data-admin]')) {
 }
 
 // Crear/Editar Perfiles de Escort
-let publicacionesCreadas = JSON.parse(localStorage.getItem('publicacionesCreadas') || '[]');
-let publicacionesAprobadas = JSON.parse(localStorage.getItem('publicacionesAprobadas') || '[]');
+let publicacionesCreadas = [];
+let publicacionesAprobadas = [];
 let editingPublicacionId = null;
+
+// Cargar publicaciones desde AWS
+async function loadPublicacionesFromAPI() {
+  try {
+    publicacionesCreadas = await DataService.getPublicaciones() || [];
+    publicacionesAprobadas = publicacionesCreadas.filter(p => p.status === 'aprobada');
+  } catch (error) {
+    console.error('Error cargando publicaciones:', error);
+    publicacionesCreadas = [];
+    publicacionesAprobadas = [];
+  }
+}
 
 const publicacionForm = document.getElementById('publicacion-form');
 const formResetBtn = document.getElementById('form-reset-btn');
@@ -1013,8 +1050,8 @@ publicacionForm.addEventListener('submit', (e) => {
     showFormMessage('Perfil creado y enviado para aprobación', 'success');
   }
 
-  localStorage.setItem('publicacionesCreadas', JSON.stringify(publicacionesCreadas));
-  localStorage.setItem('publicacionesPendientes', JSON.stringify(publicacionesPendientes));
+  // Guardar en AWS
+  await DataService.savePublicaciones(publicacionesCreadas);
   resetPublicacionForm();
   renderPublicacionesCreadas();
 });
@@ -1162,10 +1199,10 @@ window.editPublicacion = (id) => {
   document.getElementById('publicacion-form').scrollIntoView({ behavior: 'smooth' });
 };
 
-window.deletePublicacion = (id) => {
+window.deletePublicacion = async (id) => {
   if (confirm('¿Estás seguro de que deseas eliminar esta publicación?')) {
     publicacionesCreadas = publicacionesCreadas.filter(p => p.id !== id);
-    localStorage.setItem('publicacionesCreadas', JSON.stringify(publicacionesCreadas));
+    await DataService.savePublicaciones(publicacionesCreadas);
     renderPublicacionesCreadas();
     showFormMessage('Publicación eliminada', 'success');
   }
@@ -1183,8 +1220,8 @@ const mensajesList = document.getElementById('mensajes-list');
 const mensajesEmpty = document.getElementById('mensajes-empty');
 const mensajesBadge = document.getElementById('mensajes-badge');
 
-function updateMensajesBadge() {
-  const mensajes = JSON.parse(localStorage.getItem('contactMessages') || '[]');
+async function updateMensajesBadge() {
+  const mensajes = await DataService.getContactMessages() || [];
   const noLeidos = mensajes.filter(m => !m.leido).length;
   
   if (mensajesBadge) {
@@ -1205,8 +1242,8 @@ const renovacionesEmpty = document.getElementById('renovaciones-empty');
 const renovacionesBadge = document.getElementById('renovaciones-badge');
 let currentPlanRequestFilter = 'all';
 
-function updateRenovacionesBadge() {
-  const requests = JSON.parse(localStorage.getItem('pendingPlanRequests') || '[]');
+async function updateRenovacionesBadge() {
+  const requests = await DataService.getPlanRequests() || [];
   const pendientes = requests.filter(r => r.status === 'pending' && (r.type === 'renewal' || r.type === 'upgrade')).length;
   
   if (renovacionesBadge) {
@@ -1222,8 +1259,8 @@ function updateRenovacionesBadge() {
   updateFilterCounts();
 }
 
-function updateFilterCounts() {
-  const requests = JSON.parse(localStorage.getItem('pendingPlanRequests') || '[]');
+async function updateFilterCounts() {
+  const requests = await DataService.getPlanRequests() || [];
   const pending = requests.filter(r => r.status === 'pending');
   
   const allCount = pending.filter(r => r.type === 'renewal' || r.type === 'upgrade').length;
@@ -1254,10 +1291,10 @@ window.filterPlanRequests = function(filter) {
   renderRenovaciones();
 };
 
-function renderRenovaciones() {
+async function renderRenovaciones() {
   if (!renovacionesList || !renovacionesEmpty) return;
   
-  const requests = JSON.parse(localStorage.getItem('pendingPlanRequests') || '[]');
+  const requests = await DataService.getPlanRequests() || [];
   let solicitudes = requests.filter(r => (r.type === 'renewal' || r.type === 'upgrade') && r.status === 'pending');
   
   // Aplicar filtro
@@ -1380,8 +1417,8 @@ function renderRenovaciones() {
 }
 
 // Aprobar solicitud de plan (renovación o upgrade)
-window.approvePlanRequest = function(requestId) {
-  const requests = JSON.parse(localStorage.getItem('pendingPlanRequests') || '[]');
+window.approvePlanRequest = async function(requestId) {
+  const requests = await DataService.getPlanRequests() || [];
   const requestIndex = requests.findIndex(r => (r.id === requestId) || (r.requestDate === requestId));
   
   if (requestIndex === -1) {
@@ -1395,8 +1432,8 @@ window.approvePlanRequest = function(requestId) {
   
   if (!confirm(`¿Aprobar esta ${typeLabel}?`)) return;
   
-  // Actualizar el usuario en approvedUsers
-  const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+  // Actualizar el usuario en AWS approvedUsers
+  const approvedUsers = await DataService.getApprovedUsers() || [];
   const userIndex = approvedUsers.findIndex(u => u.id === request.userId);
   
   if (userIndex !== -1) {
@@ -1414,25 +1451,24 @@ window.approvePlanRequest = function(requestId) {
       approvedUsers[userIndex].lastRenewalDuration = request.duration;
     }
     
-    localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+    await DataService.updateUser(approvedUsers[userIndex].id, approvedUsers[userIndex]);
   }
   
-  // También actualizar en pendingRegistros si existe
-  const pendingRegistros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
-  const regIndex = pendingRegistros.findIndex(r => r.id === request.userId);
+  // También actualizar en AWS pendingRegistros si existe
+  const regIndex = registros.findIndex(r => r.id === request.userId);
   if (regIndex !== -1) {
-    pendingRegistros[regIndex].planExpiry = request.newExpiry;
+    registros[regIndex].planExpiry = request.newExpiry;
     if (isUpgrade) {
-      pendingRegistros[regIndex].selectedPlan = request.newPlan;
-      pendingRegistros[regIndex].lastUpgradeDate = new Date().toISOString();
+      registros[regIndex].selectedPlan = request.newPlan;
+      registros[regIndex].lastUpgradeDate = new Date().toISOString();
     } else {
-      pendingRegistros[regIndex].lastRenewalDate = new Date().toISOString();
+      registros[regIndex].lastRenewalDate = new Date().toISOString();
     }
-    localStorage.setItem('pendingRegistros', JSON.stringify(pendingRegistros));
+    await DataService.updateRegistro(registros[regIndex].id, registros[regIndex]);
   }
   
-  // Verificar si es el usuario actualmente logueado y actualizar currentUser
-  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+  // Verificar si es el usuario actualmente logueado y actualizar currentUser (localStorage temporal)
+  const currentUser = await DataService.getCurrentUser();
   if (currentUser && currentUser.id === request.userId) {
     currentUser.planExpiry = request.newExpiry;
     if (isUpgrade) {
@@ -1441,12 +1477,12 @@ window.approvePlanRequest = function(requestId) {
     } else {
       currentUser.lastRenewalDate = new Date().toISOString();
     }
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    await DataService.setCurrentUser(currentUser);
   }
   
-  // Actualizar approvedProfiles para que el perfil aparezca en el carrusel correcto
+  // Actualizar AWS approvedProfiles para que el perfil aparezca en el carrusel correcto
   if (isUpgrade) {
-    const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
+    const approvedProfiles = await DataService.getApprovedProfiles() || [];
     const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${request.userId}`);
     
     if (profileIndex !== -1) {
@@ -1471,7 +1507,7 @@ window.approvePlanRequest = function(requestId) {
       approvedProfiles[profileIndex].profileTypes = planToProfileTypes[request.newPlan] || ['premium'];
       approvedProfiles[profileIndex].planExpiry = request.newExpiry;
       
-      localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+      await DataService.updateProfile(approvedProfiles[profileIndex].id, approvedProfiles[profileIndex]);
       
       console.log('✅ Perfil actualizado en carrusel:', approvedProfiles[profileIndex].carouselType);
     }
@@ -1480,7 +1516,7 @@ window.approvePlanRequest = function(requestId) {
   // Marcar solicitud como aprobada
   requests[requestIndex].status = 'approved';
   requests[requestIndex].approvedAt = new Date().toISOString();
-  localStorage.setItem('pendingPlanRequests', JSON.stringify(requests));
+  await DataService.savePlanRequests(requests);
   
   const planNames = {
     'premium': 'Premium Select',
@@ -1500,10 +1536,10 @@ window.approvePlanRequest = function(requestId) {
 };
 
 // Rechazar solicitud de plan
-window.rejectPlanRequest = function(requestId) {
+window.rejectPlanRequest = async function(requestId) {
   const reason = prompt('Motivo del rechazo (opcional):');
   
-  const requests = JSON.parse(localStorage.getItem('pendingPlanRequests') || '[]');
+  const requests = await DataService.getPlanRequests() || [];
   const requestIndex = requests.findIndex(r => (r.id === requestId) || (r.requestDate === requestId));
   
   if (requestIndex === -1) {
@@ -1515,7 +1551,7 @@ window.rejectPlanRequest = function(requestId) {
   requests[requestIndex].status = 'rejected';
   requests[requestIndex].rejectedAt = new Date().toISOString();
   requests[requestIndex].rejectionReason = reason || 'Sin motivo especificado';
-  localStorage.setItem('pendingPlanRequests', JSON.stringify(requests));
+  await DataService.savePlanRequests(requests);
   
   alert('Solicitud rechazada');
   
@@ -1535,7 +1571,7 @@ const aprobadosBadge = document.getElementById('aprobados-badge');
 const rechazadosBadge = document.getElementById('rechazados-badge');
 
 function updateRegistrosBadge() {
-  const registros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
+  // Usar variable global registros que se carga desde AWS
   const pendientes = registros.filter(r => r.status === 'pendiente').length;
   
   if (registrosBadge) {
@@ -1549,7 +1585,7 @@ function updateRegistrosBadge() {
 }
 
 function updateAprobadosBadge() {
-  const registros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
+  // Usar variable global registros que se carga desde AWS
   const aprobados = registros.filter(r => r.status === 'aprobado').length;
   
   if (aprobadosBadge) {
@@ -1563,7 +1599,7 @@ function updateAprobadosBadge() {
 }
 
 function updateRechazadosBadge() {
-  const registros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
+  // Usar variable global registros que se carga desde AWS
   const rechazados = registros.filter(r => r.status === 'rechazado').length;
   
   if (rechazadosBadge) {
@@ -1579,15 +1615,14 @@ function updateRechazadosBadge() {
 // ============================================
 // RENDERIZAR REGISTROS APROBADOS
 // ============================================
-function renderRegistrosAprobados() {
+async function renderRegistrosAprobados() {
   const list = document.getElementById('registros-aprobados-list');
   const empty = document.getElementById('registros-aprobados-empty');
   
   if (!list || !empty) return;
   
-  const allRegistros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
-  const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
-  const aprobados = allRegistros.filter(r => r.status === 'aprobado');
+  const approvedProfiles = await DataService.getApprovedProfiles() || [];
+  const aprobados = registros.filter(r => r.status === 'aprobado');
   
   if (aprobados.length === 0) {
     list.innerHTML = '';
@@ -1683,8 +1718,8 @@ function renderRegistrosRechazados() {
   
   if (!list || !empty) return;
   
-  const allRegistros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
-  const rechazados = allRegistros.filter(r => r.status === 'rechazado');
+  // Usar variable global registros que se carga desde AWS
+  const rechazados = registros.filter(r => r.status === 'rechazado');
   
   if (rechazados.length === 0) {
     list.innerHTML = '';
@@ -1766,14 +1801,14 @@ window.toggleRejectedDetails = (regId) => {
 };
 
 // Eliminar perfil rechazado
-window.deleteRejectedProfile = (regId) => {
+window.deleteRejectedProfile = async (regId) => {
   if (!confirm('⚠️ ¿Eliminar este registro rechazado?\n\nEsto eliminará permanentemente los datos archivados.')) {
     return;
   }
   
-  let pendingRegistros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
-  pendingRegistros = pendingRegistros.filter(r => r.id !== regId);
-  localStorage.setItem('pendingRegistros', JSON.stringify(pendingRegistros));
+  // Eliminar de AWS y actualizar variable global
+  await DataService.deleteRegistro(regId);
+  registros = registros.filter(r => r.id !== regId);
   
   renderRegistrosRechazados();
   updateBadges();
@@ -1783,8 +1818,8 @@ window.deleteRejectedProfile = (regId) => {
 
 // Función para ver archivos archivados
 window.viewArchivedFile = (regId, type) => {
-  const allRegistros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
-  const reg = allRegistros.find(r => r.id === regId);
+  // Usar variable global registros que se carga desde AWS
+  const reg = registros.find(r => r.id === regId);
   if (!reg) return;
   
   // Usar la misma función de visualización
@@ -1814,9 +1849,9 @@ window.toggleProfileDetails = (regId) => {
 };
 
 // Activar/Desactivar perfil
-window.toggleProfileStatus = (regId) => {
-  const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
-  const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
+window.toggleProfileStatus = async (regId) => {
+  const approvedProfiles = await DataService.getApprovedProfiles() || [];
+  const approvedUsers = await DataService.getApprovedUsers() || [];
   
   // Buscar perfil
   const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${regId}` || p.userId === regId);
@@ -1826,13 +1861,13 @@ window.toggleProfileStatus = (regId) => {
     // Toggle estado
     const currentStatus = approvedProfiles[profileIndex].isActive !== false;
     approvedProfiles[profileIndex].isActive = !currentStatus;
-    localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+    await DataService.updateProfile(approvedProfiles[profileIndex].id, approvedProfiles[profileIndex]);
   }
   
   if (userIndex !== -1) {
     const currentStatus = approvedUsers[userIndex].isActive !== false;
     approvedUsers[userIndex].isActive = !currentStatus;
-    localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+    await DataService.updateUser(approvedUsers[userIndex].id, approvedUsers[userIndex]);
   }
   
   // Re-renderizar
@@ -1844,25 +1879,20 @@ window.toggleProfileStatus = (regId) => {
 };
 
 // Eliminar perfil aprobado completamente
-window.deleteApprovedProfile = (regId) => {
+window.deleteApprovedProfile = async (regId) => {
   if (!confirm('⚠️ ¿Estás seguro de eliminar este perfil?\n\nEsta acción eliminará:\n- El registro de la usuaria\n- El perfil del carrusel\n- Los datos de la cuenta\n\nEsta acción NO se puede deshacer.')) {
     return;
   }
   
-  // Eliminar de pendingRegistros
-  let pendingRegistros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
-  pendingRegistros = pendingRegistros.filter(r => r.id !== regId);
-  localStorage.setItem('pendingRegistros', JSON.stringify(pendingRegistros));
+  // Eliminar de AWS pendingRegistros y actualizar variable global
+  await DataService.deleteRegistro(regId);
+  registros = registros.filter(r => r.id !== regId);
   
-  // Eliminar de approvedProfiles
-  let approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
-  approvedProfiles = approvedProfiles.filter(p => p.id !== `profile-${regId}` && p.userId !== regId);
-  localStorage.setItem('approvedProfiles', JSON.stringify(approvedProfiles));
+  // Eliminar de AWS approvedProfiles
+  await DataService.deleteProfile(`profile-${regId}`);
   
-  // Eliminar de approvedUsers
-  let approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
-  approvedUsers = approvedUsers.filter(u => u.id !== regId);
-  localStorage.setItem('approvedUsers', JSON.stringify(approvedUsers));
+  // Eliminar de AWS approvedUsers
+  await DataService.deleteUser(regId);
   
   // Re-renderizar
   renderRegistrosAprobados();
@@ -1871,8 +1901,8 @@ window.deleteApprovedProfile = (regId) => {
   alert('✅ Perfil eliminado correctamente');
 };
 
-function renderMensajes(autoMarkAsRead = false) {
-  const mensajes = JSON.parse(localStorage.getItem('contactMessages') || '[]');
+async function renderMensajes(autoMarkAsRead = false) {
+  let mensajes = await DataService.getContactMessages() || [];
   
   // Auto-marcar como leídos cuando se abre la pestaña
   if (autoMarkAsRead) {
@@ -1884,7 +1914,12 @@ function renderMensajes(autoMarkAsRead = false) {
       }
     });
     if (updated) {
-      localStorage.setItem('contactMessages', JSON.stringify(mensajes));
+      // Actualizar mensajes en AWS (marca como leídos)
+      for (const msg of mensajes) {
+        if (msg.id) {
+          await DataService.addContactMessage(msg);
+        }
+      }
       updateMensajesBadge();
     }
   }
@@ -1995,8 +2030,8 @@ function crearModalRespuesta() {
 
 let currentReplyMessageId = null;
 
-window.responderMensaje = (id) => {
-  const mensajes = JSON.parse(localStorage.getItem('contactMessages') || '[]');
+window.responderMensaje = async (id) => {
+  const mensajes = await DataService.getContactMessages() || [];
   const mensaje = mensajes.find(m => m.id == id);
   if (!mensaje) return;
   
@@ -2032,11 +2067,11 @@ window.enviarRespuesta = async () => {
     return;
   }
   
-  const mensajes = JSON.parse(localStorage.getItem('contactMessages') || '[]');
+  const mensajes = await DataService.getContactMessages() || [];
   const mensaje = mensajes.find(m => m.id == currentReplyMessageId);
   if (!mensaje) return;
   
-  const emailConfig = JSON.parse(localStorage.getItem('emailConfig') || '{}');
+  const emailConfig = await DataService.getConfig('emailConfig') || {};
   
   sendBtn.disabled = true;
   sendBtn.textContent = 'Enviando...';
@@ -2065,7 +2100,7 @@ window.enviarRespuesta = async () => {
         texto: replyText
       });
       mensaje.respondido = true;
-      localStorage.setItem('contactMessages', JSON.stringify(mensajes));
+      await DataService.addContactMessage(mensaje);
       
       alert('✅ Respuesta enviada exitosamente');
       cerrarModalRespuesta();
@@ -2089,7 +2124,7 @@ window.enviarRespuesta = async () => {
         metodo: 'mailto'
       });
       mensaje.respondido = true;
-      localStorage.setItem('contactMessages', JSON.stringify(mensajes));
+      await DataService.addContactMessage(mensaje);
       
       cerrarModalRespuesta();
       renderMensajes();
@@ -2100,22 +2135,20 @@ window.enviarRespuesta = async () => {
   }
 };
 
-window.marcarLeido = (id) => {
-  const mensajes = JSON.parse(localStorage.getItem('contactMessages') || '[]');
+window.marcarLeido = async (id) => {
+  const mensajes = await DataService.getContactMessages() || [];
   const mensaje = mensajes.find(m => m.id == id);
   if (mensaje) {
     mensaje.leido = true;
-    localStorage.setItem('contactMessages', JSON.stringify(mensajes));
+    await DataService.addContactMessage(mensaje);
     renderMensajes();
     updateMensajesBadge();
   }
 };
 
-window.eliminarMensaje = (id) => {
+window.eliminarMensaje = async (id) => {
   if (confirm('¿Estás seguro de que deseas eliminar este mensaje?')) {
-    let mensajes = JSON.parse(localStorage.getItem('contactMessages') || '[]');
-    mensajes = mensajes.filter(m => m.id != id);
-    localStorage.setItem('contactMessages', JSON.stringify(mensajes));
+    await DataService.deleteMessage(id);
     renderMensajes();
     updateMensajesBadge();
   }
@@ -2217,16 +2250,16 @@ const DEFAULT_PLANS = {
   }
 };
 
-function loadPlans() {
-  const stored = localStorage.getItem('luxuryPlans');
+async function loadPlans() {
+  const stored = await DataService.getConfig('luxuryPlans');
   if (stored) {
-    return JSON.parse(stored);
+    return stored;
   }
   return { ...DEFAULT_PLANS };
 }
 
-function savePlans(plans) {
-  localStorage.setItem('luxuryPlans', JSON.stringify(plans));
+async function savePlans(plans) {
+  await DataService.setConfig('luxuryPlans', plans);
   
   // También guardar configuración simplificada para el perfil-clienta
   const plansConfig = {
@@ -2256,11 +2289,11 @@ function savePlans(plans) {
     }
   };
   
-  localStorage.setItem('plansConfig', JSON.stringify(plansConfig));
+  await DataService.setConfig('plansConfig', plansConfig);
 }
 
-function loadPlansToForm() {
-  const plans = loadPlans();
+async function loadPlansToForm() {
+  const plans = await loadPlans();
   
   // VIP - Descripción y Tarifa
   const vipDescEl = document.getElementById('plan-vip-description');
@@ -2350,7 +2383,7 @@ function loadPlansToForm() {
   document.getElementById('plan-luxury-limited').checked = plans.luxury.limited || false;
 }
 
-function savePlansFromForm() {
+async function savePlansFromForm() {
   const vipDescEl = document.getElementById('plan-vip-description');
   const vipTarifaMinEl = document.getElementById('plan-vip-tarifa-min');
   const vipTarifaMaxEl = document.getElementById('plan-vip-tarifa-max');
@@ -2426,11 +2459,10 @@ function savePlansFromForm() {
     }
   };
   
-  savePlans(plans);
+  await savePlans(plans);
   
   // Feedback visual más claro
-  console.log('✅ Planes guardados en localStorage:', plans);
-  console.log('📋 Verificación - luxuryPlans:', localStorage.getItem('luxuryPlans'));
+  console.log('✅ Planes guardados en AWS:', plans);
   
   showPlansMessage('✓ Planes guardados correctamente. Los cambios se reflejarán en el formulario de registro.', 'success');
   
@@ -2491,22 +2523,22 @@ if (planesTabBtn) {
 // GESTIÓN DE CÓDIGOS DE DESCUENTO
 // ========================================
 
-function loadDiscountCodes() {
-  const stored = localStorage.getItem('luxuryDiscountCodes');
-  return stored ? JSON.parse(stored) : [];
+async function loadDiscountCodes() {
+  const stored = await DataService.getConfig('luxuryDiscountCodes');
+  return stored || [];
 }
 
-function saveDiscountCodes(codes) {
-  localStorage.setItem('luxuryDiscountCodes', JSON.stringify(codes));
+async function saveDiscountCodes(codes) {
+  await DataService.setConfig('luxuryDiscountCodes', codes);
 }
 
-function renderDiscountCodes() {
+async function renderDiscountCodes() {
   const codesList = document.getElementById('discount-codes-list');
   const codesEmpty = document.getElementById('discount-codes-empty');
   
   if (!codesList) return;
   
-  const codes = loadDiscountCodes();
+  const codes = await loadDiscountCodes();
   
   if (codes.length === 0) {
     codesList.style.display = 'none';
@@ -2555,7 +2587,7 @@ function renderDiscountCodes() {
   }).join('');
 }
 
-function createDiscountCode() {
+async function createDiscountCode() {
   const codeInput = document.getElementById('new-code-name');
   const typeSelect = document.getElementById('new-code-type');
   const valueInput = document.getElementById('new-code-value');
@@ -2585,7 +2617,7 @@ function createDiscountCode() {
     return;
   }
   
-  const codes = loadDiscountCodes();
+  const codes = await loadDiscountCodes();
   
   // Check if code already exists
   if (codes.some(c => c.code === code)) {
@@ -2607,7 +2639,7 @@ function createDiscountCode() {
   };
   
   codes.push(newCode);
-  saveDiscountCodes(codes);
+  await saveDiscountCodes(codes);
   
   // Clear form
   codeInput.value = '';
@@ -2621,22 +2653,22 @@ function createDiscountCode() {
   showPlansMessage('✓ Código de descuento creado correctamente', 'success');
 }
 
-window.toggleDiscountCode = (id) => {
-  const codes = loadDiscountCodes();
+window.toggleDiscountCode = async (id) => {
+  const codes = await loadDiscountCodes();
   const code = codes.find(c => c.id === id);
   if (code) {
     code.active = !code.active;
-    saveDiscountCodes(codes);
+    await saveDiscountCodes(codes);
     renderDiscountCodes();
   }
 };
 
-window.deleteDiscountCode = (id) => {
+window.deleteDiscountCode = async (id) => {
   if (!confirm('¿Estás seguro de eliminar este código?')) return;
   
-  let codes = loadDiscountCodes();
+  let codes = await loadDiscountCodes();
   codes = codes.filter(c => c.id !== id);
-  saveDiscountCodes(codes);
+  await saveDiscountCodes(codes);
   renderDiscountCodes();
 };
 
@@ -2681,26 +2713,26 @@ const DEFAULT_PAYMENT_OPTIONS = {
   requireInterview: true
 };
 
-function loadBankData() {
-  const stored = localStorage.getItem('luxuryBankData');
-  return stored ? JSON.parse(stored) : { ...DEFAULT_BANK_DATA };
+async function loadBankData() {
+  const stored = await DataService.getConfig('luxuryBankData');
+  return stored || { ...DEFAULT_BANK_DATA };
 }
 
-function saveBankData(data) {
-  localStorage.setItem('luxuryBankData', JSON.stringify(data));
+async function saveBankData(data) {
+  await DataService.setConfig('luxuryBankData', data);
 }
 
-function loadPaymentOptions() {
-  const stored = localStorage.getItem('luxuryPaymentOptions');
-  return stored ? JSON.parse(stored) : { ...DEFAULT_PAYMENT_OPTIONS };
+async function loadPaymentOptions() {
+  const stored = await DataService.getConfig('luxuryPaymentOptions');
+  return stored || { ...DEFAULT_PAYMENT_OPTIONS };
 }
 
-function savePaymentOptions(options) {
-  localStorage.setItem('luxuryPaymentOptions', JSON.stringify(options));
+async function savePaymentOptions(options) {
+  await DataService.setConfig('luxuryPaymentOptions', options);
 }
 
-function loadBankDataToForm() {
-  const data = loadBankData();
+async function loadBankDataToForm() {
+  const data = await loadBankData();
   
   const bankNameEl = document.getElementById('bank-name');
   const accountTypeEl = document.getElementById('bank-account-type');
@@ -2717,8 +2749,8 @@ function loadBankDataToForm() {
   if (emailEl) emailEl.value = data.email;
 }
 
-function loadPaymentOptionsToForm() {
-  const options = loadPaymentOptions();
+async function loadPaymentOptionsToForm() {
+  const options = await loadPaymentOptions();
   
   const allowPayLaterEl = document.getElementById('allow-pay-later');
   const requireReceiptEl = document.getElementById('require-transfer-receipt');
@@ -2729,7 +2761,7 @@ function loadPaymentOptionsToForm() {
   if (requireInterviewEl) requireInterviewEl.checked = options.requireInterview;
 }
 
-function saveBankDataFromForm() {
+async function saveBankDataFromForm() {
   const data = {
     bankName: document.getElementById('bank-name')?.value || DEFAULT_BANK_DATA.bankName,
     accountType: document.getElementById('bank-account-type')?.value || DEFAULT_BANK_DATA.accountType,
@@ -2739,18 +2771,18 @@ function saveBankDataFromForm() {
     email: document.getElementById('bank-email')?.value || DEFAULT_BANK_DATA.email
   };
   
-  saveBankData(data);
+  await saveBankData(data);
   showBankMessage('✓ Datos bancarios guardados correctamente', 'success');
 }
 
-function savePaymentOptionsFromForm() {
+async function savePaymentOptionsFromForm() {
   const options = {
     allowPayLater: document.getElementById('allow-pay-later')?.checked ?? true,
     requireTransferReceipt: document.getElementById('require-transfer-receipt')?.checked ?? true,
     requireInterview: document.getElementById('require-interview')?.checked ?? true
   };
   
-  savePaymentOptions(options);
+  await savePaymentOptions(options);
   showBankMessage('✓ Opciones de pago guardadas correctamente', 'success');
 }
 
@@ -2812,7 +2844,7 @@ function updateInterviewTimesPreview() {
   }
 }
 
-function saveInterviewSchedule() {
+async function saveInterviewSchedule() {
   const startTime = document.getElementById('interview-start-time')?.value || '10:00';
   const endTime = document.getElementById('interview-end-time')?.value || '20:00';
   const interval = parseInt(document.getElementById('interview-interval')?.value || '30');
@@ -2824,14 +2856,13 @@ function saveInterviewSchedule() {
     times: generateInterviewTimes(startTime, endTime, interval)
   };
   
-  localStorage.setItem('luxuryInterviewSchedule', JSON.stringify(schedule));
+  await DataService.setConfig('luxuryInterviewSchedule', schedule);
   showBankMessage('✓ Horarios de entrevista guardados correctamente', 'success');
 }
 
-function loadInterviewScheduleToForm() {
-  const stored = localStorage.getItem('luxuryInterviewSchedule');
-  if (stored) {
-    const schedule = JSON.parse(stored);
+async function loadInterviewScheduleToForm() {
+  const schedule = await DataService.getConfig('luxuryInterviewSchedule');
+  if (schedule) {
     const startEl = document.getElementById('interview-start-time');
     const endEl = document.getElementById('interview-end-time');
     const intervalEl = document.getElementById('interview-interval');
@@ -2889,7 +2920,7 @@ if (planesTabBtn) {
 // ========== SERVICIOS Y NOSOTROS ==========
 
 // Funciones para Servicios
-function loadServiciosToForm() {
+async function loadServiciosToForm() {
   const serviciosList = document.getElementById('servicios-list');
   const faqList = document.getElementById('faq-list');
   const serviciosActive = document.getElementById('servicios-active');
@@ -2899,7 +2930,7 @@ function loadServiciosToForm() {
     return;
   }
   
-  const data = JSON.parse(localStorage.getItem('servicios') || '{"active": true, "servicios": [], "faq": []}');
+  const data = await DataService.getServiciosConfig() || { active: true, servicios: [], faq: [] };
   
   serviciosActive.checked = data.active;
   
@@ -2919,11 +2950,11 @@ function loadServiciosToForm() {
   
   // Event listeners para eliminar servicios
   serviciosList.querySelectorAll('.remove-servicio-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.preventDefault();
       const idx = parseInt(btn.dataset.index);
       data.servicios.splice(idx, 1);
-      localStorage.setItem('servicios', JSON.stringify(data));
+      await DataService.setConfig('servicios', data);
       loadServiciosToForm();
     });
   });
@@ -2939,11 +2970,11 @@ function loadServiciosToForm() {
   
   // Event listeners para eliminar FAQ
   faqList.querySelectorAll('.remove-faq-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.preventDefault();
       const idx = parseInt(btn.dataset.index);
       data.faq.splice(idx, 1);
-      localStorage.setItem('servicios', JSON.stringify(data));
+      await DataService.setConfig('servicios', data);
       loadServiciosToForm();
     });
   });
@@ -2951,20 +2982,20 @@ function loadServiciosToForm() {
   // Event listeners para agregar servicios y FAQ
   const addServicioBtn = document.getElementById('add-servicio-btn');
   if (addServicioBtn) {
-    addServicioBtn.onclick = (e) => {
+    addServicioBtn.onclick = async (e) => {
       e.preventDefault();
       data.servicios.push({ nombre: '', descripcion: '', duracion: '', precio: 0, incluye: '' });
-      localStorage.setItem('servicios', JSON.stringify(data));
+      await DataService.setConfig('servicios', data);
       loadServiciosToForm();
     };
   }
 
   const addFaqBtn = document.getElementById('add-faq-btn');
   if (addFaqBtn) {
-    addFaqBtn.onclick = (e) => {
+    addFaqBtn.onclick = async (e) => {
       e.preventDefault();
       data.faq.push({ pregunta: '', respuesta: '' });
-      localStorage.setItem('servicios', JSON.stringify(data));
+      await DataService.setConfig('servicios', data);
       loadServiciosToForm();
     };
   }
@@ -2978,7 +3009,7 @@ function loadServiciosToForm() {
   }
 }
 
-function saveServiciosFromForm() {
+async function saveServiciosFromForm() {
   const data = {
     active: document.getElementById('servicios-active').checked,
     servicios: [],
@@ -3008,7 +3039,7 @@ function saveServiciosFromForm() {
     }
   });
 
-  localStorage.setItem('servicios', JSON.stringify(data));
+  await DataService.setConfig('servicios', data);
   
   const msg = document.getElementById('servicios-message');
   msg.textContent = '✓ Servicios guardados correctamente';
@@ -3018,8 +3049,8 @@ function saveServiciosFromForm() {
 }
 
 // Funciones para Nosotros
-function loadNosotrosToForm() {
-  const data = JSON.parse(localStorage.getItem('nosotros') || '{"active": true, "nombre": "", "email": "", "telefono": "", "whatsapp": "", "direccion": "", "info": [], "legal": ""}');
+async function loadNosotrosToForm() {
+  const data = await DataService.getNosotrosConfig() || { active: true, nombre: '', email: '', telefono: '', whatsapp: '', direccion: '', info: [], legal: '' };
   
   document.getElementById('nosotros-active').checked = data.active;
   document.getElementById('nosotros-nombre').value = data.nombre || '';
@@ -3052,11 +3083,11 @@ function loadNosotrosToForm() {
   
   // Event listeners para eliminar información
   infoList.querySelectorAll('.remove-info-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.preventDefault();
       const idx = parseInt(btn.dataset.index);
       data.info.splice(idx, 1);
-      localStorage.setItem('nosotros', JSON.stringify(data));
+      await DataService.setConfig('nosotros', data);
       loadNosotrosToForm();
     });
   });
@@ -3064,16 +3095,16 @@ function loadNosotrosToForm() {
   // Event listener para agregar información
   const addInfoBtn = document.getElementById('add-nosotros-info-btn');
   if (addInfoBtn) {
-    addInfoBtn.onclick = (e) => {
+    addInfoBtn.onclick = async (e) => {
       e.preventDefault();
       data.info.push({ titulo: '', contenido: '' });
-      localStorage.setItem('nosotros', JSON.stringify(data));
+      await DataService.setConfig('nosotros', data);
       loadNosotrosToForm();
     };
   }
 }
 
-function saveNosotrosFromForm() {
+async function saveNosotrosFromForm() {
   const data = {
     active: document.getElementById('nosotros-active').checked,
     nombre: document.getElementById('nosotros-nombre').value,
@@ -3095,7 +3126,7 @@ function saveNosotrosFromForm() {
     }
   });
 
-  localStorage.setItem('nosotros', JSON.stringify(data));
+  await DataService.setConfig('nosotros', data);
   
   const msg = document.getElementById('nosotros-message');
   msg.textContent = '✓ Información guardada correctamente';
@@ -3113,8 +3144,8 @@ document.getElementById('save-nosotros-btn')?.addEventListener('click', saveNoso
 // ============================================
 // CONFIGURACIÓN DE CORREO
 // ============================================
-function loadCorreoConfig() {
-  const config = JSON.parse(localStorage.getItem('emailConfig') || '{}');
+async function loadCorreoConfig() {
+  const config = await DataService.getConfig('emailConfig') || {};
   
   document.getElementById('correo-active').checked = config.active || false;
   document.getElementById('correo-provider').value = config.provider || '';
@@ -3165,7 +3196,7 @@ function updateProviderConfig(provider) {
   }
 }
 
-function saveCorreoConfig() {
+async function saveCorreoConfig() {
   const config = {
     active: document.getElementById('correo-active').checked,
     provider: document.getElementById('correo-provider').value,
@@ -3187,7 +3218,7 @@ function saveCorreoConfig() {
     template: document.getElementById('correo-template').value
   };
   
-  localStorage.setItem('emailConfig', JSON.stringify(config));
+  await DataService.setConfig('emailConfig', config);
   
   const msg = document.getElementById('correo-message');
   msg.textContent = '✓ Configuración de correo guardada correctamente';
@@ -3196,8 +3227,8 @@ function saveCorreoConfig() {
   setTimeout(() => msg.style.display = 'none', 3000);
 }
 
-function testCorreo() {
-  const config = JSON.parse(localStorage.getItem('emailConfig') || '{}');
+async function testCorreo() {
+  const config = await DataService.getConfig('emailConfig') || {};
   
   if (!config.active) {
     alert('Las notificaciones por correo están desactivadas.');
