@@ -3685,16 +3685,19 @@ function createSkeletonCard() {
       leido: false
     };
 
-    // Guardar en AWS
-    const mensajes = await DataService.getContactMessages() || [];
-    mensajes.unshift(mensaje);
-    await DataService.saveContactMessages(mensajes);
+    // Guardar mensaje usando la función con fallback
+    try {
+      await DataService.addContactMessage(mensaje);
+      
+      // Intentar enviar notificación por correo usando AWS SES
+      enviarNotificacionCorreo(mensaje);
 
-    // Intentar enviar notificación por correo usando AWS SES
-    enviarNotificacionCorreo(mensaje);
-
-    alert('¡Mensaje enviado correctamente! Te responderemos pronto.');
-    closeModal();
+      alert('¡Mensaje enviado correctamente! Te responderemos pronto.');
+      closeModal();
+    } catch (error) {
+      console.error('Error enviando mensaje:', error);
+      alert('Error al enviar mensaje. Por favor intenta nuevamente.');
+    }
   });
 
   // Función para enviar notificación por correo usando AWS SES

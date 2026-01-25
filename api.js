@@ -325,8 +325,16 @@ if (typeof DataService === 'undefined') {
     return await this.getConfig('servicios') || { active: false };
   },
   
+  async setServiciosConfig(config) {
+    return await this.setConfig('servicios', config);
+  },
+  
   async getNosotrosConfig() {
     return await this.getConfig('nosotros') || { active: false };
+  },
+  
+  async setNosotrosConfig(config) {
+    return await this.setConfig('nosotros', config);
   },
   
   async getPlansConfig() {
