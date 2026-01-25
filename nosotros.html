@@ -256,8 +256,31 @@
           <label for="login-remember">Recordar cuenta</label>
         </div>
         <button type="submit" class="btn cta-gold">Ingresar</button>
+        <p class="login-forgot" style="text-align: center; margin-top: 12px;">
+          <a href="#" id="forgot-password-link" style="color: #D4AF37; font-size: 13px;">¿Olvidaste tu contraseña?</a>
+        </p>
       </form>
       <p class="login-signup">¿No tienes cuenta? <a href="register" id="login-signup-link">Crear cuenta</a></p>
+    </div>
+  </div>
+
+  <!-- Password Recovery Modal -->
+  <div id="recovery-modal" class="login-modal" aria-modal="true" role="dialog" aria-hidden="true" style="display: none;">
+    <div class="login-overlay" id="recovery-overlay"></div>
+    <div class="login-container">
+      <button id="recovery-close" class="login-close" aria-label="Cerrar modal">&times;</button>
+      <h2 class="login-title">🔐 Recuperar Contraseña</h2>
+      <p style="color: #888; font-size: 13px; margin-bottom: 20px; text-align: center;">Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.</p>
+      <form id="recovery-form" class="login-form">
+        <div class="login-field">
+          <label for="recovery-email" class="login-label">Correo electrónico</label>
+          <input id="recovery-email" type="email" name="email" placeholder="tu@email.com" required />
+        </div>
+        <button type="submit" class="btn cta-gold">Enviar enlace de recuperación</button>
+      </form>
+      <p style="text-align: center; margin-top: 16px;">
+        <a href="#" id="back-to-login" style="color: #D4AF37; font-size: 13px;">← Volver a iniciar sesión</a>
+      </p>
     </div>
   </div>
 

@@ -160,8 +160,31 @@
           <label for="login-remember">Recordar cuenta</label>
         </div>
         <button type="submit" class="btn cta-gold">Ingresar</button>
+        <p class="login-forgot" style="text-align: center; margin-top: 12px;">
+          <a href="#" id="forgot-password-link" style="color: #D4AF37; font-size: 13px;">¿Olvidaste tu contraseña?</a>
+        </p>
       </form>
       <p class="login-signup">¿No tienes cuenta? <a href="register" id="login-signup-link">Crear cuenta</a></p>
+    </div>
+  </div>
+
+  <!-- Password Recovery Modal -->
+  <div id="recovery-modal" class="login-modal" aria-modal="true" role="dialog" aria-hidden="true" style="display: none;">
+    <div class="login-overlay" id="recovery-overlay"></div>
+    <div class="login-container">
+      <button id="recovery-close" class="login-close" aria-label="Cerrar modal">&times;</button>
+      <h2 class="login-title">🔐 Recuperar Contraseña</h2>
+      <p style="color: #888; font-size: 13px; margin-bottom: 20px; text-align: center;">Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.</p>
+      <form id="recovery-form" class="login-form">
+        <div class="login-field">
+          <label for="recovery-email" class="login-label">Correo electrónico</label>
+          <input id="recovery-email" type="email" name="email" placeholder="tu@email.com" required />
+        </div>
+        <button type="submit" class="btn cta-gold">Enviar enlace de recuperación</button>
+      </form>
+      <p style="text-align: center; margin-top: 16px;">
+        <a href="#" id="back-to-login" style="color: #D4AF37; font-size: 13px;">← Volver a iniciar sesión</a>
+      </p>
     </div>
   </div>
 
@@ -235,37 +258,77 @@
           item.querySelector('.faq-question').addEventListener('click', () => {
             item.classList.toggle('open');
           });
+      }
+
+      // Actualizar año del footer
+      document.getElementById('year').textContent = new Date().getFullYear();
+    } catch (error) {
+      console.error('Error cargando servicios:', error);
+      // Mostrar servicios por defecto si hay error
+      const defaultServicios = {
+        active: true,
+        servicios: [
+          {
+            nombre: "Luxury & Exclusive",
+            descripcion: "Servicio de exclusividad total sin límites",
+            duracion: "1-2 horas",
+            precio: "149.990",
+            incluye: "Atención personalizada\nExclusividad total\nFlexibilidad de horarios\nAmbiente privado"
+          }
+        ],
+        faq: [
+          {
+            pregunta: "¿Cómo funciona el servicio?",
+            respuesta: "Nuestro servicio se adapta completamente a tus necesidades y preferencias."
+          }
+        ]
+      };
+      loadServiciosData(defaultServicios);
+    }
+    }
+    
+    function loadServiciosData(servicios) {
+      if (!servicios || !servicios.servicios) return;
+      
+      // Cargar servicios
+      const serviciosContainer = document.getElementById('servicios-list');
+      serviciosContainer.innerHTML = servicios.servicios.map(s => `
+        <div class="servicio-card">
+          <div class="servicio-info">
+            <h3 class="servicio-nombre">${s.nombre}</h3>
+            <p class="servicio-descripcion">${s.descripcion}</p>
+            <div class="servicio-detalles">
+              <div class="servicio-duracion">⏱️ ${s.duracion}</div>
+              <div class="servicio-incluye">✨ ${s.incluye ? s.incluye.split('\n').join(' • ') : 'Servicio completo'}</div>
+            </div>
+          </div>
+          <div class="servicio-precio">${s.precio}<span class="servicio-precio-small"> CLP</span></div>
+        </div>
+      `).join('');
+
+      // Cargar FAQ
+      if (servicios.faq && servicios.faq.length > 0) {
+        const faqContainer = document.getElementById('faq-list');
+        faqContainer.innerHTML = servicios.faq.map(f => `
+          <div class="faq-item">
+            <div class="faq-question">${f.pregunta} <span class="faq-toggle">+</span></div>
+            <div class="faq-answer">${f.respuesta}</div>
+          </div>
+        `).join('');
+
+        // Agregar event listeners para abrir/cerrar FAQ
+        document.querySelectorAll('.faq-item').forEach(item => {
+          item.querySelector('.faq-question').addEventListener('click', () => {
+            item.classList.toggle('open');
+          });
         });
       }
 
       // Actualizar año del footer
       document.getElementById('year').textContent = new Date().getFullYear();
-      } catch (error) {
-        console.error('Error cargando servicios:', error);
-        // Mostrar servicios por defecto si hay error
-        const defaultServicios = {
-          active: true,
-          servicios: [
-            {
-              nombre: "Luxury & Exclusive",
-              descripcion: "Servicio de exclusividad total sin límites",
-              duracion: "1-2 horas",
-              precio: "149.990",
-              incluye: "Atención personalizada\nExclusividad total\nFlexibilidad de horarios\nAmbiente privado"
-            }
-          ],
-          faq: [
-            {
-              pregunta: "¿Cómo funciona el servicio?",
-              respuesta: "Nuestro servicio se adapta completamente a tus necesidades y preferencias."
-            }
-          ]
-        };
-        loadServiciosData(defaultServicios);
-      }
     }
-    
-    function loadServiciosData(servicios) {
+
+    // Cargar servicios cuando se carga la página
     document.addEventListener('DOMContentLoaded', loadServicios);
   </script>
 </body>
