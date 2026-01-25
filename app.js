@@ -3235,11 +3235,15 @@ function createSkeletonCard() {
     return card;
   };
 
-  const renderCreators = () => {
+  const renderCreators = async () => {
     if (!carousel) return;
     
     carousel.innerHTML = '';
-    const allCreators = getAllCreatorsData();
+    const allCreators = await getAllCreatorsData();
+    if (!Array.isArray(allCreators)) {
+      console.warn('getAllCreatorsData no retornó un array:', allCreators);
+      return;
+    }
     allCreators.forEach(creator => {
       carousel.appendChild(createCreatorCard(creator));
     });
@@ -3268,15 +3272,17 @@ function createSkeletonCard() {
   nextBtn?.addEventListener('click', () => scrollCarousel('next'));
 
   // Event listener para refrescar el carrusel
-  document.addEventListener('refreshCreators', renderCreators);
+  document.addEventListener('refreshCreators', async () => {
+    await renderCreators();
+  });
 
   // Inicializar
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(renderCreators, 100);
+    document.addEventListener('DOMContentLoaded', async () => {
+      setTimeout(async () => await renderCreators(), 100);
     });
   } else {
-    setTimeout(renderCreators, 100);
+    setTimeout(async () => await renderCreators(), 100);
   }
 })(); 
 
@@ -3557,11 +3563,15 @@ function createSkeletonCard() {
     return card;
   };
 
-  const renderPremiumSelect = () => {
+  const renderPremiumSelect = async () => {
     if (!carousel) return;
     
     carousel.innerHTML = '';
-    const allPremiumSelect = getAllPremiumSelectData();
+    const allPremiumSelect = await getAllPremiumSelectData();
+    if (!Array.isArray(allPremiumSelect)) {
+      console.warn('getAllPremiumSelectData no retornó un array:', allPremiumSelect);
+      return;
+    }
     allPremiumSelect.forEach(creator => {
       carousel.appendChild(createPremiumSelectCard(creator));
     });
@@ -3590,15 +3600,17 @@ function createSkeletonCard() {
   nextBtn?.addEventListener('click', () => scrollCarousel('next'));
 
   // Event listener para refrescar el carrusel
-  document.addEventListener('refreshPremiumSelect', renderPremiumSelect);
+  document.addEventListener('refreshPremiumSelect', async () => {
+    await renderPremiumSelect();
+  });
 
   // Inicializar
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(renderPremiumSelect, 100);
+    document.addEventListener('DOMContentLoaded', async () => {
+      setTimeout(async () => await renderPremiumSelect(), 100);
     });
   } else {
-    setTimeout(renderPremiumSelect, 100);
+    setTimeout(async () => await renderPremiumSelect(), 100);
   }
 })(); 
 
