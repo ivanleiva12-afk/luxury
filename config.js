@@ -7,14 +7,16 @@
  * 2. Cuando AWS esté listo: USE_BACKEND = true y cambiar API_URL
  */
 
-const CONFIG = {
-  // ═══════════════════════════════════════════════════════════
-  // MODO DE OPERACIÓN
-  // ═══════════════════════════════════════════════════════════
-  
-  // false = usa localStorage (desarrollo local)
-  // true = usa API de AWS (producción)
-  USE_BACKEND: true,
+// Proteger contra re-declaración
+if (typeof CONFIG === 'undefined') {
+  const CONFIG = {
+    // ═══════════════════════════════════════════════════════════
+    // MODO DE OPERACIÓN
+    // ═══════════════════════════════════════════════════════════
+    
+    // false = usa localStorage (desarrollo local)
+    // true = usa API de AWS (producción)
+    USE_BACKEND: true,
   
   // ═══════════════════════════════════════════════════════════
   // URLs DE API
@@ -49,3 +51,5 @@ const CONFIG = {
 
 // Hacer disponible globalmente
 window.CONFIG = CONFIG;
+
+} // Cerrar if de protección contra re-declaración

@@ -8,7 +8,9 @@
  * - NO usa localStorage (excepto para sesión temporal)
  */
 
-const DataService = {
+// Proteger contra re-declaración
+if (typeof DataService === 'undefined') {
+  const DataService = {
   
   // ═══════════════════════════════════════════════════════════
   // FUNCIONES AUXILIARES
@@ -694,3 +696,5 @@ const DataService = {
 
 // Hacer disponible globalmente
 window.DataService = DataService;
+
+} // Cerrar if de protección contra re-declaración
