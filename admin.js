@@ -2260,7 +2260,14 @@ async function loadPlans() {
   if (stored) {
     return stored;
   }
-  return { ...DEFAULT_PLANS };
+  
+  // Si no existen planes guardados, inicializar con valores por defecto
+  console.log('🔧 Admin - Inicializando planes por defecto en AWS...');
+  const defaultPlans = { ...DEFAULT_PLANS };
+  await DataService.setConfig('luxuryPlans', defaultPlans);
+  console.log('✅ Admin - Planes inicializados correctamente');
+  
+  return defaultPlans;
 }
 
 async function savePlans(plans) {

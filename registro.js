@@ -1024,11 +1024,49 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function loadPlansFromStorage() {
     const stored = await DataService.getConfig('luxuryPlans');
     console.log('📋 Registro - Cargando planes desde config:', stored ? 'encontrado' : 'no encontrado');
-    if (!stored) return; // Use default HTML if no custom plans
+    
+    if (!stored) {
+      // Si no hay planes configurados, inicializar con valores básicos
+      console.log('🔧 Registro - Inicializando planes básicos...');
+      const basicPlans = {
+        vip: {
+          name: 'VIP Black',
+          prices: { 7: 19990, 15: 34990, 30: 49990 },
+          features: ['Perfil verificado', 'Badge VIP exclusivo', 'Hasta 10 fotos', '2 videos'],
+          active: true
+        },
+        premium: {
+          name: 'Premium Select',
+          prices: { 7: 29990, 15: 54990, 30: 79990 },
+          features: ['Todo lo de VIP', 'Badge Premium dorado', 'Hasta 15 fotos', '4 videos'],
+          active: true,
+          featured: true
+        },
+        luxury: {
+          name: 'Luxury & Exclusive',
+          prices: { 7: 59990, 15: 99990, 30: 149990 },
+          features: ['Todo lo de Premium', 'Badge Luxury diamante', 'Fotos ilimitadas', 'Videos ilimitados'],
+          active: true
+        }
+      };
+      
+      try {
+        await DataService.setConfig('luxuryPlans', basicPlans);
+        console.log('✅ Registro - Planes básicos inicializados');
+        updatePlanCards(basicPlans);
+      } catch (error) {
+        console.error('❌ Error inicializando planes:', error);
+        // Continue with HTML defaults if AWS fails
+      }
+      return; 
+    }
     
     const plans = stored;
     console.log('📋 Registro - Planes cargados:', plans);
-    
+    updatePlanCards(plans);
+  }
+  
+  function updatePlanCards(plans) {
     // Update VIP plan
     updatePlanCard('vip', plans.vip);
     
