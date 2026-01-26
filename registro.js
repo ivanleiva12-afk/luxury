@@ -421,11 +421,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         throw new Error('El registro es demasiado grande. Por favor, usa imágenes más pequeñas.');
       }
       
-      const existingRegistros = await DataService.getPendingRegistros() || [];
-      existingRegistros.push(registro);
-      
-      // Intentar guardar
-      await DataService.savePendingRegistros(existingRegistros);
+      // Guardar directamente usando addPendingRegistro
+      console.log('💾 Guardando registro con ID:', registro.id);
+      await DataService.addPendingRegistro(registro);
       
       // Log censurado sin información sensible
       const registroForLog = { ...registro };
