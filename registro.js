@@ -1756,6 +1756,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const selectedDurationInput = document.getElementById('selectedDuration');
     const selectedDuration = selectedDurationInput ? parseInt(selectedDurationInput.value) : 30;
 
+    // IMPORTANTE: Obtener la duración del botón activo del plan seleccionado como respaldo
+    const selectedCard = document.querySelector(`.plan-card[data-plan="${selectedPlan}"]`);
+    const activeDurationBtn = selectedCard ? selectedCard.querySelector('.duration-btn.active') : null;
+    const actualDuration = activeDurationBtn ? parseInt(activeDurationBtn.dataset.days) : selectedDuration;
+
+    console.log('🎯 Aplicando cupón:', {
+      selectedPlan,
+      selectedDurationFromInput: selectedDuration,
+      actualDurationFromButton: actualDuration,
+      finalDuration: actualDuration
+    });
+
     const plans = await DataService.getConfig('luxuryPlans') || {};
     const planData = plans[selectedPlan];
 
@@ -1768,15 +1780,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let originalPrice;
 
-    // Intentar obtener el precio de la configuración del admin
-    if (planData && planData.prices && planData.prices[selectedDuration]) {
-      originalPrice = planData.prices[selectedDuration];
-    } else if (defaultPrices[selectedPlan] && defaultPrices[selectedPlan][selectedDuration]) {
+    // Intentar obtener el precio de la configuración del admin usando la duración real del botón activo
+    if (planData && planData.prices && planData.prices[actualDuration]) {
+      originalPrice = planData.prices[actualDuration];
+      console.log(`✅ Usando precio de admin: ${originalPrice} para ${actualDuration} días`);
+    } else if (defaultPrices[selectedPlan] && defaultPrices[selectedPlan][actualDuration]) {
       // Usar precio por defecto si no hay config de admin
-      originalPrice = defaultPrices[selectedPlan][selectedDuration];
+      originalPrice = defaultPrices[selectedPlan][actualDuration];
+      console.log(`✅ Usando precio por defecto: ${originalPrice} para ${actualDuration} días`);
     } else {
+      console.error('❌ No se encontró precio para:', { selectedPlan, actualDuration, planData, defaultPrices: defaultPrices[selectedPlan] });
       showDiscountMessage('Error al obtener precio del plan', 'error');
       return;
+    }
+
+    // Actualizar el campo selectedDuration con el valor real
+    if (selectedDurationInput) {
+      selectedDurationInput.value = actualDuration;
     }
 
     const discountValue = discountCode.value;

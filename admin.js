@@ -2700,8 +2700,15 @@ async function createDiscountCode() {
   const value = type === 'free' ? 100 : (parseInt(valueInput.value) || 0);
   const maxUses = parseInt(usesInput.value) || 0;
   const plans = plansSelect.value;
-  // Corregir fecha de expiración: agregar hora 23:59:59 para que expire al final del día
-  const expiry = expiryInput.value ? new Date(expiryInput.value + 'T23:59:59').toISOString() : null;
+
+  // Corregir fecha de expiración: construir fecha en UTC para evitar desfase por zona horaria
+  let expiry = null;
+  if (expiryInput.value) {
+    // Parsear fecha como YYYY-MM-DD y agregar 23:59:59 en UTC
+    const [year, month, day] = expiryInput.value.split('-').map(Number);
+    // Date.UTC usa mes indexado desde 0, por eso restamos 1 al mes
+    expiry = new Date(Date.UTC(year, month - 1, day, 23, 59, 59)).toISOString();
+  }
   
   if (!code) {
     alert('Por favor ingresa un código');
