@@ -41,9 +41,13 @@ exports.handler = async (event) => {
     // POST /registros - Crear registro
     if (method === 'POST' && path === '/registros') {
       const body = JSON.parse(event.body);
-      const id = body.email || `reg-${Date.now()}`;
-      const item = { ...body, id, status: 'pending', createdAt: new Date().toISOString() };
-      
+      // IMPORTANTE: Usar el ID que viene del frontend, no generar uno nuevo
+      // Esto evita que se pierda la referencia del ID original
+      const id = body.id || body.email || `reg-${Date.now()}`;
+      // Respetar el status que viene del frontend ('pendiente' en español)
+      const status = body.status || 'pendiente';
+      const item = { ...body, id, status, createdAt: new Date().toISOString() };
+
       await dynamodb.put({ TableName: TABLE_NAME, Item: item }).promise();
       return { statusCode: 201, headers, body: JSON.stringify(item) };
     }
