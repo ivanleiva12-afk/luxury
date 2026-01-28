@@ -3373,6 +3373,116 @@ document.getElementById('correo-provider')?.addEventListener('change', (e) => {
 document.getElementById('save-correo-btn')?.addEventListener('click', saveCorreoConfig);
 document.getElementById('test-correo-btn')?.addEventListener('click', testCorreo);
 
+// ========================================
+// FUNCIONES DE UTILIDAD PARA REGISTROS
+// ========================================
+
+// Recargar registros desde AWS
+window.recargarRegistros = async () => {
+  const btn = event.target.closest('button');
+  const originalText = btn.innerHTML;
+
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span><span>Recargando...</span>';
+  btn.style.opacity = '0.6';
+
+  try {
+    await loadRegistrosFromAPI();
+    renderRegistros();
+    updateRegistrosBadge();
+
+    btn.innerHTML = '<span>✅</span><span>¡Recargado!</span>';
+    setTimeout(() => {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    }, 2000);
+
+    console.log('✅ Registros recargados:', registros.length);
+  } catch (error) {
+    console.error('❌ Error recargando registros:', error);
+    btn.innerHTML = '<span>❌</span><span>Error</span>';
+    setTimeout(() => {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    }, 2000);
+    alert('Error al recargar los registros. Revisa la consola para más detalles.');
+  }
+};
+
+// Mostrar registros para limpiar
+window.mostrarRegistrosParaLimpiar = async () => {
+  const pendientes = registros.filter(r => r.status === 'pendiente');
+
+  if (pendientes.length === 0) {
+    alert('No hay registros pendientes para limpiar.');
+    return;
+  }
+
+  // Crear lista de registros con checkbox
+  let mensaje = '🗑️ LIMPIEZA DE REGISTROS ANTIGUOS\n\n';
+  mensaje += 'Selecciona los IDs de los registros que deseas eliminar:\n\n';
+
+  pendientes.forEach((reg, index) => {
+    mensaje += `${index + 1}. ${reg.displayName || 'Sin nombre'} (@${reg.username || 'sin.usuario'})\n`;
+    mensaje += `   ID: ${reg.id}\n`;
+    mensaje += `   Fecha: ${reg.date}\n\n`;
+  });
+
+  mensaje += '\n⚠️ Esta acción NO se puede deshacer.\n\n';
+  mensaje += 'Ingresa los números de los registros a eliminar separados por comas (Ej: 1,3,5):\n';
+  mensaje += 'O escribe "todos" para eliminar todos los registros pendientes:';
+
+  const respuesta = prompt(mensaje);
+
+  if (!respuesta) return; // Cancelado
+
+  let idsAEliminar = [];
+
+  if (respuesta.toLowerCase().trim() === 'todos') {
+    idsAEliminar = pendientes.map(r => r.id);
+  } else {
+    const indices = respuesta.split(',').map(s => parseInt(s.trim()) - 1);
+    idsAEliminar = indices
+      .filter(i => i >= 0 && i < pendientes.length)
+      .map(i => pendientes[i].id);
+  }
+
+  if (idsAEliminar.length === 0) {
+    alert('No se seleccionaron registros válidos.');
+    return;
+  }
+
+  const confirmacion = confirm(`⚠️ ¿Estás seguro de eliminar ${idsAEliminar.length} registro(s)?\n\nEsta acción NO se puede deshacer.`);
+
+  if (!confirmacion) return;
+
+  // Eliminar registros
+  let eliminados = 0;
+  let errores = 0;
+
+  for (const id of idsAEliminar) {
+    try {
+      await DataService.deleteRegistro(id);
+      registros = registros.filter(r => r.id !== id);
+      eliminados++;
+    } catch (error) {
+      console.error(`Error eliminando registro ${id}:`, error);
+      errores++;
+    }
+  }
+
+  renderRegistros();
+  updateRegistrosBadge();
+
+  if (errores > 0) {
+    alert(`✅ ${eliminados} registro(s) eliminado(s)\n❌ ${errores} error(es)\n\nRevisa la consola para más detalles.`);
+  } else {
+    alert(`✅ ${eliminados} registro(s) eliminado(s) correctamente`);
+  }
+};
+
 // Cargar configuración de correo al cargar la página
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('Admin panel inicializando...');

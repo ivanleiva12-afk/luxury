@@ -756,7 +756,19 @@ Verificación prioritaria</textarea>
     <!-- Tab: Registros Pendientes -->
     <div id="registros-tab" class="admin-tab-content">
       <div class="admin-section">
-        <h2>Registros Pendientes de Aprobación</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="margin: 0;">Registros Pendientes de Aprobación</h2>
+          <div style="display: flex; gap: 12px;">
+            <button onclick="recargarRegistros()" style="padding: 10px 20px; background: linear-gradient(135deg, #3B82F6, #2563EB); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+              <span>🔄</span>
+              <span>Recargar</span>
+            </button>
+            <button onclick="mostrarRegistrosParaLimpiar()" style="padding: 10px 20px; background: linear-gradient(135deg, #EF4444, #DC2626); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+              <span>🗑️</span>
+              <span>Limpiar antiguos</span>
+            </button>
+          </div>
+        </div>
         <div id="registros-list" class="admin-list">
           <!-- Los registros se cargarán aquí -->
         </div>

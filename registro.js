@@ -81,31 +81,68 @@ document.addEventListener('DOMContentLoaded', async () => {
     const currentStepEl = document.querySelector(`.form-step[data-step="${step}"]`);
     const requiredFields = currentStepEl.querySelectorAll('[required]');
     let isValid = true;
-    
+    let missingFields = [];
+
     requiredFields.forEach(field => {
       // Skip validation for hidden fields (inside hidden sections)
       const isVisible = field.offsetParent !== null || field.closest('[style*="display: none"]') === null;
       if (!isVisible) return;
-      
+
       if (!field.value || (field.type === 'checkbox' && !field.checked)) {
         isValid = false;
         field.classList.add('error');
-        field.addEventListener('input', () => field.classList.remove('error'), { once: true });
+        field.style.borderColor = '#DC2626';
+
+        // Obtener el label del campo
+        const label = field.parentElement.querySelector('label')?.textContent ||
+                     field.closest('.form-group')?.querySelector('label')?.textContent ||
+                     field.name || field.id;
+        missingFields.push(label.replace('*', '').trim());
+
+        field.addEventListener('input', () => {
+          field.classList.remove('error');
+          field.style.borderColor = '';
+        }, { once: true });
       }
     });
-    
+
+    // Mostrar alerta con campos faltantes
+    if (missingFields.length > 0) {
+      alert(`⚠️ Por favor completa los siguientes campos obligatorios:\n\n${missingFields.map(f => `• ${f}`).join('\n')}`);
+    }
+
     // Specific validations
     if (step === 1) {
+      const email = document.getElementById('email').value;
+      const whatsapp = document.getElementById('whatsapp').value;
       const password = document.getElementById('password').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
-      
-      if (password.length < 8) {
-        alert('La contraseña debe tener al menos 8 caracteres');
+
+      // Validar email con regex
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (email && !emailRegex.test(email)) {
+        alert('❌ El formato del correo electrónico no es válido\n\nEjemplo válido: usuario@ejemplo.com');
+        document.getElementById('email').style.borderColor = '#DC2626';
         isValid = false;
       }
-      
+
+      // Validar WhatsApp (debe ser +56 9 seguido de 8 dígitos)
+      const whatsappRegex = /^\+56\s?9\s?\d{8}$/;
+      if (whatsapp && !whatsappRegex.test(whatsapp)) {
+        alert('❌ El formato de WhatsApp no es válido\n\nFormato correcto: +56 9 XXXX XXXX\nEjemplo: +56 9 1234 5678');
+        document.getElementById('whatsapp').style.borderColor = '#DC2626';
+        isValid = false;
+      }
+
+      if (password.length < 8) {
+        alert('❌ La contraseña debe tener al menos 8 caracteres');
+        document.getElementById('password').style.borderColor = '#DC2626';
+        isValid = false;
+      }
+
       if (password !== confirmPassword) {
-        alert('Las contraseñas no coinciden');
+        alert('❌ Las contraseñas no coinciden\n\nPor favor verifica que ambas contraseñas sean iguales');
+        document.getElementById('confirmPassword').style.borderColor = '#DC2626';
         isValid = false;
       }
     }
