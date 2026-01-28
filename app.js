@@ -3648,47 +3648,70 @@ function createSkeletonCard() {
     closeModal();
   });
 
+  // Flag para prevenir envíos duplicados
+  let isSubmitting = false;
+
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const formData = new FormData(form);
-    const fileInput = document.getElementById('contact-archivos');
-    
-    // Convertir archivos a base64
-    let archivosData = [];
-    if (fileInput && fileInput.files.length > 0) {
-      for (let i = 0; i < fileInput.files.length; i++) {
-        const file = fileInput.files[i];
-        try {
-          const base64 = await fileToBase64(file);
-          archivosData.push({
-            nombre: file.name,
-            tipo: file.type,
-            tamaño: file.size,
-            data: base64
-          });
-        } catch (err) {
-          console.error('Error al procesar archivo:', err);
-        }
-      }
+    // Prevenir envíos duplicados
+    if (isSubmitting) {
+      console.log('Ya hay un envío en proceso, ignorando...');
+      return;
     }
 
-    // Crear mensaje
-    const mensaje = {
-      id: Date.now(),
-      fecha: new Date().toISOString(),
-      nombre: formData.get('nombre'),
-      email: formData.get('email'),
-      telefono: formData.get('telefono') || 'No proporcionado',
-      mensaje: formData.get('mensaje'),
-      archivos: archivosData,
-      leido: false
-    };
+    isSubmitting = true;
 
-    // Guardar mensaje usando la función con fallback
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn?.textContent || 'Enviar mensaje';
+
+    // Deshabilitar botón y mostrar feedback
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Enviando...';
+      submitBtn.style.opacity = '0.6';
+    }
+
     try {
+      const formData = new FormData(form);
+      const fileInput = document.getElementById('contact-archivos');
+
+      // Convertir archivos a base64
+      let archivosData = [];
+      if (fileInput && fileInput.files.length > 0) {
+        for (let i = 0; i < fileInput.files.length; i++) {
+          const file = fileInput.files[i];
+          try {
+            const base64 = await fileToBase64(file);
+            archivosData.push({
+              nombre: file.name,
+              tipo: file.type,
+              tamaño: file.size,
+              data: base64
+            });
+          } catch (err) {
+            console.error('Error al procesar archivo:', err);
+          }
+        }
+      }
+
+      // Crear mensaje con ID único
+      const mensaje = {
+        id: Date.now() + Math.random().toString(36).slice(2, 11), // ID único con timestamp + random
+        fecha: new Date().toISOString(),
+        nombre: formData.get('nombre'),
+        email: formData.get('email'),
+        telefono: formData.get('telefono') || 'No proporcionado',
+        mensaje: formData.get('mensaje'),
+        archivos: archivosData,
+        leido: false
+      };
+
+      console.log('📤 Enviando mensaje con ID:', mensaje.id);
+
+      // Guardar mensaje usando la función con fallback
       await DataService.addContactMessage(mensaje);
-      
+
       // Intentar enviar notificación por correo usando AWS SES
       enviarNotificacionCorreo(mensaje);
 
@@ -3697,6 +3720,14 @@ function createSkeletonCard() {
     } catch (error) {
       console.error('Error enviando mensaje:', error);
       alert('Error al enviar mensaje. Por favor intenta nuevamente.');
+    } finally {
+      // Re-habilitar botón
+      isSubmitting = false;
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+        submitBtn.style.opacity = '1';
+      }
     }
   });
 

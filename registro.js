@@ -1752,16 +1752,33 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     
-    // Get plan price
+    // Get plan price según la duración seleccionada
+    const selectedDurationInput = document.getElementById('selectedDuration');
+    const selectedDuration = selectedDurationInput ? parseInt(selectedDurationInput.value) : 30;
+
     const plans = await DataService.getConfig('luxuryPlans') || {};
     const planData = plans[selectedPlan];
-    
-    if (!planData) {
+
+    // Default prices by duration (fallback si no hay config de admin)
+    const defaultPrices = {
+      vip: { 7: 19990, 15: 34990, 30: 49990 },
+      premium: { 7: 29990, 15: 54990, 30: 79990 },
+      luxury: { 7: 59990, 15: 99990, 30: 149990 }
+    };
+
+    let originalPrice;
+
+    // Intentar obtener el precio de la configuración del admin
+    if (planData && planData.prices && planData.prices[selectedDuration]) {
+      originalPrice = planData.prices[selectedDuration];
+    } else if (defaultPrices[selectedPlan] && defaultPrices[selectedPlan][selectedDuration]) {
+      // Usar precio por defecto si no hay config de admin
+      originalPrice = defaultPrices[selectedPlan][selectedDuration];
+    } else {
       showDiscountMessage('Error al obtener precio del plan', 'error');
       return;
     }
-    
-    const originalPrice = planData.price;
+
     const discountValue = discountCode.value;
     const finalPrice = Math.round(originalPrice * (1 - discountValue / 100));
     

@@ -2002,7 +2002,7 @@ async function renderMensajes(autoMarkAsRead = false) {
       : '';
 
     return `
-      <div class="admin-item" style="flex-direction: column; align-items: start; gap: 12px; ${msg.leido ? '' : 'border-left: 4px solid var(--gold);'}">
+      <div class="admin-item" data-message-id="${msg.id}" style="flex-direction: column; align-items: start; gap: 12px; ${msg.leido ? '' : 'border-left: 4px solid var(--gold);'}">
         <div style="width: 100%; display: flex; justify-content: space-between; align-items: start;">
           <div style="flex: 1;">
             <div class="admin-item-name">${msg.nombre}${statusBadge}</div>
@@ -2067,24 +2067,38 @@ function crearModalRespuesta() {
 let currentReplyMessageId = null;
 
 window.responderMensaje = async (id) => {
-  const mensajes = await DataService.getContactMessages() || [];
-  const mensaje = mensajes.find(m => m.id == id);
-  if (!mensaje) return;
-  
+  // Crear modal inmediatamente para feedback instantáneo
   crearModalRespuesta();
   currentReplyMessageId = id;
-  
+
   const modal = document.getElementById('reply-modal');
   const originalDiv = document.getElementById('reply-original-message');
   const textarea = document.getElementById('reply-text');
-  
-  originalDiv.innerHTML = `
-    <div style="color: var(--muted); font-size: 12px; margin-bottom: 8px;">Mensaje de: <strong style="color: var(--text);">${mensaje.nombre}</strong> (${mensaje.email})</div>
-    <div style="color: var(--text); font-size: 14px;">"${mensaje.mensaje.substring(0, 300)}${mensaje.mensaje.length > 300 ? '...' : ''}"</div>
-  `;
-  
+
+  // Mostrar modal con mensaje de carga
+  originalDiv.innerHTML = '<div style="color: var(--muted); text-align: center; padding: 20px;">Cargando mensaje...</div>';
   textarea.value = '';
   modal.style.display = 'flex';
+
+  // Cargar datos del mensaje de forma asíncrona
+  try {
+    const mensajes = await DataService.getContactMessages() || [];
+    const mensaje = mensajes.find(m => m.id == id);
+
+    if (!mensaje) {
+      originalDiv.innerHTML = '<div style="color: #DC2626; text-align: center; padding: 20px;">❌ Error: Mensaje no encontrado</div>';
+      return;
+    }
+
+    // Actualizar contenido del modal
+    originalDiv.innerHTML = `
+      <div style="color: var(--muted); font-size: 12px; margin-bottom: 8px;">Mensaje de: <strong style="color: var(--text);">${mensaje.nombre}</strong> (${mensaje.email})</div>
+      <div style="color: var(--text); font-size: 14px;">"${mensaje.mensaje.substring(0, 300)}${mensaje.mensaje.length > 300 ? '...' : ''}"</div>
+    `;
+  } catch (error) {
+    console.error('Error cargando mensaje:', error);
+    originalDiv.innerHTML = '<div style="color: #DC2626; text-align: center; padding: 20px;">❌ Error cargando el mensaje</div>';
+  }
 };
 
 window.cerrarModalRespuesta = () => {
@@ -2184,9 +2198,51 @@ window.marcarLeido = async (id) => {
 
 window.eliminarMensaje = async (id) => {
   if (confirm('¿Estás seguro de que deseas eliminar este mensaje?')) {
-    await DataService.deleteMessage(id);
-    renderMensajes();
-    updateMensajesBadge();
+    // Feedback visual inmediato: encontrar y ocultar el elemento del DOM
+    const messageElement = document.querySelector(`[data-message-id="${id}"]`);
+    if (messageElement) {
+      messageElement.style.opacity = '0.5';
+      messageElement.style.pointerEvents = 'none';
+
+      // Añadir indicador de eliminación
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position: absolute; inset: 0; background: rgba(220,38,38,0.1); display: flex; align-items: center; justify-content: center; font-weight: 600; color: #DC2626;';
+      overlay.textContent = 'Eliminando...';
+      messageElement.style.position = 'relative';
+      messageElement.appendChild(overlay);
+    }
+
+    try {
+      // Eliminar del backend
+      await DataService.deleteMessage(id);
+
+      // Remover del DOM con animación
+      if (messageElement) {
+        messageElement.style.transition = 'all 0.3s ease';
+        messageElement.style.transform = 'translateX(-100%)';
+        messageElement.style.opacity = '0';
+
+        setTimeout(() => {
+          messageElement.remove();
+          updateMensajesBadge();
+        }, 300);
+      } else {
+        // Si no encontramos el elemento, recargar la lista completa
+        renderMensajes();
+        updateMensajesBadge();
+      }
+    } catch (error) {
+      console.error('Error eliminando mensaje:', error);
+      alert('❌ Error al eliminar el mensaje. Por favor intenta nuevamente.');
+
+      // Restaurar el elemento si falló
+      if (messageElement) {
+        messageElement.style.opacity = '1';
+        messageElement.style.pointerEvents = 'auto';
+        const overlay = messageElement.querySelector('div[style*="Eliminando"]');
+        if (overlay) overlay.remove();
+      }
+    }
   }
 };
 
@@ -2597,7 +2653,8 @@ async function renderDiscountCodes() {
     const usesText = code.maxUses === 0 ? 'Ilimitado' : `${code.usedCount || 0}/${code.maxUses}`;
     const discountText = code.type === 'free' ? '100% GRATIS' : `${code.value}% OFF`;
     const plansText = code.plans === 'all' ? 'Todos' : code.plans.toUpperCase();
-    const expiryText = code.expiry ? new Date(code.expiry).toLocaleDateString('es-CL') : 'Sin expiración';
+    // Corregir visualización de fecha: extraer solo la parte de fecha (YYYY-MM-DD) antes de convertir
+    const expiryText = code.expiry ? new Date(code.expiry).toLocaleDateString('es-CL', { timeZone: 'UTC' }) : 'Sin expiración';
     const statusClass = isExpired ? 'status-rechazado' : (code.active ? 'status-aprobado' : 'status-pendiente');
     const statusText = isExpired ? 'Expirado' : (code.active ? 'Activo' : 'Inactivo');
     
@@ -2643,7 +2700,8 @@ async function createDiscountCode() {
   const value = type === 'free' ? 100 : (parseInt(valueInput.value) || 0);
   const maxUses = parseInt(usesInput.value) || 0;
   const plans = plansSelect.value;
-  const expiry = expiryInput.value || null;
+  // Corregir fecha de expiración: agregar hora 23:59:59 para que expire al final del día
+  const expiry = expiryInput.value ? new Date(expiryInput.value + 'T23:59:59').toISOString() : null;
   
   if (!code) {
     alert('Por favor ingresa un código');
