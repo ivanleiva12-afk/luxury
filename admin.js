@@ -249,21 +249,38 @@ adminTabs.forEach(tab => {
 const renderRegistros = () => {
   const list = document.getElementById('registros-list');
   const empty = document.getElementById('registros-empty');
-  
+
   if (!list || !empty) {
     console.error('Elementos de registros no encontrados');
     return;
   }
-  
-  const pendingOnly = registros.filter(r => r.status === 'pendiente');
-  
+
+  console.log('🔍 DEBUG renderRegistros:');
+  console.log('  Total registros en memoria:', registros.length);
+  console.log('  Registros completos:', registros);
+
+  // Mostrar todos los status únicos para debugging
+  const uniqueStatuses = [...new Set(registros.map(r => r.status))];
+  console.log('  Status únicos encontrados:', uniqueStatuses);
+
+  // Filtrar por 'pendiente' (normalizado, sin espacios, minúsculas)
+  const pendingOnly = registros.filter(r => {
+    const normalizedStatus = String(r.status || '').toLowerCase().trim();
+    console.log(`  Registro ${r.id}: status="${r.status}" normalizado="${normalizedStatus}" coincide=${normalizedStatus === 'pendiente'}`);
+    return normalizedStatus === 'pendiente';
+  });
+
+  console.log('  Registros pendientes filtrados:', pendingOnly.length);
+
   if (pendingOnly.length === 0) {
+    console.warn('⚠️ No hay registros pendientes para mostrar');
     list.innerHTML = '';
     list.style.display = 'none';
     empty.style.display = 'block';
     return;
   }
-  
+
+  console.log('✅ Renderizando', pendingOnly.length, 'registros pendientes');
   list.style.display = 'grid';
   empty.style.display = 'none';
   list.innerHTML = pendingOnly.map(reg => {
