@@ -263,11 +263,12 @@ const renderRegistros = () => {
   const uniqueStatuses = [...new Set(registros.map(r => r.status))];
   console.log('  Status únicos encontrados:', uniqueStatuses);
 
-  // Filtrar por 'pendiente' (normalizado, sin espacios, minúsculas)
+  // Filtrar por 'pendiente' O 'pending' (aceptar ambos idiomas)
   const pendingOnly = registros.filter(r => {
     const normalizedStatus = String(r.status || '').toLowerCase().trim();
-    console.log(`  Registro ${r.id}: status="${r.status}" normalizado="${normalizedStatus}" coincide=${normalizedStatus === 'pendiente'}`);
-    return normalizedStatus === 'pendiente';
+    const isPending = normalizedStatus === 'pendiente' || normalizedStatus === 'pending';
+    console.log(`  Registro ${r.id}: status="${r.status}" normalizado="${normalizedStatus}" coincide=${isPending}`);
+    return isPending;
   });
 
   console.log('  Registros pendientes filtrados:', pendingOnly.length);
