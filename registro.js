@@ -126,10 +126,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         isValid = false;
       }
 
-      // Validar WhatsApp (debe ser +56 9 seguido de 8 dígitos)
-      const whatsappRegex = /^\+56\s?9\s?\d{8}$/;
-      if (whatsapp && !whatsappRegex.test(whatsapp)) {
-        alert('❌ El formato de WhatsApp no es válido\n\nFormato correcto: +56 9 XXXX XXXX\nEjemplo: +56 9 1234 5678');
+      // Validar WhatsApp (solo 8 dígitos, el +56 9 se agrega automáticamente)
+      const whatsappRegex = /^\d{8}$/;
+      if (whatsapp && !whatsappRegex.test(whatsapp.replace(/\s/g, ''))) {
+        alert('❌ El número de WhatsApp debe tener exactamente 8 dígitos\n\nEjemplo: 12345678');
         document.getElementById('whatsapp').style.borderColor = '#DC2626';
         isValid = false;
       }
@@ -263,7 +263,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       displayName: data.displayName || '',
       username: data.username || generateUsernameInstant(data.displayName || ''),
       email: data.email || '',
-      whatsapp: data.whatsapp || '',
+      whatsapp: data.whatsapp ? `+56 9 ${data.whatsapp.replace(/\s/g, '')}` : '',
       city: data.city === 'Otra' ? data.otherCity : data.city,
       commune: data.commune || '',
       bio: data.bio || '',

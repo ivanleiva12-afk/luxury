@@ -529,9 +529,15 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
     console.log('✅ Usuario en aprobados:', !!approvedUser);
     
     if (approvedUser) {
-      // Verificar contraseña
+      // Verificar contraseña con logs detallados
       console.log('🔑 Verificando contraseña en usuario aprobado...');
-      if (approvedUser.password !== password) {
+      console.log('  Password guardada:', approvedUser.password ? `"${approvedUser.password}" (${typeof approvedUser.password}, largo: ${approvedUser.password.length})` : 'UNDEFINED/NULL');
+      console.log('  Password ingresada:', password ? `"${password}" (${typeof password}, largo: ${password.length})` : 'VACÍA');
+      console.log('  ¿Son iguales?:', approvedUser.password === password);
+      console.log('  ¿Son iguales (trim)?:', (approvedUser.password || '').trim() === password.trim());
+
+      // Comparar con trim para evitar espacios invisibles
+      if (!approvedUser.password || approvedUser.password.trim() !== password.trim()) {
         console.error('❌ Contraseña incorrecta en usuario aprobado');
         alert('❌ Contraseña incorrecta. Por favor verifica tus credenciales.');
         return;
@@ -554,11 +560,12 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
     if (pendingUser) {
       console.log('📋 Estado del usuario:', pendingUser.status);
       console.log('🔑 Verificando contraseña en usuario pendiente...');
-      
-      // Verificar contraseña
-      if (pendingUser.password !== password) {
+      console.log('  Password guardada:', pendingUser.password ? `"${pendingUser.password}" (largo: ${pendingUser.password.length})` : 'UNDEFINED/NULL');
+      console.log('  Password ingresada:', password ? `"${password}" (largo: ${password.length})` : 'VACÍA');
+
+      // Verificar contraseña con trim
+      if (!pendingUser.password || pendingUser.password.trim() !== password.trim()) {
         console.error('❌ Contraseña incorrecta en usuario pendiente');
-        console.log('🔍 Verificando contraseña guardada vs ingresada...');
         alert('❌ Contraseña incorrecta. Por favor verifica tus credenciales.');
         return;
       }

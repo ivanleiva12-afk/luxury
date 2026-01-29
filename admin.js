@@ -515,8 +515,12 @@ window.approveRegistro = async (id) => {
       paymentReceiptData: reg.transferReceiptData || null
     };
     
-    // Obtener configuraciones de planes del admin desde AWS
-    const plansConfig = await DataService.getPlansConfig() || {};
+    // Obtener configuraciones en PARALELO para mayor velocidad
+    const [plansConfig, existingUsers, existingProfiles] = await Promise.all([
+      DataService.getPlansConfig().then(r => r || {}),
+      DataService.getApprovedUsers().then(r => r || []),
+      DataService.getApprovedProfiles().then(r => r || [])
+    ]);
     
     // Determinar restricciones según el plan (usando configuraciones del admin)
     const getConfigValue = (plan, key, defaultValue) => {
@@ -577,9 +581,6 @@ window.approveRegistro = async (id) => {
       rating: 5.0
     };
     
-    // Guardar en AWS pendingRegistros
-    await DataService.updateRegistro(reg.id, reg);
-    
     // ============================================
     // CREAR currentUser para que la usuaria pueda acceder a su panel
     // ============================================
@@ -630,18 +631,10 @@ window.approveRegistro = async (id) => {
     };
     
     console.log('✅ Aprobando usuario:', approvedUser.email, 'con contraseña:', approvedUser.password ? 'SÍ' : 'NO');
-    
-    // Guardar lista de usuarios aprobados para login futuro en AWS
-    const approvedUsers = await DataService.getApprovedUsers() || [];
-    const existingUserIndex = approvedUsers.findIndex(u => u.id === approvedUser.id);
-    if (existingUserIndex !== -1) {
-      await DataService.updateUser(approvedUser.id, approvedUser);
-    } else {
-      await DataService.addApprovedUser(approvedUser);
-    }
-    
-    // Guardar perfil aprobado para los carruseles en AWS
-    const approvedProfiles = await DataService.getApprovedProfiles() || [];
+
+    // Usar datos ya precargados en paralelo (existingUsers y existingProfiles)
+    const approvedUsers = existingUsers;
+    const approvedProfiles = existingProfiles;
     
     // Crear objeto de perfil para el carrusel
     // IMPORTANTE: Solo guardar datos que realmente existen, no inventar valores por defecto
@@ -716,9 +709,10 @@ window.approveRegistro = async (id) => {
       approvedAt: reg.approvedAt,
       originalRegistro: reg,
       // Campos adicionales para compatibilidad con el modal
-      avatar: reg.profilePhotosData && reg.profilePhotosData.length > 0 ? 
+      avatar: reg.profilePhotosData && reg.profilePhotosData.length > 0 ?
         reg.profilePhotosData[0].base64 : null,
-      profileVisible: true,
+      profileVisible: false, // Nace desactivado - la creadora lo activa desde su perfil
+      isActive: false, // Nace desactivado - no aparece en carruseles hasta que la creadora lo active
       createdAt: Date.now()
     };
     
@@ -730,23 +724,36 @@ window.approveRegistro = async (id) => {
     console.log('  - Aparecerá en:', carouselProfile.carouselType === 'luxury' ? 'Luxury & Exclusive' : carouselProfile.carouselType === 'vip-black' ? 'VIP Black' : 'Premium Select');
     console.log('  - También disponible para estados y modal unificado ✅');
     
-    // Verificar si ya existe y actualizar, o agregar nuevo
+    // Ejecutar todas las escrituras finales en PARALELO para mayor velocidad
+    const savePromises = [];
+
+    // Guardar usuario aprobado
+    const existingUserIndex = approvedUsers.findIndex(u => u.id === approvedUser.id);
+    if (existingUserIndex !== -1) {
+      savePromises.push(DataService.updateUser(approvedUser.id, approvedUser));
+    } else {
+      savePromises.push(DataService.addApprovedUser(approvedUser));
+    }
+
+    // Guardar perfil para carruseles
     const existingIndex = approvedProfiles.findIndex(p => p.id === carouselProfile.id);
     if (existingIndex !== -1) {
-      await DataService.updateProfile(carouselProfile.id, carouselProfile);
+      savePromises.push(DataService.updateProfile(carouselProfile.id, carouselProfile));
     } else {
-      await DataService.addApprovedProfile(carouselProfile);
+      savePromises.push(DataService.addApprovedProfile(carouselProfile));
     }
-    
-    // Mantener el registro en AWS pendingRegistros (no eliminar por temas legales)
-    // El registro queda archivado con status 'aprobado'
-    await DataService.updateRegistro(reg.id, reg);
-    
+
+    // Guardar registro actualizado
+    savePromises.push(DataService.updateRegistro(reg.id, reg));
+
+    // Ejecutar todo en paralelo
+    await Promise.all(savePromises);
+
     renderRegistros();
     renderRegistrosAprobados();
     updateRegistrosBadge();
     updateAprobadosBadge();
-    alert(`✓ Cuenta de "${reg.displayName}" aprobada exitosamente.\n\n📍 Asignada al carrusel: ${reg.carouselType === 'luxury' ? 'Luxury & Exclusive' : reg.carouselType === 'vip-black' ? 'VIP Black' : 'Premium Select'}\n\n✨ La usuaria ahora puede acceder a su panel de perfil.\n📂 El registro queda archivado por seguridad.`);
+    alert(`✓ Cuenta de "${reg.displayName}" aprobada exitosamente.\n\n📍 Perfil DESACTIVADO por defecto.\n✨ La creadora debe activar su perfil desde su panel.\n📂 El registro queda archivado por seguridad.`);
   }
 };
 
@@ -1859,15 +1866,36 @@ window.deleteRejectedProfile = async (regId) => {
   if (!confirm('⚠️ ¿Eliminar este registro rechazado?\n\nEsto eliminará permanentemente los datos archivados.')) {
     return;
   }
-  
-  // Eliminar de AWS y actualizar variable global
-  await DataService.deleteRegistro(regId);
-  registros = registros.filter(r => r.id !== regId);
-  
-  renderRegistrosRechazados();
-  updateBadges();
-  
-  alert('✅ Registro eliminado');
+
+  // Feedback visual inmediato
+  const el = document.querySelector(`[data-reg-id="${regId}"]`);
+  if (el) {
+    el.style.opacity = '0.4';
+    el.style.pointerEvents = 'none';
+  }
+
+  try {
+    await DataService.deleteRegistro(regId);
+    registros = registros.filter(r => r.id !== regId);
+
+    // Animación de salida
+    if (el) {
+      el.style.transition = 'all 0.3s ease';
+      el.style.transform = 'translateX(-100%)';
+      el.style.opacity = '0';
+      setTimeout(() => {
+        renderRegistrosRechazados();
+        updateBadges();
+      }, 300);
+    } else {
+      renderRegistrosRechazados();
+      updateBadges();
+    }
+  } catch (error) {
+    console.error('Error eliminando registro rechazado:', error);
+    if (el) { el.style.opacity = '1'; el.style.pointerEvents = 'auto'; }
+    alert('❌ Error al eliminar el registro');
+  }
 };
 
 // Función para ver archivos archivados
@@ -1937,22 +1965,41 @@ window.deleteApprovedProfile = async (regId) => {
   if (!confirm('⚠️ ¿Estás seguro de eliminar este perfil?\n\nEsta acción eliminará:\n- El registro de la usuaria\n- El perfil del carrusel\n- Los datos de la cuenta\n\nEsta acción NO se puede deshacer.')) {
     return;
   }
-  
-  // Eliminar de AWS pendingRegistros y actualizar variable global
-  await DataService.deleteRegistro(regId);
-  registros = registros.filter(r => r.id !== regId);
-  
-  // Eliminar de AWS approvedProfiles
-  await DataService.deleteProfile(`profile-${regId}`);
-  
-  // Eliminar de AWS approvedUsers
-  await DataService.deleteUser(regId);
-  
-  // Re-renderizar
-  renderRegistrosAprobados();
-  updateBadges();
-  
-  alert('✅ Perfil eliminado correctamente');
+
+  // Feedback visual inmediato
+  const el = document.querySelector(`[data-reg-id="${regId}"]`);
+  if (el) {
+    el.style.opacity = '0.4';
+    el.style.pointerEvents = 'none';
+  }
+
+  try {
+    // Ejecutar eliminaciones en paralelo para mayor velocidad
+    await Promise.all([
+      DataService.deleteRegistro(regId),
+      DataService.deleteProfile(`profile-${regId}`),
+      DataService.deleteUser(regId)
+    ]);
+    registros = registros.filter(r => r.id !== regId);
+
+    // Animación de salida
+    if (el) {
+      el.style.transition = 'all 0.3s ease';
+      el.style.transform = 'translateX(-100%)';
+      el.style.opacity = '0';
+      setTimeout(() => {
+        renderRegistrosAprobados();
+        updateBadges();
+      }, 300);
+    } else {
+      renderRegistrosAprobados();
+      updateBadges();
+    }
+  } catch (error) {
+    console.error('Error eliminando perfil aprobado:', error);
+    if (el) { el.style.opacity = '1'; el.style.pointerEvents = 'auto'; }
+    alert('❌ Error al eliminar el perfil');
+  }
 };
 
 async function renderMensajes(autoMarkAsRead = false) {
