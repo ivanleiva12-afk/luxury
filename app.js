@@ -531,13 +531,27 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
     if (approvedUser) {
       // Verificar contraseña con logs detallados
       console.log('🔑 Verificando contraseña en usuario aprobado...');
-      console.log('  Password guardada:', approvedUser.password ? `"${approvedUser.password}" (${typeof approvedUser.password}, largo: ${approvedUser.password.length})` : 'UNDEFINED/NULL');
-      console.log('  Password ingresada:', password ? `"${password}" (${typeof password}, largo: ${password.length})` : 'VACÍA');
-      console.log('  ¿Son iguales?:', approvedUser.password === password);
-      console.log('  ¿Son iguales (trim)?:', (approvedUser.password || '').trim() === password.trim());
+      console.log('  PASSWORD GUARDADA EN DB:', JSON.stringify(approvedUser.password));
+      console.log('  PASSWORD INGRESADA:', JSON.stringify(password));
+      console.log('  Campos del usuario:', Object.keys(approvedUser).join(', '));
+
+      // Si no tiene password guardada, buscar en registros originales
+      let storedPassword = approvedUser.password;
+      if (!storedPassword) {
+        console.warn('⚠️ Password NO encontrada en usuario aprobado, buscando en registros...');
+        const allRegistros = await DataService.getPendingRegistros() || [];
+        const originalReg = allRegistros.find(r => r.email === email);
+        if (originalReg && originalReg.password) {
+          storedPassword = originalReg.password;
+          console.log('  ✅ Password encontrada en registro original');
+        }
+      }
+
+      console.log('  ¿Son iguales?:', storedPassword === password);
+      console.log('  ¿Son iguales (trim)?:', (storedPassword || '').trim() === password.trim());
 
       // Comparar con trim para evitar espacios invisibles
-      if (!approvedUser.password || approvedUser.password.trim() !== password.trim()) {
+      if (!storedPassword || storedPassword.trim() !== password.trim()) {
         console.error('❌ Contraseña incorrecta en usuario aprobado');
         alert('❌ Contraseña incorrecta. Por favor verifica tus credenciales.');
         return;
