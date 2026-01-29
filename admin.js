@@ -360,19 +360,19 @@ const renderRegistros = () => {
       
       <!-- Verification Status -->
       <div style="width: 100%; display: flex; flex-wrap: wrap; gap: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
-        <span class="verification-item ${reg.profilePhotosData?.length > 0 ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.profilePhotosData?.length > 0 ? 'pointer' : 'default'}; ${reg.hasProfilePhotos ? 'color: #10B981;' : 'color: var(--muted);'}" ${reg.profilePhotosData?.length > 0 ? `onclick="viewVerificationFiles(${reg.id}, 'photos')"` : ''}>${reg.hasProfilePhotos ? '✓' : '○'} Fotos ${reg.profilePhotosData?.length > 0 ? '👁️' : ''}</span>
-        <span class="verification-item ${reg.verificationSelfieData ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.verificationSelfieData ? 'pointer' : 'default'}; ${reg.hasVerificationSelfie ? 'color: #10B981;' : 'color: var(--muted);'}" ${reg.verificationSelfieData ? `onclick="viewVerificationFiles(${reg.id}, 'selfie')"` : ''}>${reg.hasVerificationSelfie ? '✓' : '○'} Selfie verificación ${reg.verificationSelfieData ? '👁️' : ''}</span>
-        <span class="verification-item ${reg.idDocumentData ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.idDocumentData ? 'pointer' : 'default'}; ${reg.hasIdDocument ? 'color: #10B981;' : 'color: var(--muted);'}" ${reg.idDocumentData ? `onclick="viewVerificationFiles(${reg.id}, 'document')"` : ''}>${reg.hasIdDocument ? '✓' : '○'} Documento ID ${reg.idDocumentData ? '👁️' : ''}</span>
-        <span class="verification-item ${reg.transferReceiptData ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.transferReceiptData ? 'pointer' : 'default'}; ${reg.hasTransferReceipt ? 'color: #10B981;' : 'color: var(--muted);'}" ${reg.transferReceiptData ? `onclick="viewVerificationFiles(${reg.id}, 'receipt')"` : ''}>${reg.hasTransferReceipt ? '✓' : '○'} Comprobante pago ${reg.transferReceiptData ? '👁️' : ''}</span>
+        <span class="verification-item ${reg.profilePhotosData?.length > 0 ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.profilePhotosData?.length > 0 ? 'pointer' : 'default'}; ${reg.hasProfilePhotos ? 'color: #10B981;' : 'color: var(--muted);'}" ${reg.profilePhotosData?.length > 0 ? `onclick="viewVerificationFiles('${reg.id}', 'photos')"` : ''}>${reg.hasProfilePhotos ? '✓' : '○'} Fotos ${reg.profilePhotosData?.length > 0 ? '👁️' : ''}</span>
+        <span class="verification-item ${reg.verificationSelfieData ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.verificationSelfieData ? 'pointer' : 'default'}; ${reg.hasVerificationSelfie ? 'color: #10B981;' : 'color: var(--muted);'}" ${reg.verificationSelfieData ? `onclick="viewVerificationFiles('${reg.id}', 'selfie')"` : ''}>${reg.hasVerificationSelfie ? '✓' : '○'} Selfie verificación ${reg.verificationSelfieData ? '👁️' : ''}</span>
+        <span class="verification-item ${reg.idDocumentData ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.idDocumentData ? 'pointer' : 'default'}; ${reg.hasIdDocument ? 'color: #10B981;' : 'color: var(--muted);'}" ${reg.idDocumentData ? `onclick="viewVerificationFiles('${reg.id}', 'document')"` : ''}>${reg.hasIdDocument ? '✓' : '○'} Documento ID ${reg.idDocumentData ? '👁️' : ''}</span>
+        <span class="verification-item ${reg.transferReceiptData ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.transferReceiptData ? 'pointer' : 'default'}; ${reg.hasTransferReceipt ? 'color: #10B981;' : 'color: var(--muted);'}" ${reg.transferReceiptData ? `onclick="viewVerificationFiles('${reg.id}', 'receipt')"` : ''}>${reg.hasTransferReceipt ? '✓' : '○'} Comprobante pago ${reg.transferReceiptData ? '👁️' : ''}</span>
         <span style="font-size: 12px; ${reg.ageConfirm ? 'color: #10B981;' : 'color: #DC2626;'}">${reg.ageConfirm ? '✓' : '✗'} Mayor de edad</span>
         <span style="font-size: 12px; ${reg.termsAccept ? 'color: #10B981;' : 'color: #DC2626;'}">${reg.termsAccept ? '✓' : '✗'} Términos</span>
       </div>
-      
+
       <!-- Actions -->
       <div class="admin-item-actions" style="width: 100%; justify-content: flex-end; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
-        <button class="admin-item-btn" style="background: rgba(139,92,246,0.2); color: #8B5CF6;" onclick="confirmInterview(${reg.id})">📞 Confirmar Entrevista</button>
-        <button class="admin-item-btn admin-approve" onclick="approveRegistro(${reg.id})">✓ Aprobar Cuenta</button>
-        <button class="admin-item-btn admin-reject" onclick="rejectRegistro(${reg.id})">✗ Rechazar</button>
+        <button class="admin-item-btn" style="background: rgba(139,92,246,0.2); color: #8B5CF6;" onclick="confirmInterview('${reg.id}')">📞 Confirmar Entrevista</button>
+        <button class="admin-item-btn admin-approve" onclick="approveRegistro('${reg.id}')">✓ Aprobar Cuenta</button>
+        <button class="admin-item-btn admin-reject" onclick="rejectRegistro('${reg.id}')">✗ Rechazar</button>
       </div>
     </div>
   `;
