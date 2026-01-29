@@ -1707,7 +1707,7 @@ async function renderRegistrosAprobados() {
     return `
     <div class="admin-item collapsible-profile" style="flex-direction: column; gap: 0; border-left: 4px solid ${isActive ? '#10B981' : '#6B7280'};">
       <!-- Header colapsable - siempre visible -->
-      <div class="profile-header" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 0; cursor: pointer;" onclick="toggleProfileDetails(${reg.id})">
+      <div class="profile-header" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 0; cursor: pointer;" onclick="toggleProfileDetails('${reg.id}')">
         <div style="display: flex; align-items: center; gap: 12px;">
           <span class="expand-icon" id="expand-icon-${reg.id}" style="color: var(--gold); font-size: 14px; transition: transform 0.3s;">▶</span>
           <div>
@@ -1719,8 +1719,8 @@ async function renderRegistrosAprobados() {
           </div>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;" onclick="event.stopPropagation();">
-          <button onclick="toggleProfileStatus(${reg.id})" style="background: ${toggleBtnColor}; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer;">${toggleBtnText}</button>
-          <button onclick="deleteApprovedProfile(${reg.id})" style="background: #DC2626; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer;">Eliminar</button>
+          <button onclick="toggleProfileStatus('${reg.id}')" style="background: ${toggleBtnColor}; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer;">${toggleBtnText}</button>
+          <button onclick="deleteApprovedProfile('${reg.id}')" style="background: #DC2626; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer;">Eliminar</button>
         </div>
       </div>
       
@@ -1795,7 +1795,7 @@ function renderRegistrosRechazados() {
   list.innerHTML = rechazados.map(reg => `
     <div class="admin-item collapsible-profile" style="flex-direction: column; gap: 0; border-left: 4px solid #DC2626;">
       <!-- Header colapsable -->
-      <div class="profile-header" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 0; cursor: pointer;" onclick="toggleRejectedDetails(${reg.id})">
+      <div class="profile-header" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 0; cursor: pointer;" onclick="toggleRejectedDetails('${reg.id}')">
         <div style="display: flex; align-items: center; gap: 12px;">
           <span class="expand-icon" id="expand-rejected-${reg.id}" style="color: var(--gold); font-size: 14px; transition: transform 0.3s;">▶</span>
           <div>
@@ -1807,7 +1807,7 @@ function renderRegistrosRechazados() {
           </div>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;" onclick="event.stopPropagation();">
-          <button onclick="deleteRejectedProfile(${reg.id})" style="background: #6B7280; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer;">Eliminar</button>
+          <button onclick="deleteRejectedProfile('${reg.id}')" style="background: #6B7280; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer;">Eliminar</button>
         </div>
       </div>
       
@@ -1885,11 +1885,11 @@ window.deleteRejectedProfile = async (regId) => {
       el.style.opacity = '0';
       setTimeout(() => {
         renderRegistrosRechazados();
-        updateBadges();
+        updateRegistrosBadge(); updateAprobadosBadge(); updateRechazadosBadge();
       }, 300);
     } else {
       renderRegistrosRechazados();
-      updateBadges();
+      updateRegistrosBadge(); updateAprobadosBadge(); updateRechazadosBadge();
     }
   } catch (error) {
     console.error('Error eliminando registro rechazado:', error);
@@ -1989,11 +1989,11 @@ window.deleteApprovedProfile = async (regId) => {
       el.style.opacity = '0';
       setTimeout(() => {
         renderRegistrosAprobados();
-        updateBadges();
+        updateRegistrosBadge(); updateAprobadosBadge(); updateRechazadosBadge();
       }, 300);
     } else {
       renderRegistrosAprobados();
-      updateBadges();
+      updateRegistrosBadge(); updateAprobadosBadge(); updateRechazadosBadge();
     }
   } catch (error) {
     console.error('Error eliminando perfil aprobado:', error);

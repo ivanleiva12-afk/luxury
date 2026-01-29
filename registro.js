@@ -126,10 +126,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         isValid = false;
       }
 
-      // Validar WhatsApp (solo 8 dígitos, el +56 9 se agrega automáticamente)
-      const whatsappRegex = /^\d{8}$/;
-      if (whatsapp && !whatsappRegex.test(whatsapp.replace(/\s/g, ''))) {
-        alert('❌ El número de WhatsApp debe tener exactamente 8 dígitos\n\nEjemplo: 12345678');
+      // Validar WhatsApp (8 dígitos, con o sin espacios)
+      const whatsappClean = (whatsapp || '').replace(/\s/g, '');
+      if (whatsappClean && (whatsappClean.length !== 8 || !/^\d+$/.test(whatsappClean))) {
+        alert('❌ El número de WhatsApp debe tener 8 dígitos\n\nEjemplo: 12345678 o 1234 5678');
         document.getElementById('whatsapp').style.borderColor = '#DC2626';
         isValid = false;
       }
