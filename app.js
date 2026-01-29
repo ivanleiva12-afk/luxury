@@ -1363,7 +1363,7 @@ window.refreshCarouselsWithFilter = function(filters) {
   }
 
   // Función para abrir modal VIP
-  const openVIPModal = (car) => {
+  const openVIPModal = async (car) => {
     // Usar solo datos reales del perfil, sin valores por defecto inventados
     const hasPhysicalInfo = car.physicalInfo || car.height || car.weight || car.measurements;
     const hasAttributes = car.attributes || car.hairColor || car.eyeColor;
@@ -1441,7 +1441,7 @@ window.refreshCarouselsWithFilter = function(filters) {
     };
     
     // Obtener estado actual de likes del usuario
-    const currentUserLikes = getUserLikes();
+    const currentUserLikes = await getUserLikes();
     const isLiked = currentUserLikes.includes(profile.id);
     
     console.log('🔍 Abriendo modal VIP para:', profile.displayName, '- Likes actuales:', profile.stats.likes, '- Usuario ha dado like:', isLiked);
@@ -1909,7 +1909,7 @@ window.refreshCarouselsWithFilter = function(filters) {
     incrementViews(car.id);
     
     // Verificar si el usuario ya dio like
-    const savedUserLikes = getUserLikes();
+    const savedUserLikes = await getUserLikes();
     const hasLiked = savedUserLikes.includes(car.id);
     const likeBtn = document.getElementById(`likeIcon-${profile.id}`);
     const likeText = document.getElementById(`likeText-${profile.id}`);

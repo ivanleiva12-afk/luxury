@@ -259,38 +259,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Obtener restricciones del plan actual
   async function getPlanRestrictions() {
     const userPlan = currentUser.selectedPlan || 'premium';
-    
-    // Usar restricciones del planLimits si están disponibles (desde admin)
-    if (currentUser.planLimits) {
-      return {
-        photos: currentUser.planLimits.photos || 10,
-        videos: currentUser.planLimits.videos || 2,
-        instantes: currentUser.planLimits.instantes || 5,
-        instantesDuracion: currentUser.planLimits.instantesDuration || 12,
-        estados: currentUser.planLimits.states || 5,
-        estadosDuracion: currentUser.planLimits.stateDuration || 6,
-        planName: userPlan.charAt(0).toUpperCase() + userPlan.slice(1)
-      };
-    }
-    
-    // Si no hay planLimits, obtener configuración directa del admin
-    const plansConfig = await DataService.getPlansConfig() || {};
-    
-    const getConfigValue = (plan, key, defaultValue) => {
-      return plansConfig[plan]?.[key] ?? defaultValue;
+
+    // Defaults por plan (usados solo si no hay config del admin)
+    const defaults = {
+      premium: { photos: 15, videos: 4, instantes: 5, instantesDuracion: 24, estados: 5, estadosDuracion: 12 },
+      vip:     { photos: 10, videos: 2, instantes: 3, instantesDuracion: 12, estados: 2, estadosDuracion: 6 },
+      luxury:  { photos: 0,  videos: 0, instantes: 0, instantesDuracion: 48, estados: 0, estadosDuracion: 24 }
     };
-    
-    const planRestrictions = {
-      photos: getConfigValue(userPlan, 'photos', { premium: 15, vip: 10, luxury: 0 }[userPlan] || 10),
-      videos: getConfigValue(userPlan, 'videos', { premium: 4, vip: 2, luxury: 0 }[userPlan] || 2),
-      instantes: getConfigValue(userPlan, 'instantes', { premium: 5, vip: 3, luxury: 0 }[userPlan] || 5),
-      instantesDuracion: getConfigValue(userPlan, 'instantesDuracion', { premium: 24, vip: 12, luxury: 48 }[userPlan] || 12),
-      estados: getConfigValue(userPlan, 'estados', { premium: 5, vip: 2, luxury: 0 }[userPlan] || 5),
-      estadosDuracion: getConfigValue(userPlan, 'estadosDuracion', { premium: 12, vip: 6, luxury: 24 }[userPlan] || 6),
+    const fallback = defaults[userPlan] || defaults.premium;
+
+    // Siempre consultar la config fresca del admin para valores dinámicos
+    const plansConfig = await DataService.getPlansConfig() || {};
+    const adminConfig = plansConfig[userPlan] || {};
+
+    return {
+      photos: adminConfig.photos ?? fallback.photos,
+      videos: adminConfig.videos ?? fallback.videos,
+      instantes: adminConfig.instantes ?? fallback.instantes,
+      instantesDuracion: adminConfig.instantesDuracion ?? fallback.instantesDuracion,
+      estados: adminConfig.estados ?? fallback.estados,
+      estadosDuracion: adminConfig.estadosDuracion ?? fallback.estadosDuracion,
       planName: userPlan.charAt(0).toUpperCase() + userPlan.slice(1)
     };
-    
-    return planRestrictions;
   }
 
   // ========== SISTEMA DE CONTADOR 24H PARA INSTANTES Y ESTADOS ==========
@@ -551,26 +541,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ========== PLAN INFO ==========
-  function loadPlanInfo(user) {
+  async function loadPlanInfo(user) {
     const planName = document.getElementById('current-plan-name');
     const planIcon = document.getElementById('plan-icon');
     const planStatus = document.getElementById('plan-status');
     const planExpiry = document.getElementById('plan-expiry');
     const planDays = document.getElementById('plan-days');
     const planFeaturesList = document.getElementById('plan-features-list');
-    
-    const plans = {
-      'premium': { name: 'Premium', icon: '⭐', features: ['Perfil destacado', 'Hasta 10 fotos', '5 estados/día', 'Badge Premium'] },
-      'vip': { name: 'VIP', icon: '👑', features: ['Perfil VIP', 'Hasta 15 fotos', '7 estados/día', 'Badge VIP', 'Duración estados 12h'] },
-      'luxury': { name: 'Luxury & Exclusive', icon: '💎', features: ['Máxima prioridad', 'Fotos ilimitadas', '10 estados/día', 'Badge Luxury', 'Duración estados 24h', 'Soporte VIP'] },
-      'luxury-exclusive': { name: 'Luxury & Exclusive', icon: '💎', features: ['Máxima prioridad', 'Fotos ilimitadas', '10 estados/día', 'Badge Luxury', 'Duración estados 24h', 'Soporte VIP'] }
+
+    const planIcons = {
+      'premium': { name: 'Premium', icon: '⭐' },
+      'vip': { name: 'VIP', icon: '👑' },
+      'luxury': { name: 'Luxury & Exclusive', icon: '💎' },
+      'luxury-exclusive': { name: 'Luxury & Exclusive', icon: '💎' }
     };
-    
+
     const userPlan = user.selectedPlan || 'premium';
-    const plan = plans[userPlan] || plans.premium;
-    
-    if (planName) planName.textContent = plan.name;
-    if (planIcon) planIcon.textContent = plan.icon;
+    const planMeta = planIcons[userPlan] || planIcons.premium;
+
+    if (planName) planName.textContent = planMeta.name;
+    if (planIcon) planIcon.textContent = planMeta.icon;
     
     // Calcular fecha de vencimiento - Prioridad: planExpiry > planInfo.expiryDate > calculado
     let expiryDate;
@@ -616,7 +606,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     if (planFeaturesList) {
-      planFeaturesList.innerHTML = plan.features.map(f => `<li>✓ ${f}</li>`).join('');
+      // Obtener restricciones dinámicas del plan configurado en admin
+      const restrictions = await getPlanRestrictions();
+      const features = [];
+      features.push(`Hasta ${restrictions.photos === 0 ? 'ilimitadas' : restrictions.photos} fotos`);
+      features.push(`Hasta ${restrictions.videos === 0 ? 'ilimitados' : restrictions.videos} videos`);
+      features.push(`${restrictions.estados === 0 ? 'Estados ilimitados' : restrictions.estados + ' estados/día'}`);
+      features.push(`Duración estados ${restrictions.estadosDuracion}h`);
+      features.push(`${restrictions.instantes === 0 ? 'Instantes ilimitados' : restrictions.instantes + ' instantes/día'}`);
+      features.push(`Duración instantes ${restrictions.instantesDuracion}h`);
+      features.push(`Badge ${planMeta.name}`);
+      planFeaturesList.innerHTML = features.map(f => `<li>✓ ${f}</li>`).join('');
     }
   }
 
@@ -1378,27 +1378,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  let mediaAlreadyLoaded = false;
   async function loadSavedMedia() {
+    // Evitar cargar fotos dos veces
+    if (mediaAlreadyLoaded) return;
+    mediaAlreadyLoaded = true;
+
+    // Limpiar grid antes de cargar (excepto el botón de agregar)
+    if (photosGrid) {
+      Array.from(photosGrid.children).forEach(child => {
+        if (child.id !== 'add-photo-btn') child.remove();
+      });
+    }
+
     let userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
     const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
-    
+
     // Si no hay fotos guardadas, pero hay profilePhotosData del registro inicial, copiarlas
     if (userPhotos.length === 0 && currentUser.profilePhotosData && currentUser.profilePhotosData.length > 0) {
       console.log('Copiando fotos del registro inicial al perfil del usuario...');
-      userPhotos = currentUser.profilePhotosData.map((photo, index) => ({
-        id: `verification_photo_${index}_${Date.now()}`,
-        data: photo.base64,
-        createdAt: new Date().toISOString(),
-        isVerificationPhoto: true // Marcar como foto de verificación (no eliminable)
-      }));
+      // Deduplicar por contenido base64 para evitar fotos duplicadas
+      const uniquePhotos = [];
+      const seenBase64 = new Set();
+      currentUser.profilePhotosData.forEach((photo, index) => {
+        const key = photo.base64?.substring(0, 100); // Usar prefijo como clave
+        if (key && !seenBase64.has(key)) {
+          seenBase64.add(key);
+          uniquePhotos.push({
+            id: `verification_photo_${index}_${Date.now()}`,
+            data: photo.base64,
+            createdAt: new Date().toISOString(),
+            isVerificationPhoto: true
+          });
+        }
+      });
+      userPhotos = uniquePhotos;
       localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
     }
-    
+
     // Cargar fotos
     for (const photo of userPhotos) {
       await addPhotoToGrid(photo.data, photo.id, false, photo.isVerificationPhoto || false);
     }
-    
+
     // Cargar videos
     userVideos.forEach(video => {
       addVideoToGrid(video.data, video.id, false);
@@ -1979,9 +2001,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (child.id !== 'add-photo-btn') child.remove();
       });
       // Recargar fotos
+      mediaAlreadyLoaded = false;
       await loadSavedMedia();
     }
-    
+
     showToast('✨ Foto de perfil actualizada');
   }
 
