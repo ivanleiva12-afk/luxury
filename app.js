@@ -584,7 +584,7 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
         priceHour: user.priceHour,
         priceTwoHours: user.priceTwoHours,
         priceOvernight: user.priceOvernight,
-        avatar: user.avatar || user.profilePhoto || (user.profilePhotosData && user.profilePhotosData.length > 0 ? user.profilePhotosData[0].base64 : null),
+        avatar: user.avatar || user.profilePhoto || (user.profilePhotosData && user.profilePhotosData.length > 0 ? (user.profilePhotosData[0].url || user.profilePhotosData[0].base64) : null),
         status: 'aprobado',
         stats: user.stats || { views: 0, likes: 0, contacts: 0 }
       };
@@ -928,8 +928,8 @@ window.shareProfile = async (profileId) => {
     profile.stats = { likes: 0, views: 0, recommendations: 0, experiences: 0 };
   }
   
-  // Crear link de perfil
-  const profileLink = `${window.location.origin}${window.location.pathname}?profile=${profileId}`;
+  // Crear link de perfil (usar index.html directamente, no la URL amigable que GitHub Pages no resuelve)
+  const profileLink = `${window.location.origin}/index.html?profile=${profileId}`;
   
   // Mensaje descriptivo para compartir
   const shareMessage = `🔥 ¡Mira este perfil increíble en Sala Oscura!
@@ -1040,7 +1040,7 @@ window.shareViaWhatsApp = async (profileId) => {
   
   if (!profile) return;
   
-  const profileLink = `${window.location.origin}${window.location.pathname}?profile=${profileId}`;
+  const profileLink = `${window.location.origin}/index.html?profile=${profileId}`;
   const message = `🔥 ¡Mira este perfil increíble en Sala Oscura!\n\n✨ ${profile.displayName || profile.title}\n📍 ${profile.commune || 'Santiago'}, ${profile.city || 'Chile'}\n💰 Desde $${(profile.prices?.hour?.CLP || 200000).toLocaleString('es-CL')} CLP\n⭐ ${profile.stats?.likes || 0} Me Gusta | ${profile.stats?.experiences || 0} Experiencias\n\n👉 Ver perfil completo:\n${profileLink}`;
   
   window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
@@ -1061,7 +1061,7 @@ window.shareViaTelegram = async (profileId) => {
   
   if (!profile) return;
   
-  const profileLink = `${window.location.origin}${window.location.pathname}?profile=${profileId}`;
+  const profileLink = `${window.location.origin}/index.html?profile=${profileId}`;
   const message = `🔥 ${profile.displayName || profile.title} - Sala Oscura\n📍 ${profile.commune || 'Santiago'}\n💰 Desde $${(profile.prices?.hour?.CLP || 200000).toLocaleString('es-CL')} CLP`;
   
   window.open(`https://t.me/share/url?url=${encodeURIComponent(profileLink)}&text=${encodeURIComponent(message)}`, '_blank');
@@ -1070,7 +1070,7 @@ window.shareViaTelegram = async (profileId) => {
 };
 
 window.shareViaFacebook = (profileId) => {
-  const profileLink = `${window.location.origin}${window.location.pathname}?profile=${profileId}`;
+  const profileLink = `${window.location.origin}/index.html?profile=${profileId}`;
   window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(profileLink)}`, '_blank');
   incrementRecommendation(profileId);
   document.getElementById('share-menu')?.remove();
@@ -1089,7 +1089,7 @@ window.shareViaTwitter = async (profileId) => {
   
   if (!profile) return;
   
-  const profileLink = `${window.location.origin}${window.location.pathname}?profile=${profileId}`;
+  const profileLink = `${window.location.origin}/index.html?profile=${profileId}`;
   const message = `🔥 Conoce a ${profile.displayName || profile.title} en Sala Oscura - ${profile.commune || 'Santiago'}, ${profile.city || 'Chile'}`;
   
   window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(profileLink)}`, '_blank');
@@ -1110,7 +1110,7 @@ window.shareViaEmail = async (profileId) => {
   
   if (!profile) return;
   
-  const profileLink = `${window.location.origin}${window.location.pathname}?profile=${profileId}`;
+  const profileLink = `${window.location.origin}/index.html?profile=${profileId}`;
   const subject = `Te recomiendo ver este perfil en Sala Oscura`;
   const body = `Hola,\n\nTe comparto este perfil que me pareció interesante:\n\n✨ ${profile.displayName || profile.title}\n📍 ${profile.commune || 'Santiago'}, ${profile.city || 'Chile'}\n💰 Desde $${(profile.prices?.hour?.CLP || 200000).toLocaleString('es-CL')} CLP\n⭐ ${profile.stats?.likes || 0} Me Gusta | ${profile.stats?.experiences || 0} Experiencias\n\nVer perfil completo: ${profileLink}\n\nSaludos!`;
   
@@ -1130,8 +1130,8 @@ window.copyProfileLink = async (profileId) => {
     profile = publicacionesCreadas.find(p => p.status === 'aprobado' && (p.id === profileId || p.id === parseInt(profileId)));
   }
   
-  const profileLink = `${window.location.origin}${window.location.pathname}?profile=${profileId}`;
-  
+  const profileLink = `${window.location.origin}/index.html?profile=${profileId}`;
+
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(profileLink).then(() => {
       // Cambiar texto del botón temporalmente
@@ -1456,7 +1456,7 @@ window.refreshCarouselsWithFilter = function(filters) {
           <div class="vip-modal-inner">
             <!-- Galería Izquierda -->
             <div class="modal-gallery-section">
-              <img class="modal-main-image" src="${profile.profilePhotosData && profile.profilePhotosData.length > 0 ? (profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) : (profile.profilePhoto || profile.avatar || defaultPlaceholder)}" alt="${profile.displayName}" id="modal-main-img" />
+              <img class="modal-main-image" src="${profile.profilePhotosData && profile.profilePhotosData.length > 0 ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) : (profile.profilePhoto || profile.avatar || defaultPlaceholder)}" alt="${profile.displayName}" id="modal-main-img" />
               
               <div class="modal-media-counter">
                 <span id="modal-counter">1</span> / ${profile.profilePhotosData?.length || profile.photos || 1}
@@ -1473,7 +1473,7 @@ window.refreshCarouselsWithFilter = function(filters) {
                 ${profile.profilePhotosData && profile.profilePhotosData.length > 0 
                   ? profile.profilePhotosData.map((photo, i) => `
                     <div class="modal-thumbnail ${i === 0 ? 'active' : ''}" data-index="${i}">
-                      <img src="${photo.base64 || photo}" alt="Foto ${i+1}" />
+                      <img src="${photo.url || photo.base64 || photo}" alt="Foto ${i+1}" />
                     </div>
                   `).join('')
                   : `<div class="modal-thumbnail active" data-index="0">
@@ -1815,7 +1815,7 @@ window.refreshCarouselsWithFilter = function(filters) {
       currentIndex = (index + totalImages) % totalImages;
       // Usar las fotos reales del perfil
       if (profile.profilePhotosData && profile.profilePhotosData[currentIndex]) {
-        mainImg.src = profile.profilePhotosData[currentIndex].base64 || profile.profilePhotosData[currentIndex];
+        mainImg.src = profile.profilePhotosData[currentIndex].url || profile.profilePhotosData[currentIndex].base64 || profile.profilePhotosData[currentIndex];
       }
       counter.textContent = currentIndex + 1;
       
@@ -1898,7 +1898,7 @@ window.refreshCarouselsWithFilter = function(filters) {
     carousel.innerHTML = featuredCars.map((car, index) => {
       // Usar foto real del perfil o placeholder
       const imgSrc = (car.profilePhotosData && car.profilePhotosData.length > 0) 
-        ? (car.profilePhotosData[0].base64 || car.profilePhotosData[0]) 
+        ? (car.profilePhotosData[0].url || car.profilePhotosData[0].base64 || car.profilePhotosData[0]) 
         : (car.avatar || car.profilePhoto || defaultPlaceholder);
       return `
         <div class="featured-card vip-card" data-index="${index}" data-car-id="${car.id}">
@@ -2233,7 +2233,7 @@ window.refreshCarouselsWithFilter = function(filters) {
     const img = new Image();
     // Usar foto real del perfil si existe
     const imgSrc = (car.profilePhotosData && car.profilePhotosData.length > 0) 
-      ? (car.profilePhotosData[0].base64 || car.profilePhotosData[0]) 
+      ? (car.profilePhotosData[0].url || car.profilePhotosData[0].base64 || car.profilePhotosData[0]) 
       : (car.avatar || car.profilePhoto || null);
     img.src = imgSrc;
     img.className = 'experiencias-card-img';
@@ -2378,7 +2378,7 @@ window.refreshCarouselsWithFilter = function(filters) {
     if (car.profilePhotosData && car.profilePhotosData.length > 0) {
       return car.profilePhotosData.map(photo => ({
         type: 'image',
-        src: photo.base64 || photo
+        src: photo.url || photo.base64 || photo
       }));
     }
     // Si no hay fotos, retornar array vacío
@@ -2959,7 +2959,7 @@ function createSkeletonCard() {
       name: profile.displayName,
       title: 'VIP Black Member',
       avatar: (profile.profilePhotosData && profile.profilePhotosData.length > 0) 
-        ? (profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) 
+        ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) 
         : (profile.avatar || profile.profilePhoto || null),
       profileTypes: profile.profileTypes,
       price: profile.price?.CLP || profile.prices?.hour?.CLP || (profile.originalRegistro?.priceHour ? parseInt(profile.originalRegistro.priceHour) : null),
@@ -3256,7 +3256,7 @@ function createSkeletonCard() {
       name: profile.displayName,
       title: 'Premium Select',
       avatar: (profile.profilePhotosData && profile.profilePhotosData.length > 0) 
-        ? (profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) 
+        ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) 
         : (profile.avatar || profile.profilePhoto || null),
       profileTypes: profile.profileTypes,
       price: profile.price?.CLP || profile.prices?.hour?.CLP || (profile.originalRegistro?.priceHour ? parseInt(profile.originalRegistro.priceHour) : null),

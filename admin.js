@@ -697,7 +697,7 @@ window.approveRegistro = async (id) => {
       originalRegistro: reg,
       // Campos adicionales para compatibilidad con el modal
       avatar: reg.profilePhotosData && reg.profilePhotosData.length > 0 ?
-        reg.profilePhotosData[0].base64 : null,
+        (reg.profilePhotosData[0].url || reg.profilePhotosData[0].base64) : null,
       profileVisible: false, // Nace desactivado - la creadora lo activa desde su perfil
       isActive: false, // Nace desactivado - no aparece en carruseles hasta que la creadora lo active
       createdAt: Date.now()
@@ -1854,7 +1854,10 @@ window.deleteRejectedProfile = async (regId) => {
   }
 
   try {
-    await DataService.deleteRegistro(regId);
+    await Promise.all([
+      DataService.deleteRegistro(regId),
+      DataService.deleteAllUserMedia(regId).catch(() => {}) // S3 cleanup
+    ]);
     registros = registros.filter(r => r.id !== regId);
 
     // Animación de salida
@@ -1941,7 +1944,7 @@ window.toggleProfileStatus = async (regId) => {
 
 // Eliminar perfil aprobado completamente
 window.deleteApprovedProfile = async (regId) => {
-  if (!confirm('⚠️ ¿Estás seguro de eliminar este perfil?\n\nEsta acción eliminará:\n- El registro de la usuaria\n- El perfil del carrusel\n- Los datos de la cuenta\n\nEsta acción NO se puede deshacer.')) {
+  if (!confirm('⚠️ ¿Estás seguro de eliminar este perfil?\n\nEsta acción eliminará:\n- El registro de la usuaria\n- El perfil del carrusel\n- Los datos de la cuenta\n- Todas las fotos y videos de S3\n- Todos los instantes\n\nEsta acción NO se puede deshacer.')) {
     return;
   }
 
@@ -1953,11 +1956,17 @@ window.deleteApprovedProfile = async (regId) => {
   }
 
   try {
-    // Ejecutar eliminaciones en paralelo para mayor velocidad
+    // Eliminar stories/instantes del usuario
+    const stories = await DataService.getStories(regId) || [];
+    const storyDeletes = stories.map(s => DataService.deleteStory(s.id).catch(() => {}));
+
+    // Ejecutar eliminaciones en paralelo
     await Promise.all([
       DataService.deleteRegistro(regId),
       DataService.deleteProfile(`profile-${regId}`),
-      DataService.deleteUser(regId)
+      DataService.deleteUser(regId),
+      DataService.deleteAllUserMedia(regId).catch(() => {}), // S3: fotos, videos, instantes
+      ...storyDeletes
     ]);
     registros = registros.filter(r => r.id !== regId);
 

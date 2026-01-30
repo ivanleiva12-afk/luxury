@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script>
+    // GitHub Pages SPA redirect: preserve path and query params
+    var urlMap = {
+      'home': 'index.html',
+      'inicio': 'index.html',
+      'services': 'servicios.html',
+      'about': 'nosotros.html',
+      'profile': 'perfil-clienta.html',
+      'perfil': 'perfil-clienta.html',
+      'register': 'registro.html',
+      'admin-panel': 'admin.html',
+      'dashboard': 'admin.html',
+      'salon': 'salaoscura.html',
+      'room': 'salaoscura.html',
+      'reset': 'reset-password.html',
+      'password': 'reset-password.html'
+    };
+    var path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+    var target = urlMap[path] || 'index.html';
+    window.location.replace('/' + target + window.location.search + window.location.hash);
+  </script>
+</head>
+<body></body>
+</html>

@@ -429,15 +429,79 @@ if (typeof DataService === 'undefined') {
     }
   },
   
+  // ═══════════════════════════════════════════════════════════
+  // MEDIA - Fotos y Videos en S3
+  // ═══════════════════════════════════════════════════════════
+
   /**
-   * Obtiene los archivos media de un usuario
+   * Obtiene URL pre-firmada para subir archivo a S3
+   */
+  async getUploadUrl(userId, fileName, fileType, folder = 'photos') {
+    try {
+      return await this.fetchApi('/media/upload', {
+        method: 'POST',
+        body: JSON.stringify({ userId, fileName, fileType, folder })
+      });
+    } catch (error) {
+      console.error('Error obteniendo URL de upload:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Sube un archivo a S3 usando URL pre-firmada
+   */
+  async uploadFileToS3(uploadUrl, file, fileType) {
+    try {
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': fileType },
+        body: file
+      });
+    } catch (error) {
+      console.error('Error subiendo archivo a S3:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Lista los archivos media de un usuario desde S3
    */
   async getUserMedia(userId) {
     try {
-      return await this.fetchApi(`/media?userId=${userId}`) || [];
+      return await this.fetchApi(`/media/${encodeURIComponent(userId)}`) || [];
     } catch (error) {
       console.error('Error obteniendo media:', error);
       return [];
+    }
+  },
+
+  /**
+   * Elimina un archivo de S3
+   */
+  async deleteMedia(key) {
+    try {
+      return await this.fetchApi('/media', {
+        method: 'DELETE',
+        body: JSON.stringify({ key })
+      });
+    } catch (error) {
+      console.error('Error eliminando media:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Elimina TODOS los archivos de un usuario en S3 (fotos, videos, instantes)
+   */
+  async deleteAllUserMedia(userId) {
+    try {
+      return await this.fetchApi(`/media/user/${encodeURIComponent(userId)}`, {
+        method: 'DELETE'
+      });
+    } catch (error) {
+      console.error('Error eliminando media del usuario:', error);
+      throw error;
     }
   },
 

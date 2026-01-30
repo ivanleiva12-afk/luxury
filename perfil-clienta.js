@@ -829,12 +829,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     instanteFile.click();
   });
 
+  let selectedInstanteFile = null; // Archivo original para subir a S3
+
   instanteFile?.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
+      selectedInstanteFile = file;
+      // Preview local con base64 (solo para mostrar, no se guarda)
       const reader = new FileReader();
-      reader.onload = (e) => {
-        selectedInstanteImage = e.target.result;
+      reader.onload = (ev) => {
+        selectedInstanteImage = ev.target.result;
         instantePreview.src = selectedInstanteImage;
         instantePreview.style.display = 'block';
         instanteUploadArea.querySelector('.upload-placeholder').style.display = 'none';
@@ -845,57 +849,67 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   formInstante?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-    if (!selectedInstanteImage) {
+
+    if (!selectedInstanteFile) {
       alert('Por favor selecciona una imagen');
       return;
     }
-    
-    // Verificar si puede publicar usando el sistema de contador 24h
+
     const canPublishResult = await canPublish('instantes');
     if (!canPublishResult.allowed) {
       showToast(canPublishResult.reason);
       return;
     }
-    
-    const restrictions = await getPlanRestrictions();
-    const caption = document.getElementById('instante-caption').value;
-    const instante = {
-      id: Date.now().toString(),
-      image: selectedInstanteImage,
-      caption: caption,
-      createdAt: new Date().toISOString(),
-      userId: currentUser.id,
-      duration: restrictions.instantesDuracion // Usar duración del plan
-    };
-    
-    // Guardar instante en AWS
-    await DataService.addStory({
-      ...instante,
-      type: 'instante',
-      userName: currentUser.displayName,
-      userAvatar: currentUser.avatar || currentUser.profilePhotosData?.[0]?.data,
-      whatsapp: currentUser.whatsapp,
-      userBadge: currentUser.profileType || 'premium'
-    });
-    
-    // Incrementar el contador diario (persiste aunque se elimine)
-    const newCounter = incrementDailyCounter('instantes');
-    
-    // Cerrar modal y recargar
-    modalInstante.style.display = 'none';
-    resetInstanteForm();
-    await loadInstantes(currentUser.id);
-    await loadStats(currentUser);
-    await updatePlanInfoTexts(); // Actualizar contadores en UI
-    await loadMediaLimits(); // Actualizar información general
-    const remaining = restrictions.instantes - newCounter.count;
-    showToast(`¡Instante publicado! (${newCounter.count}/${restrictions.instantes} hoy, dura ${restrictions.instantesDuracion}h) - Restantes: ${remaining}`);
+
+    showToast('Subiendo instante...');
+
+    try {
+      const restrictions = await getPlanRestrictions();
+      const caption = document.getElementById('instante-caption').value;
+      const instanteId = Date.now().toString();
+      const ext = selectedInstanteFile.name.split('.').pop() || 'jpg';
+
+      // Subir archivo a S3 en carpeta instantes
+      const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
+        currentUser.id, `${instanteId}.${ext}`, selectedInstanteFile.type || 'image/jpeg', 'instantes'
+      );
+      await DataService.uploadFileToS3(uploadUrl, selectedInstanteFile, selectedInstanteFile.type || 'image/jpeg');
+
+      // Guardar instante en DynamoDB con URL de S3 (no base64)
+      await DataService.addStory({
+        id: instanteId,
+        image: publicUrl,
+        s3Key: key,
+        caption: caption,
+        createdAt: new Date().toISOString(),
+        userId: currentUser.id,
+        duration: restrictions.instantesDuracion,
+        type: 'instante',
+        userName: currentUser.displayName,
+        userAvatar: currentUser.avatar,
+        whatsapp: currentUser.whatsapp,
+        userBadge: currentUser.profileType || 'premium'
+      });
+
+      const newCounter = incrementDailyCounter('instantes');
+
+      modalInstante.style.display = 'none';
+      resetInstanteForm();
+      await loadInstantes(currentUser.id);
+      await loadStats(currentUser);
+      await updatePlanInfoTexts();
+      await loadMediaLimits();
+      const remaining = restrictions.instantes - newCounter.count;
+      showToast(`¡Instante publicado! (${newCounter.count}/${restrictions.instantes} hoy, dura ${restrictions.instantesDuracion}h) - Restantes: ${remaining}`);
+    } catch (err) {
+      showToast('Error al publicar instante.');
+    }
   });
 
   function resetInstanteForm() {
     formInstante?.reset();
     selectedInstanteImage = null;
+    selectedInstanteFile = null;
     if (instantePreview) {
       instantePreview.style.display = 'none';
       instantePreview.src = '';
@@ -1044,9 +1058,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ========== DELETE FUNCTIONS ==========
   window.deleteInstante = async (id) => {
     if (!confirm('¿Eliminar este instante?')) return;
-    
+
+    // Obtener el instante para encontrar la key de S3
+    const instantes = await DataService.getStories(currentUser.id, 'instante') || [];
+    const instante = instantes.find(i => i.id === id);
+
     await DataService.deleteStory(id);
-    
+
+    // Eliminar de S3 en background
+    if (instante?.s3Key) {
+      DataService.deleteMedia(instante.s3Key).catch(() => {});
+    }
+
     await loadInstantes(currentUser.id);
     await loadStats(currentUser);
     showToast('Instante eliminado');
@@ -1378,18 +1401,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     let userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
     const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
 
-    // Si no hay fotos guardadas, pero hay profilePhotosData del registro inicial, copiarlas
+    // Si no hay fotos en localStorage, intentar cargar desde profilePhotosData (registro inicial)
     if (userPhotos.length === 0 && currentUser.profilePhotosData && currentUser.profilePhotosData.length > 0) {
-      // Deduplicar por contenido base64 para evitar fotos duplicadas
       const uniquePhotos = [];
-      const seenBase64 = new Set();
+      const seen = new Set();
       currentUser.profilePhotosData.forEach((photo, index) => {
-        const key = photo.base64?.substring(0, 100); // Usar prefijo como clave
-        if (key && !seenBase64.has(key)) {
-          seenBase64.add(key);
+        // Soportar tanto URLs de S3 como base64 legacy
+        const src = photo.url || photo.base64;
+        const photoKey = photo.key || photo.url || photo.base64?.substring(0, 100);
+        if (src && !seen.has(photoKey)) {
+          seen.add(photoKey);
           uniquePhotos.push({
             id: `verification_photo_${index}_${Date.now()}`,
-            data: photo.base64,
+            url: photo.url || null,
+            key: photo.key || null,
+            data: photo.base64 || null, // legacy base64
             createdAt: new Date().toISOString(),
             isVerificationPhoto: true
           });
@@ -1399,14 +1425,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
     }
 
-    // Cargar fotos
+    // Cargar fotos (usar URL de S3 si existe, sino base64 legacy)
     for (const photo of userPhotos) {
-      await addPhotoToGrid(photo.data, photo.id, false, photo.isVerificationPhoto || false);
+      const src = photo.url || photo.data;
+      if (src) {
+        await addPhotoToGrid(src, photo.id, false, photo.isVerificationPhoto || false);
+      }
     }
 
-    // Cargar videos
+    // Cargar videos (URL de S3 o base64 legacy)
     userVideos.forEach(video => {
-      addVideoToGrid(video.data, video.id, false);
+      const src = video.url || video.data;
+      if (src) {
+        addVideoToGrid(src, video.id, false);
+      }
     });
   }
 
@@ -1461,7 +1493,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast(`Solo se pueden subir ${remaining} foto(s) más según tu plan.`);
     }
 
-    // Subir todas las fotos directamente sin abrir editor
+    // Subir fotos a S3 y guardar URLs
+    let uploaded = 0;
     for (const file of filesToProcess) {
       if (file.size > 15 * 1024 * 1024) {
         showToast(`${file.name}: Archivo muy grande. Máximo 15MB.`);
@@ -1469,78 +1502,95 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       try {
-        const base64 = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (ev) => resolve(ev.target.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-
-        // Comprimir la foto (max 800px, calidad 75%)
-        const compressed = await compressImage(base64, 800, 800, 0.75);
         const photoId = Date.now().toString() + Math.random().toString(36).slice(2, 6);
 
-        // Recargar userPhotos para evitar duplicados
+        // 1. Obtener URL pre-firmada de S3
+        const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
+          currentUser.id,
+          `${photoId}.jpg`,
+          file.type || 'image/jpeg'
+        );
+
+        // 2. Subir archivo directamente a S3
+        await DataService.uploadFileToS3(uploadUrl, file, file.type || 'image/jpeg');
+
+        // 3. Guardar referencia (URL, no base64) en localStorage
         userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
-        userPhotos.push({ id: photoId, data: compressed, createdAt: new Date().toISOString() });
+        userPhotos.push({
+          id: photoId,
+          url: publicUrl,
+          key: key,
+          createdAt: new Date().toISOString()
+        });
         localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
 
-        await addPhotoToGrid(compressed, photoId, true);
+        // 4. Mostrar en el grid
+        await addPhotoToGrid(publicUrl, photoId, true);
+        uploaded++;
       } catch (err) {
-        showToast(`Error al procesar foto: ${file.name}`);
+        showToast(`Error al subir foto: ${file.name}`);
       }
     }
 
     await loadMediaLimits();
-    showToast(`${filesToProcess.length} foto(s) subida(s)`);
-
-    // Sincronizar en background
-    syncPhotoToProfiles().catch(() => {});
+    if (uploaded > 0) {
+      showToast(`${uploaded} foto(s) subida(s)`);
+      // Sincronizar URLs al perfil público en background
+      syncPhotoToProfiles().catch(() => {});
+    }
     photoUpload.value = '';
   });
 
   videoUpload?.addEventListener('change', async (e) => {
-    console.log('Video change event', e.target.files);
     const file = e.target.files[0];
-    if (!file) {
-      console.log('No hay archivo seleccionado');
-      return;
-    }
-    
+    if (!file) return;
+
     const restrictions = await getPlanRestrictions();
     const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
-    
+
     if (restrictions.videos !== 0 && userVideos.length >= restrictions.videos) {
       showToast(`Límite de ${restrictions.videos} videos alcanzado.`);
+      videoUpload.value = '';
       return;
     }
-    
-    // Validar tamaño (máximo 50MB)
+
     if (file.size > 50 * 1024 * 1024) {
       showToast('Video muy grande. Máximo 50MB.');
+      videoUpload.value = '';
       return;
     }
-    
-    // Validar tipo de archivo
+
     const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v'];
     if (!validTypes.includes(file.type) && !file.name.match(/\.(mp4|webm|mov|m4v)$/i)) {
       showToast('Formato no válido. Usa MP4, WebM o MOV.');
+      videoUpload.value = '';
       return;
     }
-    
-    showToast('Procesando video...');
-    
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      console.log('Video cargado');
-      await applyVideoWatermarkAndSave(e.target.result);
-    };
-    reader.onerror = (err) => {
-      console.error('Error leyendo video:', err);
-      showToast('Error al cargar el video.');
-    };
-    reader.readAsDataURL(file);
-    
+
+    showToast('Subiendo video...');
+
+    try {
+      const videoId = Date.now().toString();
+      const ext = file.name.split('.').pop() || 'mp4';
+
+      // Subir a S3
+      const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
+        currentUser.id, `${videoId}.${ext}`, file.type || 'video/mp4', 'videos'
+      );
+      await DataService.uploadFileToS3(uploadUrl, file, file.type || 'video/mp4');
+
+      // Guardar referencia en localStorage
+      const updatedVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
+      updatedVideos.push({ id: videoId, url: publicUrl, key, createdAt: new Date().toISOString() });
+      localStorage.setItem(`videos_${currentUser.id}`, JSON.stringify(updatedVideos));
+
+      addVideoToGrid(publicUrl, videoId, true);
+      await loadMediaLimits();
+      showToast('¡Video subido!');
+    } catch (err) {
+      showToast('Error al subir el video.');
+    }
+
     videoUpload.value = '';
   });
 
@@ -1934,54 +1984,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function setAsProfilePhoto(imageData, photoId) {
-    // Actualizar currentUser
+    // imageData ahora puede ser URL de S3 o base64 legacy
     currentUser.avatar = imageData;
     await DataService.setCurrentUser(currentUser);
-    
-    // Actualizar en approvedUsers
-    const approvedUsers = await DataService.getApprovedUsers() || [];
-    const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
-    if (userIndex !== -1) {
-      approvedUsers[userIndex].avatar = imageData;
-      
-      // Reorganizar profilePhotosData para que la foto de perfil sea la primera
-      if (approvedUsers[userIndex].profilePhotosData) {
-        const photos = approvedUsers[userIndex].profilePhotosData;
-        const profilePhotoIndex = photos.findIndex(p => p.base64 === imageData);
-        if (profilePhotoIndex > 0) {
-          const [profilePhoto] = photos.splice(profilePhotoIndex, 1);
-          photos.unshift(profilePhoto);
-        } else if (profilePhotoIndex === -1) {
-          // Si la foto no está en el array, agregarla al inicio
-          photos.unshift({ base64: imageData, name: `photo_profile_${photoId}` });
+
+    // Actualizar en approvedProfiles (solo el perfil individual)
+    try {
+      const profileId = `profile-${currentUser.id}`;
+      const existingProfile = await DataService.getProfileById(profileId);
+      if (existingProfile) {
+        // Guardar URL como avatar (sin base64 enorme en DynamoDB)
+        existingProfile.avatar = imageData;
+        // Reorganizar profilePhotosData para que la foto de perfil sea la primera
+        if (existingProfile.profilePhotosData && existingProfile.profilePhotosData.length > 0) {
+          const photos = existingProfile.profilePhotosData;
+          const idx = photos.findIndex(p => p.name === `photo_${photoId}` || p.name === `photo_profile_${photoId}`);
+          if (idx > 0) {
+            const [profilePhoto] = photos.splice(idx, 1);
+            photos.unshift(profilePhoto);
+          }
+          existingProfile.profilePhotosData = photos;
         }
-        approvedUsers[userIndex].profilePhotosData = photos;
+        await DataService.updateProfile(profileId, existingProfile);
       }
-      
-      await DataService.saveApprovedUsers(approvedUsers);
-    }
-    
-    // Actualizar en approvedProfiles
-    const approvedProfiles = await DataService.getApprovedProfiles() || [];
-    const profileIndex = approvedProfiles.findIndex(p => p.userId === currentUser.id || p.id === `profile-${currentUser.id}`);
-    if (profileIndex !== -1) {
-      approvedProfiles[profileIndex].avatar = imageData;
-      
-      // Reorganizar profilePhotosData para que la foto de perfil sea la primera
-      if (approvedProfiles[profileIndex].profilePhotosData) {
-        const photos = approvedProfiles[profileIndex].profilePhotosData;
-        const profilePhotoIndex = photos.findIndex(p => p.base64 === imageData);
-        if (profilePhotoIndex > 0) {
-          const [profilePhoto] = photos.splice(profilePhotoIndex, 1);
-          photos.unshift(profilePhoto);
-        } else if (profilePhotoIndex === -1) {
-          // Si la foto no está en el array, agregarla al inicio
-          photos.unshift({ base64: imageData, name: `photo_profile_${photoId}` });
-        }
-        approvedProfiles[profileIndex].profilePhotosData = photos;
-      }
-      
-      await DataService.saveApprovedProfiles(approvedProfiles);
+    } catch (err) {
+      console.error('Error actualizando avatar en profiles:', err.message);
     }
     
     // También actualizar photos_userId para mantener consistencia
@@ -2018,24 +2045,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function syncPhotoToProfiles() {
     const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
 
-    // Generar thumbnails comprimidos para el perfil público (max 150px, calidad 40%)
-    const thumbnails = [];
-    for (const photo of userPhotos.slice(0, 10)) {
-      try {
-        const thumb = await compressImage(photo.data, 150, 150, 0.4);
-        thumbnails.push({ base64: thumb, name: `photo_${photo.id}` });
-      } catch {
-        // Si falla la compresión, omitir esta foto
-      }
-    }
+    // Construir array de fotos con URLs de S3 (no base64)
+    const photosData = userPhotos.slice(0, 15).map(photo => ({
+      url: photo.url || photo.data, // URL de S3 o base64 legacy
+      key: photo.key || null,
+      name: `photo_${photo.id}`
+    }));
 
-    // Actualizar SOLO el perfil del carrusel (NO la tabla users para evitar exceder 400KB)
+    // Actualizar SOLO el perfil del carrusel
     try {
       const profileId = `profile-${currentUser.id}`;
-      // GET del perfil existente y merge para no perder datos (PUT reemplaza todo el item)
       const existingProfile = await DataService.getProfileById(profileId);
       if (existingProfile) {
-        existingProfile.profilePhotosData = thumbnails;
+        existingProfile.profilePhotosData = photosData;
         existingProfile.photos = userPhotos.length;
         await DataService.updateProfile(profileId, existingProfile);
       }
@@ -2044,53 +2066,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Comprimir imagen a thumbnail
-  function compressImage(base64, maxW, maxH, quality) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let w = img.width, h = img.height;
-        if (w > maxW) { h = h * maxW / w; w = maxW; }
-        if (h > maxH) { w = w * maxH / h; h = maxH; }
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = reject;
-      img.src = base64;
-    });
-  }
-
   async function deletePhoto(photoId) {
     let userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
+    const photoToDelete = userPhotos.find(p => p.id === photoId);
     userPhotos = userPhotos.filter(p => p.id !== photoId);
     localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
     loadMediaLimits();
     showToast('Foto eliminada');
 
-    // Sincronizar en background (no bloquear)
+    // Eliminar de S3 y sincronizar perfil en background
+    if (photoToDelete?.key) {
+      DataService.deleteMedia(photoToDelete.key).catch(() => {});
+    }
     syncPhotoToProfiles().catch(() => {});
-  }
-
-  // ========== VIDEOS CON MARCA DE AGUA ==========
-  async function applyVideoWatermarkAndSave(videoData) {
-    // Para videos, guardamos y aplicamos overlay CSS para la marca de agua
-    // (La marca de agua real en video requiere procesamiento del lado del servidor)
-    const videoId = Date.now().toString();
-    const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
-    userVideos.push({ 
-      id: videoId, 
-      data: videoData, 
-      createdAt: new Date().toISOString(),
-      hasWatermark: true 
-    });
-    localStorage.setItem(`videos_${currentUser.id}`, JSON.stringify(userVideos));
-    
-    addVideoToGrid(videoData, videoId, true);
-    await loadMediaLimits();
-    showToast('¡Video guardado!');
   }
 
   function addVideoToGrid(videoData, videoId, isNew) {
@@ -2133,10 +2121,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function deleteVideo(videoId) {
     let userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
+    const videoToDelete = userVideos.find(v => v.id === videoId);
     userVideos = userVideos.filter(v => v.id !== videoId);
     localStorage.setItem(`videos_${currentUser.id}`, JSON.stringify(userVideos));
     await loadMediaLimits();
     showToast('Video eliminado');
+
+    // Eliminar de S3 en background
+    if (videoToDelete?.key) {
+      DataService.deleteMedia(videoToDelete.key).catch(() => {});
+    }
   }
 
   function openVideoModal(videoData) {
