@@ -12,9 +12,9 @@
   <link rel="stylesheet" href="perfil-clienta.css" />
   <link rel="icon" href="assets/logo-premium.png" type="image/png" />
   <script src="config.js"></script>
-  <script src="api.js?v=20260130d"></script>
+  <script src="api.js?v=20260130e"></script>
   <script src="url-handler.js"></script>
-  <script defer src="perfil-clienta.js?v=20260130d"></script>
+  <script defer src="perfil-clienta.js?v=20260130e"></script>
 </head>
 <body>
   <header class="site-header">
@@ -438,14 +438,11 @@
                 </div>
                 <div class="form-group">
                   <label>Edad</label>
-                  <input type="number" id="edit-age" min="18" max="60" readonly disabled style="background: rgba(255,255,255,0.05); cursor: not-allowed; color: rgba(255,255,255,0.8);" />
+                  <input type="number" id="edit-age" min="18" max="60" readonly disabled style="background: rgba(255,255,255,0.05); cursor: not-allowed; color: #D4AF37; -webkit-text-fill-color: #D4AF37; opacity: 1; font-weight: 600;" />
                   <small style="color: #888; font-size: 11px;">Calculada automáticamente</small>
                 </div>
               </div>
-              <div class="form-group">
-                <label>Tagline</label>
-                <input type="text" id="edit-tagline" value="" maxlength="60" placeholder="Ej: Atención personalizada" />
-              </div>
+              <!-- Tagline removido - no se muestra en el modal público -->
               <div class="form-group">
                 <label>Bio</label>
                 <textarea id="edit-bio" rows="4" placeholder="Escribe una descripción sobre ti..."></textarea>
@@ -683,6 +680,11 @@
                   <span style="color: var(--muted); font-size: 12px; display: block;">Puedo viajar a otras ciudades</span>
                 </div>
               </label>
+            </div>
+            <div class="form-group" style="margin-top: 16px;">
+              <label style="color: var(--text); font-weight: 500; margin-bottom: 6px; display: block;">Horario de disponibilidad</label>
+              <input type="text" id="edit-schedule" placeholder="Ej: Lunes a Viernes 10:00 - 22:00" maxlength="100" style="width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text); font-size: 14px;" />
+              <small style="color: var(--muted); font-size: 11px;">Este horario se mostrará en tu perfil público</small>
             </div>
             <button type="button" class="btn-secondary btn-save-availability" id="save-availability-btn" style="margin-top: 16px;">Guardar Disponibilidad</button>
           </div>

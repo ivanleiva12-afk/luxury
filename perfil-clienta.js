@@ -654,10 +654,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const incallCheckbox = document.getElementById('incall-option');
     const outcallCheckbox = document.getElementById('outcall-option');
     const travelCheckbox = document.getElementById('travel-option');
-    
+    const scheduleInput = document.getElementById('edit-schedule');
+
     if (incallCheckbox) incallCheckbox.checked = user.incall === 'true' || user.incall === true;
     if (outcallCheckbox) outcallCheckbox.checked = user.outcall === 'true' || user.outcall === true;
     if (travelCheckbox) travelCheckbox.checked = user.travel === 'true' || user.travel === true;
+    if (scheduleInput) scheduleInput.value = user.availability || user.schedule || '';
   }
 
   // ========== STATS ==========
@@ -1249,21 +1251,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     const incall = document.getElementById('incall-option')?.checked || false;
     const outcall = document.getElementById('outcall-option')?.checked || false;
     const travel = document.getElementById('travel-option')?.checked || false;
-    
+    const schedule = document.getElementById('edit-schedule')?.value?.trim() || '';
+
     currentUser.incall = incall;
     currentUser.outcall = outcall;
     currentUser.travel = travel;
-    
+    currentUser.availability = schedule;
+
     await DataService.setCurrentUser(currentUser);
-    
+
     // Actualizar en approvedUsers
     const approvedUsers = await DataService.getApprovedUsers() || [];
     const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
     if (userIndex !== -1) {
-      approvedUsers[userIndex] = { ...approvedUsers[userIndex], incall, outcall, travel };
+      approvedUsers[userIndex] = { ...approvedUsers[userIndex], incall, outcall, travel, availability: schedule };
       await DataService.saveApprovedUsers(approvedUsers);
     }
-    
+
     // Actualizar perfil en carrusel
     const approvedProfiles = await DataService.getApprovedProfiles() || [];
     const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
@@ -1271,9 +1275,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       approvedProfiles[profileIndex].incall = incall;
       approvedProfiles[profileIndex].outcall = outcall;
       approvedProfiles[profileIndex].travel = travel;
+      approvedProfiles[profileIndex].availability = schedule;
       await DataService.saveApprovedProfiles(approvedProfiles);
     }
-    
+
     showToast('¡Disponibilidad actualizada!');
   });
 

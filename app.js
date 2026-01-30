@@ -1273,20 +1273,21 @@ window.refreshCarouselsWithFilter = function(filters) {
   let autoplayInterval = null;
   const AUTOPLAY_DELAY = 5000; // 5 segundos
 
-  // Función para cargar todos los perfiles aprobados del admin
+  // Función para cargar perfiles Luxury & Exclusive aprobados
   const loadApprovedLuxuryProfiles = async () => {
     const approvedProfiles = await DataService.getApprovedProfiles() || [];
     const today = new Date().toISOString().split('T')[0];
-    // Mostrar todos los perfiles aprobados que estén visibles, activos y con plan válido
+    // Solo mostrar perfiles Luxury que estén visibles, activos y con plan válido
     return approvedProfiles.filter(profile => {
       const isVisible = profile.profileVisible === true;
-      const isActive = profile.isActive !== false; // Por defecto activo si no existe la propiedad
+      const isActive = profile.isActive !== false;
+      const isLuxury = profile.carouselType === 'luxury';
       const planNotExpired = !profile.planExpiry || profile.planExpiry >= today;
 
       // Aplicar filtros globales
       const passesFilter = window.profilePassesFilter ? window.profilePassesFilter(profile, window.currentGlobalFilters) : true;
 
-      return isVisible && isActive && planNotExpired && passesFilter;
+      return isVisible && isActive && isLuxury && planNotExpired && passesFilter;
     });
   };
 
@@ -1461,7 +1462,7 @@ window.refreshCarouselsWithFilter = function(filters) {
             <!-- Galería Izquierda -->
             <div class="modal-gallery-section">
               <img class="modal-main-image" src="${profile.profilePhotosData && profile.profilePhotosData.length > 0 ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) : (profile.profilePhoto || profile.avatar || defaultPlaceholder)}" alt="${profile.displayName}" id="modal-main-img" style="${profile.profileVideosData && profile.profileVideosData.length > 0 ? '' : ''}" />
-              <video class="modal-main-video" id="modal-main-video" controls playsinline style="display:none; width:100%; height:100%; object-fit:cover; border-radius:16px;"></video>
+              <video class="modal-main-video" id="modal-main-video" controls playsinline style="display:none; width:100%; max-height:600px; object-fit:contain; border-radius:16px; background:#000;"></video>
 
               <div class="modal-media-counter">
                 <span id="modal-counter">1</span> / ${(profile.profilePhotosData?.length || 0) + (profile.profileVideosData?.length || 0) || profile.photos || 1}
@@ -1488,8 +1489,13 @@ window.refreshCarouselsWithFilter = function(filters) {
                 ${profile.profileVideosData && profile.profileVideosData.length > 0
                   ? profile.profileVideosData.map((video, i) => `
                     <div class="modal-thumbnail" data-index="${(profile.profilePhotosData?.length || 0) + i}" data-type="video">
-                      <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000;border-radius:8px;">
-                        <span style="font-size:18px;">🎬</span>
+                      <div style="position:relative;width:100%;height:100%;border-radius:8px;overflow:hidden;background:#000;">
+                        <video src="${video.url || video.data}" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;" onloadeddata="this.currentTime=0.5"></video>
+                        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);">
+                          <div style="width:24px;height:24px;background:rgba(255,255,255,0.9);border-radius:50%;display:flex;align-items:center;justify-content:center;">
+                            <span style="font-size:12px;margin-left:2px;">▶</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   `).join('')
@@ -2536,14 +2542,17 @@ function createSkeletonCard() {
 
   // Función para cargar instantes de clientas registradas
   async function loadUserInstantes() {
-    const globalInstantes = await DataService.getStories() || [];
+    const globalInstantes = await DataService.getGlobalInstantes() || [];
     const now = new Date();
-    
-    // Filtrar instantes activos (no vencidos - duración de 24 horas)
+
+    // Filtrar instantes activos - usar duración real del plan, no hardcoded
     const activeInstantes = globalInstantes.filter(instante => {
+      // Excluir estados que pudieron filtrarse
+      if (instante.type === 'estado') return false;
       const createdAt = new Date(instante.createdAt);
       const hoursAgo = (now - createdAt) / (1000 * 60 * 60);
-      return hoursAgo < 24; // Los instantes duran 24 horas
+      const maxDuration = instante.duration || 24; // Usar duración del plan o 24h por defecto
+      return hoursAgo < maxDuration;
     });
     
     // Cargar perfiles aprobados una sola vez para resolver avatares
@@ -2878,18 +2887,27 @@ function createSkeletonCard() {
   async function openUserProfile() {
     const user = storiesData[currentUserIndex];
     if (!user) return;
-    
+
     // Cerrar el modal de stories
     closeStories();
-    
+
     // Buscar el perfil completo del usuario desde AWS
     const approvedProfiles = await DataService.getApprovedProfiles() || [];
-    
+
     // Extraer el userId del id del usuario en stories (format: "clienta-XXX")
     const userId = user.id.replace('clienta-', '');
     const profile = approvedProfiles.find(p => p.id === `profile-${userId}` || p.originalRegistro?.id === userId);
-    
+
     if (profile && typeof window.openVIPModal === 'function') {
+      // Asegurar que el perfil tenga todos los campos necesarios para el modal
+      profile.stats = profile.stats || { likes: 0, views: 0, recommendations: 0, experiences: 0, rating: 5.0 };
+      profile.profileTypes = profile.profileTypes || (profile.profileType ? [profile.profileType] : (profile.selectedPlan ? [profile.selectedPlan] : ['premium']));
+      profile.price = profile.price || { CLP: 0 };
+      profile.photos = profile.photos || profile.profilePhotosData?.length || 0;
+      profile.videos = profile.videos || profile.profileVideosData?.length || 0;
+      profile.physicalInfo = profile.physicalInfo || {};
+      profile.services = profile.services || [];
+
       // Pequeño delay para que se cierre el modal de stories primero
       setTimeout(() => {
         window.openVIPModal(profile);
