@@ -128,9 +128,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     `;
   }
 
-  // Cargar planes desde AWS
-  const PLANS = await loadPlansConfig();
-  
   // Cargar datos del usuario
   await loadUserData(currentUser);
   
@@ -243,19 +240,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ========== CARGAR CONFIGURACIÓN DE PLANES ==========
-  async function loadPlansConfig() {
-    const stored = await DataService.getConfig('luxuryPlans');
-    if (stored) {
-      return stored;
-    }
-    // Planes por defecto si no hay configuración
-    return {
-      vip: { photos: 10, videos: 2, instantes: 3, instantesDuracion: 12, estados: 2, estadosDuracion: 6 },
-      premium: { photos: 15, videos: 4, instantes: 5, instantesDuracion: 24, estados: 5, estadosDuracion: 12 },
-      luxury: { photos: 0, videos: 0, instantes: 0, instantesDuracion: 48, estados: 0, estadosDuracion: 24 }
-    };
-  }
-
   // Obtener restricciones del plan actual
   async function getPlanRestrictions() {
     const userPlan = currentUser.selectedPlan || 'premium';
@@ -508,15 +492,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     document.getElementById('edit-age').value = user.age || '';
     
-    document.getElementById('edit-tagline').value = user.tagline || '✨ Experiencia VIP exclusiva';
+    document.getElementById('edit-tagline').value = user.tagline || '';
     document.getElementById('edit-bio').value = user.bio || '';
     document.getElementById('edit-city').value = user.city || '';
     document.getElementById('edit-commune').value = user.commune || '';
     document.getElementById('edit-whatsapp').value = user.whatsapp || '';
     document.getElementById('edit-telegram').value = user.telegram || '';
-    
-    // Precios - sin valores por defecto para 2h y noche completa
-    document.getElementById('price-1h').value = user.priceHour || 150000;
+
+    // Precios
+    document.getElementById('price-1h').value = user.priceHour || '';
     document.getElementById('price-2h').value = user.priceTwoHours || '';
     document.getElementById('price-night').value = user.priceOvernight || '';
     
@@ -1265,6 +1249,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let isDrawing = false;
 
   // Cargar fotos/videos existentes y límites
+  let mediaAlreadyLoaded = false;
   await loadMediaLimits();
   loadSavedMedia();
   await updateDurationOptions(); // Actualizar opciones de duración según el plan
@@ -1378,7 +1363,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  let mediaAlreadyLoaded = false;
   async function loadSavedMedia() {
     // Evitar cargar fotos dos veces
     if (mediaAlreadyLoaded) return;
@@ -1396,7 +1380,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Si no hay fotos guardadas, pero hay profilePhotosData del registro inicial, copiarlas
     if (userPhotos.length === 0 && currentUser.profilePhotosData && currentUser.profilePhotosData.length > 0) {
-      console.log('Copiando fotos del registro inicial al perfil del usuario...');
       // Deduplicar por contenido base64 para evitar fotos duplicadas
       const uniquePhotos = [];
       const seenBase64 = new Set();

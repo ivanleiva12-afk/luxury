@@ -255,23 +255,11 @@ const renderRegistros = () => {
     return;
   }
 
-  console.log('🔍 DEBUG renderRegistros:');
-  console.log('  Total registros en memoria:', registros.length);
-  console.log('  Registros completos:', registros);
-
-  // Mostrar todos los status únicos para debugging
-  const uniqueStatuses = [...new Set(registros.map(r => r.status))];
-  console.log('  Status únicos encontrados:', uniqueStatuses);
-
   // Filtrar por 'pendiente' O 'pending' (aceptar ambos idiomas)
   const pendingOnly = registros.filter(r => {
     const normalizedStatus = String(r.status || '').toLowerCase().trim();
-    const isPending = normalizedStatus === 'pendiente' || normalizedStatus === 'pending';
-    console.log(`  Registro ${r.id}: status="${r.status}" normalizado="${normalizedStatus}" coincide=${isPending}`);
-    return isPending;
+    return normalizedStatus === 'pendiente' || normalizedStatus === 'pending';
   });
-
-  console.log('  Registros pendientes filtrados:', pendingOnly.length);
 
   if (pendingOnly.length === 0) {
     console.warn('⚠️ No hay registros pendientes para mostrar');
@@ -630,7 +618,6 @@ window.approveRegistro = async (id) => {
       }]
     };
     
-    console.log('✅ Aprobando usuario:', approvedUser.email, 'con contraseña:', approvedUser.password ? 'SÍ' : 'NO');
 
     // Usar datos ya precargados en paralelo (existingUsers y existingProfiles)
     const approvedUsers = existingUsers;
@@ -715,14 +702,6 @@ window.approveRegistro = async (id) => {
       isActive: false, // Nace desactivado - no aparece en carruseles hasta que la creadora lo active
       createdAt: Date.now()
     };
-    
-    console.log('🎯 PERFIL UNIFICADO CREADO:');
-    console.log('  - ID:', carouselProfile.id);
-    console.log('  - Nombre:', carouselProfile.displayName);
-    console.log('  - Plan:', carouselProfile.selectedPlan);
-    console.log('  - Carrusel:', carouselProfile.carouselType);
-    console.log('  - Aparecerá en:', carouselProfile.carouselType === 'luxury' ? 'Luxury & Exclusive' : carouselProfile.carouselType === 'vip-black' ? 'VIP Black' : 'Premium Select');
-    console.log('  - También disponible para estados y modal unificado ✅');
     
     // Ejecutar todas las escrituras finales en PARALELO para mayor velocidad
     const savePromises = [];

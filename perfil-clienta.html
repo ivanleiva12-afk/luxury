@@ -14,7 +14,7 @@
   <script src="config.js"></script>
   <script src="api.js"></script>
   <script src="url-handler.js"></script>
-  <script defer src="perfil-clienta.js?v=20260129"></script>
+  <script defer src="perfil-clienta.js?v=20260129b"></script>
 </head>
 <body>
   <header class="site-header">
@@ -38,11 +38,11 @@
       <div class="container">
         <div class="dashboard-welcome">
           <div class="welcome-avatar">
-            <img id="user-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200" alt="Avatar" />
+            <img id="user-avatar" src="" alt="Avatar" />
             <span class="online-indicator"></span>
           </div>
           <div class="welcome-info">
-            <h1 class="welcome-name">Hola, <span id="user-display-name">Valentina</span> 👋</h1>
+            <h1 class="welcome-name">Hola, <span id="user-display-name"></span> 👋</h1>
             <p class="welcome-username" id="user-username-display" style="color: var(--gold); font-size: 14px; margin: 4px 0 8px; opacity: 0.9;">@username</p>
             <p class="welcome-status">Panel de Control</p>
           </div>
@@ -101,7 +101,7 @@
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
             </div>
             <div class="stat-data">
-              <span class="stat-number" id="stat-views">1,234</span>
+              <span class="stat-number" id="stat-views">0</span>
               <span class="stat-name">Visitas hoy</span>
             </div>
           </div>
@@ -110,7 +110,7 @@
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
             </div>
             <div class="stat-data">
-              <span class="stat-number" id="stat-likes">567</span>
+              <span class="stat-number" id="stat-likes">0</span>
               <span class="stat-name">Me Gusta</span>
             </div>
           </div>
@@ -133,7 +133,7 @@
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
             </div>
             <div class="stat-data">
-              <span class="stat-number" id="stat-stories">12</span>
+              <span class="stat-number" id="stat-stories">0</span>
               <span class="stat-name">Instantes activos</span>
             </div>
           </div>
@@ -304,31 +304,27 @@
         <div class="plan-current">
           <div class="plan-card-current" id="plan-info">
             <div class="plan-badge">
-              <span class="plan-icon" id="plan-icon">👑</span>
-              <span class="plan-name" id="current-plan-name">VIP</span>
+              <span class="plan-icon" id="plan-icon"></span>
+              <span class="plan-name" id="current-plan-name"></span>
             </div>
             <div class="plan-details">
               <div class="plan-detail">
                 <span class="detail-label">Estado</span>
-                <span class="detail-value active" id="plan-status">Activo</span>
+                <span class="detail-value" id="plan-status">—</span>
               </div>
               <div class="plan-detail">
                 <span class="detail-label">Vencimiento</span>
-                <span class="detail-value" id="plan-expiry">15 Feb 2026</span>
+                <span class="detail-value" id="plan-expiry">—</span>
               </div>
               <div class="plan-detail">
                 <span class="detail-label">Días restantes</span>
-                <span class="detail-value" id="plan-days">34 días</span>
+                <span class="detail-value" id="plan-days">—</span>
               </div>
             </div>
             <div class="plan-features">
               <h4>Beneficios incluidos:</h4>
               <ul id="plan-features-list">
-                <li>✓ Perfil destacado</li>
-                <li>✓ Hasta 10 fotos</li>
-                <li>✓ Badge VIP</li>
-                <li>✓ Instantes ilimitados</li>
-                <li>✓ Estados destacados</li>
+                <li>Cargando...</li>
               </ul>
             </div>
             <div class="plan-actions">
@@ -341,13 +337,6 @@
         <div class="plan-history">
           <h3>Historial de Pagos</h3>
           <div class="history-list" id="payment-history">
-            <div class="history-item">
-              <div class="history-info">
-                <span class="history-plan">Plan VIP</span>
-                <span class="history-date">12 Ene 2026</span>
-              </div>
-              <span class="history-amount">$89.990 CLP</span>
-            </div>
           </div>
         </div>
       </div>
@@ -390,8 +379,8 @@
               <span class="limit-text"><span id="videos-count">0</span>/<span id="videos-max">2</span> videos</span>
             </div>
             <div class="plan-badge-info" id="plan-badge-info">
-              <span class="plan-icon-small">👑</span>
-              <span>Plan VIP</span>
+              <span class="plan-icon-small"></span>
+              <span></span>
             </div>
           </div>
 
@@ -440,7 +429,7 @@
               <div class="form-row">
                 <div class="form-group">
                   <label>Nombre artístico</label>
-                  <input type="text" id="edit-display-name" value="Valentina" />
+                  <input type="text" id="edit-display-name" value="" placeholder="Tu nombre artístico" />
                 </div>
                 <div class="form-group">
                   <label>Fecha de Nacimiento</label>
@@ -455,20 +444,20 @@
               </div>
               <div class="form-group">
                 <label>Tagline</label>
-                <input type="text" id="edit-tagline" value="✨ Experiencia VIP exclusiva • Atención personalizada" maxlength="60" />
+                <input type="text" id="edit-tagline" value="" maxlength="60" placeholder="Ej: Atención personalizada" />
               </div>
               <div class="form-group">
                 <label>Bio</label>
-                <textarea id="edit-bio" rows="4">Hola amor 💋 Soy Valentina, una chica sofisticada y apasionada...</textarea>
+                <textarea id="edit-bio" rows="4" placeholder="Escribe una descripción sobre ti..."></textarea>
               </div>
               <div class="form-row">
                 <div class="form-group">
                   <label>Ciudad</label>
-                  <input type="text" id="edit-city" value="Santiago" />
+                  <input type="text" id="edit-city" value="" placeholder="Ej: Santiago" />
                 </div>
                 <div class="form-group">
                   <label>Comuna *</label>
-                  <input type="text" id="edit-commune" value="Las Condes" required placeholder="Ej: Las Condes, Providencia" />
+                  <input type="text" id="edit-commune" value="" required placeholder="Ej: Las Condes, Providencia" />
                   <small style="color: #888; font-size: 11px;">La comuna es obligatoria para mostrar tu ubicación</small>
                 </div>
               </div>
@@ -480,11 +469,11 @@
               <div class="form-row">
                 <div class="form-group">
                   <label>WhatsApp</label>
-                  <input type="tel" id="edit-whatsapp" value="+56912345678" />
+                  <input type="tel" id="edit-whatsapp" value="" placeholder="+56 9 XXXX XXXX" />
                 </div>
                 <div class="form-group">
                   <label>Telegram (opcional)</label>
-                  <input type="text" id="edit-telegram" value="@valentina_vip" />
+                  <input type="text" id="edit-telegram" value="" placeholder="@usuario" />
                 </div>
               </div>
               <button type="submit" class="btn-primary btn-save">Guardar Cambios</button>
@@ -898,7 +887,7 @@
     <div class="container footer-inner">
       <div>
         <a class="logo" href="home">
-          <img src="assets/logo-premium.png.png" alt="Logo" />
+          <img src="assets/logo-premium.png" alt="Logo" />
         </a>
         <p class="footer-copy">© <span id="year"></span> Sala Negra. Todos los derechos reservados.</p>
       </div>

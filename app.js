@@ -8,42 +8,6 @@ if (navToggle && siteNav) {
   });
 }
 
-// ========== USUARIO DE PRUEBA (DEMO) ==========
-// El usuario demo se crea automáticamente en AWS si no existe
-(async function createDemoUser() {
-  const demoEmail = 'demo@salaoscura.com';
-  const pendingRegistros = await DataService.getPendingRegistros() || [];
-  
-  // Solo crear si no existe
-  if (!pendingRegistros.find(u => u.email === demoEmail)) {
-    const demoUser = {
-      id: 'demo-user-123',
-      email: demoEmail,
-      password: 'demo123',
-      displayName: 'Camila Demo',
-      username: 'camila_demo',
-      whatsapp: '+56912345678',
-      city: 'Santiago',
-      commune: 'Providencia',
-      bio: 'Soy Camila, tu compañía perfecta para momentos especiales.',
-      age: 25,
-      avatar: null, // Las fotos se cargan desde profilePhotosData
-      profileType: 'premium',
-      selectedPlan: 'premium',
-      planExpiry: '2026-02-12',
-      status: 'aprobado',
-      priceHour: '150.000',
-      priceTwoHours: '250.000',
-      priceOvernight: '800.000',
-      date: new Date().toISOString(),
-      stats: { views: 245, likes: 89, contacts: 34 }
-    };
-    
-    await DataService.addPendingRegistro(demoUser);
-    console.log('✅ Usuario demo creado en AWS: demo@salaoscura.com / demo123');
-  }
-})();
-
 // Smooth scroll - solo para secciones, no para modals
 for (const link of document.querySelectorAll('a[href^="#"]:not([href*="modal"])')) {
   link.addEventListener('click', (e) => {
@@ -519,41 +483,23 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
 
-    console.log('🔐 Intento de login para:', email);
-
     // Primero buscar en usuarios aprobados desde AWS
     const approvedUsers = await DataService.getApprovedUsers() || [];
     let approvedUser = approvedUsers.find(u => u.email === email && u.status === 'aprobado');
-    
-    console.log('👥 Usuarios aprobados encontrados:', approvedUsers.length);
-    console.log('✅ Usuario en aprobados:', !!approvedUser);
-    
-    if (approvedUser) {
-      // Verificar contraseña con logs detallados
-      console.log('🔑 Verificando contraseña en usuario aprobado...');
-      console.log('  PASSWORD GUARDADA EN DB:', JSON.stringify(approvedUser.password));
-      console.log('  PASSWORD INGRESADA:', JSON.stringify(password));
-      console.log('  Campos del usuario:', Object.keys(approvedUser).join(', '));
 
+    if (approvedUser) {
       // Si no tiene password guardada, buscar en registros originales
       let storedPassword = approvedUser.password;
       if (!storedPassword) {
-        console.warn('⚠️ Password NO encontrada en usuario aprobado, buscando en registros...');
         const allRegistros = await DataService.getPendingRegistros() || [];
         const originalReg = allRegistros.find(r => r.email === email);
         if (originalReg && originalReg.password) {
           storedPassword = originalReg.password;
-          console.log('  ✅ Password encontrada en registro original');
         }
       }
 
-      console.log('  ¿Son iguales?:', storedPassword === password);
-      console.log('  ¿Son iguales (trim)?:', (storedPassword || '').trim() === password.trim());
-
-      // Comparar con trim para evitar espacios invisibles
       if (!storedPassword || storedPassword.trim() !== password.trim()) {
-        console.error('❌ Contraseña incorrecta en usuario aprobado');
-        alert('❌ Contraseña incorrecta. Por favor verifica tus credenciales.');
+        alert('Contraseña incorrecta. Por favor verifica tus credenciales.');
         return;
       }
       // Usuario aprobado - permitir login (currentUser en localStorage temporal)
@@ -567,26 +513,14 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
     // Buscar en registros pendientes desde AWS
     const pendingRegistros = await DataService.getPendingRegistros() || [];
     let pendingUser = pendingRegistros.find(u => u.email === email);
-    
-    console.log('⏳ Registros pendientes encontrados:', pendingRegistros.length);
-    console.log('👤 Usuario en pendientes:', !!pendingUser);
-    
-    if (pendingUser) {
-      console.log('📋 Estado del usuario:', pendingUser.status);
-      console.log('🔑 Verificando contraseña en usuario pendiente...');
-      console.log('  Password guardada:', pendingUser.password ? `"${pendingUser.password}" (largo: ${pendingUser.password.length})` : 'UNDEFINED/NULL');
-      console.log('  Password ingresada:', password ? `"${password}" (largo: ${password.length})` : 'VACÍA');
 
-      // Verificar contraseña con trim
+    if (pendingUser) {
       if (!pendingUser.password || pendingUser.password.trim() !== password.trim()) {
-        console.error('❌ Contraseña incorrecta en usuario pendiente');
-        alert('❌ Contraseña incorrecta. Por favor verifica tus credenciales.');
+        alert('Contraseña incorrecta. Por favor verifica tus credenciales.');
         return;
       }
       
       if (pendingUser.status === 'aprobado') {
-        console.log('✅ Usuario pendiente aprobado, creando sesión...');
-        // Crear currentUser para usuario aprobado
         const currentUser = {
           id: pendingUser.id,
           email: pendingUser.email,
@@ -3188,60 +3122,30 @@ function createSkeletonCard() {
           avatar: creator.avatar
         };
       } else {
-        // Convertir datos de creator a formato de perfil completo (datos de ejemplo)
+        // Usar datos reales del creator
         fullProfile = {
           id: creator.id,
           displayName: creator.name,
-          username: creator.name.toLowerCase().replace(' ', '.'),
+          username: creator.username || creator.name?.toLowerCase().replace(/\s/g, '.'),
           title: creator.title,
-          verified: true,
+          verified: creator.verified || false,
           profileTypes: creator.profileTypes,
-          bio: `Experiencia VIP exclusiva con ${creator.name}. Perfil verificado con las mejores reseñas y atención personalizada.`,
-          whatsapp: '+56912345678',
-          physicalInfo: {
-            ethnicity: 'Latina',
-            skinTone: 'Morena clara',
-            age: 25 + Math.floor(Math.random() * 10),
-            height: 160 + Math.floor(Math.random() * 20),
-            weight: 50 + Math.floor(Math.random() * 15),
-            measurements: {
-              bust: 85 + Math.floor(Math.random() * 15),
-              waist: 55 + Math.floor(Math.random() * 15),
-              hips: 85 + Math.floor(Math.random() * 20)
-            }
-          },
-          attributes: {
-            smoker: false,
-            tattoos: Math.random() > 0.7,
-            piercings: Math.random() > 0.8,
-            hairColor: 'Castaño',
-            hairLength: 'Largo',
-            eyeColor: 'Café',
-            buttSize: 'Mediano',
-            breastSize: 'Mediano',
-            breastType: 'Natural',
-            bodyType: 'Atlética',
-            pubicHair: 'Depilada'
-          },
-          services: ['oral', 'masajes', 'penetracion', 'besos', 'caricias'],
-          prices: {
-            hour: { CLP: 200000 + Math.floor(Math.random() * 150000) },
-            twoHours: { CLP: 350000 + Math.floor(Math.random() * 200000) },
-            overnight: { CLP: 800000 + Math.floor(Math.random() * 400000) }
-          },
-          availabilityDetails: {
-            incall: true,
-            outcall: true,
-            travel: false
-          },
-          availability: 'Lun-Sab 20:00-02:00',
-          commune: 'Las Condes',
-          city: 'Santiago',
-          languages: ['Español', 'Inglés'],
-          photos: 8 + Math.floor(Math.random() * 12),
-          videos: 1 + Math.floor(Math.random() * 4),
+          bio: creator.bio || '',
+          whatsapp: creator.whatsapp || '',
+          physicalInfo: creator.physicalInfo || null,
+          attributes: creator.attributes || null,
+          services: creator.services || [],
+          prices: creator.prices || null,
+          availabilityDetails: creator.availabilityDetails || null,
+          availability: creator.availability || '',
+          commune: creator.commune || '',
+          city: creator.city || '',
+          languages: creator.languages || [],
+          photos: creator.photos || 0,
+          videos: creator.videos || 0,
           stats: creator.stats,
-          avatar: creator.avatar
+          avatar: creator.avatar,
+          profilePhotosData: creator.profilePhotosData || []
         };
       }
       
@@ -3516,60 +3420,30 @@ function createSkeletonCard() {
           avatar: creator.avatar
         };
       } else {
-        // Convertir datos de creator a formato de perfil completo (datos de ejemplo)
+        // Usar datos reales del creator
         fullProfile = {
           id: creator.id,
           displayName: creator.name,
-          username: creator.name.toLowerCase().replace(' ', '.'),
+          username: creator.username || creator.name?.toLowerCase().replace(/\s/g, '.'),
           title: creator.title,
-          verified: true,
+          verified: creator.verified || false,
           profileTypes: creator.profileTypes,
-          bio: `Experiencia Premium Select con ${creator.name}. Perfil de máxima calidad con servicios exclusivos y atención personalizada de lujo.`,
-          whatsapp: '+56912345678',
-          physicalInfo: {
-            ethnicity: 'Latina',
-            skinTone: 'Morena',
-            age: 22 + Math.floor(Math.random() * 12),
-            height: 165 + Math.floor(Math.random() * 15),
-            weight: 52 + Math.floor(Math.random() * 12),
-            measurements: {
-              bust: 88 + Math.floor(Math.random() * 12),
-              waist: 58 + Math.floor(Math.random() * 10),
-              hips: 88 + Math.floor(Math.random() * 17)
-            }
-          },
-          attributes: {
-            smoker: false,
-            tattoos: Math.random() > 0.6,
-            piercings: Math.random() > 0.7,
-            hairColor: 'Castaño',
-            hairLength: 'Largo',
-            eyeColor: 'Verde',
-            buttSize: 'Grande',
-            breastSize: 'Grande',
-            breastType: 'Natural',
-            bodyType: 'Curvilínea',
-            pubicHair: 'Depilada'
-          },
-          services: ['oral', 'masajes', 'penetracion', 'besos', 'caricias', 'anal', 'trios', 'parejas'],
-          prices: {
-            hour: { CLP: 300000 + Math.floor(Math.random() * 200000) },
-            twoHours: { CLP: 500000 + Math.floor(Math.random() * 300000) },
-            overnight: { CLP: 1200000 + Math.floor(Math.random() * 500000) }
-          },
-          availabilityDetails: {
-            incall: true,
-            outcall: true,
-            travel: true
-          },
-          availability: 'Todos los días 24/7',
-          commune: 'Vitacura',
-          city: 'Santiago',
-          languages: ['Español', 'Inglés', 'Francés'],
-          photos: 12 + Math.floor(Math.random() * 15),
-          videos: 3 + Math.floor(Math.random() * 6),
+          bio: creator.bio || '',
+          whatsapp: creator.whatsapp || '',
+          physicalInfo: creator.physicalInfo || null,
+          attributes: creator.attributes || null,
+          services: creator.services || [],
+          prices: creator.prices || null,
+          availabilityDetails: creator.availabilityDetails || null,
+          availability: creator.availability || '',
+          commune: creator.commune || '',
+          city: creator.city || '',
+          languages: creator.languages || [],
+          photos: creator.photos || 0,
+          videos: creator.videos || 0,
           stats: creator.stats,
-          avatar: creator.avatar
+          avatar: creator.avatar,
+          profilePhotosData: creator.profilePhotosData || []
         };
       }
       
