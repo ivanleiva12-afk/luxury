@@ -1444,29 +1444,58 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   photoUpload?.addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
+    if (!files.length) return;
+
     const restrictions = await getPlanRestrictions();
-    const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
-    
+    let userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
     let remaining = restrictions.photos === 0 ? files.length : restrictions.photos - userPhotos.length;
-    
-    files.slice(0, remaining).forEach(file => {
-      if (file.size > 15 * 1024 * 1024) {
-        showToast('Archivo muy grande. Máximo 15MB.');
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        // Abrir editor para la foto
-        openImageEditor(e.target.result);
-      };
-      reader.readAsDataURL(file);
-    });
-    
-    if (files.length > remaining && remaining > 0) {
+
+    if (remaining <= 0) {
+      showToast(`Límite de fotos alcanzado. Mejora tu plan.`);
+      photoUpload.value = '';
+      return;
+    }
+
+    const filesToProcess = files.slice(0, remaining);
+    if (files.length > remaining) {
       showToast(`Solo se pueden subir ${remaining} foto(s) más según tu plan.`);
     }
-    
+
+    // Subir todas las fotos directamente sin abrir editor
+    for (const file of filesToProcess) {
+      if (file.size > 15 * 1024 * 1024) {
+        showToast(`${file.name}: Archivo muy grande. Máximo 15MB.`);
+        continue;
+      }
+
+      try {
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => resolve(ev.target.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        // Comprimir la foto (max 800px, calidad 75%)
+        const compressed = await compressImage(base64, 800, 800, 0.75);
+        const photoId = Date.now().toString() + Math.random().toString(36).slice(2, 6);
+
+        // Recargar userPhotos para evitar duplicados
+        userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
+        userPhotos.push({ id: photoId, data: compressed, createdAt: new Date().toISOString() });
+        localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
+
+        await addPhotoToGrid(compressed, photoId, true);
+      } catch (err) {
+        showToast(`Error al procesar foto: ${file.name}`);
+      }
+    }
+
+    await loadMediaLimits();
+    showToast(`${filesToProcess.length} foto(s) subida(s)`);
+
+    // Sincronizar en background
+    syncPhotoToProfiles().catch(() => {});
     photoUpload.value = '';
   });
 
@@ -1851,7 +1880,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     blurAreas = [];
   });
 
-  async function addPhotoToGrid(imageData, photoId, isNew, isVerificationPhoto = false) {
+  async function addPhotoToGrid(imageData, photoId, _unused, isVerificationPhoto = false) {
     const photoSlot = document.createElement('div');
     photoSlot.className = 'photo-slot';
     photoSlot.dataset.id = photoId;
@@ -1902,11 +1931,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     
     photosGrid.insertBefore(photoSlot, addPhotoBtn);
-    
-    // Si es una foto nueva, sincronizar con approvedUsers y approvedProfiles
-    if (isNew) {
-      await syncPhotoToProfiles();
-    }
   }
 
   async function setAsProfilePhoto(imageData, photoId) {
@@ -1993,40 +2017,61 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function syncPhotoToProfiles() {
     const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
-    
-    // Actualizar en approvedUsers
-    const approvedUsers = await DataService.getApprovedUsers() || [];
-    const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
-    if (userIndex !== -1) {
-      approvedUsers[userIndex].profilePhotosData = userPhotos.map(photo => ({
-        base64: photo.data,
-        name: `photo_${photo.id}`
-      }));
-      await DataService.saveApprovedUsers(approvedUsers);
+
+    // Generar thumbnails comprimidos para el perfil público (max 150px, calidad 40%)
+    const thumbnails = [];
+    for (const photo of userPhotos.slice(0, 10)) {
+      try {
+        const thumb = await compressImage(photo.data, 150, 150, 0.4);
+        thumbnails.push({ base64: thumb, name: `photo_${photo.id}` });
+      } catch {
+        // Si falla la compresión, omitir esta foto
+      }
     }
-    
-    // Actualizar en approvedProfiles
-    const approvedProfiles = await DataService.getApprovedProfiles() || [];
-    const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
-    if (profileIndex !== -1) {
-      approvedProfiles[profileIndex].profilePhotosData = userPhotos.map(photo => ({
-        base64: photo.data,
-        name: `photo_${photo.id}`
-      }));
-      approvedProfiles[profileIndex].photos = userPhotos.length;
-      await DataService.saveApprovedProfiles(approvedProfiles);
+
+    // Actualizar SOLO el perfil del carrusel (NO la tabla users para evitar exceder 400KB)
+    try {
+      const profileId = `profile-${currentUser.id}`;
+      // GET del perfil existente y merge para no perder datos (PUT reemplaza todo el item)
+      const existingProfile = await DataService.getProfileById(profileId);
+      if (existingProfile) {
+        existingProfile.profilePhotosData = thumbnails;
+        existingProfile.photos = userPhotos.length;
+        await DataService.updateProfile(profileId, existingProfile);
+      }
+    } catch (err) {
+      console.error('Error sincronizando fotos:', err.message);
     }
+  }
+
+  // Comprimir imagen a thumbnail
+  function compressImage(base64, maxW, maxH, quality) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = h * maxW / w; w = maxW; }
+        if (h > maxH) { w = w * maxH / h; h = maxH; }
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = base64;
+    });
   }
 
   async function deletePhoto(photoId) {
     let userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
     userPhotos = userPhotos.filter(p => p.id !== photoId);
     localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
-    await loadMediaLimits();
+    loadMediaLimits();
     showToast('Foto eliminada');
-    
-    // Sincronizar con otros perfiles
-    await syncPhotoToProfiles();
+
+    // Sincronizar en background (no bloquear)
+    syncPhotoToProfiles().catch(() => {});
   }
 
   // ========== VIDEOS CON MARCA DE AGUA ==========

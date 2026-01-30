@@ -1206,8 +1206,14 @@ window.openWhatsApp = async (profileId) => {
   
   const message = encodeURIComponent(`Hola ${profile.displayName}, vi tu perfil en Sala Oscura y me gustaría conocer más sobre tus servicios.`);
   const whatsappUrl = `https://wa.me/${profile.whatsapp.replace(/\D/g, '')}?text=${message}`;
-  
-  window.open(whatsappUrl, '_blank');
+
+  // En móvil, window.open puede ser bloqueado por popup blockers
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (isMobile) {
+    window.location.href = whatsappUrl;
+  } else {
+    window.open(whatsappUrl, '_blank');
+  }
   
   // Incrementar vistas por interacción
   window.incrementViews(profileId);
@@ -1290,13 +1296,7 @@ window.refreshCarouselsWithFilter = function(filters) {
   // Usar el array de perfiles aprobados
   const featuredCars = await getAllLuxuryProfiles();
 
-  if (featuredCars.length === 0) {
-    const section = document.getElementById('featured-section');
-    if (section) section.style.display = 'none';
-    return;
-  }
-
-  // Función para abrir modal VIP
+  // Función para abrir modal VIP (definida ANTES del early return para que siempre esté disponible globalmente)
   const openVIPModal = async (car) => {
     // Usar solo datos reales del perfil, sin valores por defecto inventados
     const hasPhysicalInfo = car.physicalInfo || car.height || car.weight || car.measurements;
@@ -1882,6 +1882,13 @@ window.refreshCarouselsWithFilter = function(filters) {
 
   // Exponer función globalmente
   window.openVIPModal = openVIPModal;
+
+  // Si no hay perfiles luxury, ocultar sección pero mantener openVIPModal disponible
+  if (featuredCars.length === 0) {
+    const section = document.getElementById('featured-section');
+    if (section) section.style.display = 'none';
+    return;
+  }
 
   // Placeholder para perfiles sin foto
   const defaultPlaceholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiMxYTFhMmUiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjYwIiBmaWxsPSIjMzMzMzRkIi8+PHBhdGggZD0iTTEwMCAzNTBDMTAwIDI4MCAxNDAgMjMwIDIwMCAyMzBDMjYwIDIzMCAzMDAgMjgwIDMwMCAzNTAiIGZpbGw9IiMzMzMzNGQiLz48dGV4dCB4PSIyMDAiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY2NiIgZm9udC1zaXplPSIxNCI+U2luIGZvdG88L3RleHQ+PC9zdmc+';
@@ -3865,78 +3872,48 @@ function createSkeletonCard() {
 window.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
   const profileId = urlParams.get('profile');
-  
-  console.log('Verificando URL params:', window.location.search);
-  console.log('Profile ID detectado:', profileId);
-  
+
   if (profileId) {
-    console.log('Buscando perfil para ID:', profileId);
-    
-    // Buscar el perfil en todos los lugares posibles
-    setTimeout(async () => {
+    // Esperar a que openVIPModal esté disponible (puede tardar por async IIFEs)
+    let attempts = 0;
+    const maxAttempts = 20;
+
+    const tryOpenProfile = async () => {
+      attempts++;
+
+      // Esperar a que openVIPModal esté disponible
+      if (typeof window.openVIPModal !== 'function') {
+        if (attempts < maxAttempts) {
+          setTimeout(tryOpenProfile, 250);
+          return;
+        }
+        console.error('openVIPModal no disponible después de esperar');
+        return;
+      }
+
       let profile = null;
-      
-      // 1. Buscar en approvedProfiles desde AWS
+
+      // Buscar en approvedProfiles desde AWS
       const approvedProfiles = await DataService.getApprovedProfiles() || [];
       profile = approvedProfiles.find(p => p.id === profileId);
-      console.log('Búsqueda en approvedProfiles:', profile ? 'Encontrado' : 'No encontrado');
-      
-      // 2. Si no está en approvedProfiles, buscar en publicaciones creadas aprobadas
+
+      // Buscar en publicaciones creadas aprobadas
       if (!profile) {
         const publicacionesCreadas = await DataService.getProfiles() || [];
-        console.log('Publicaciones creadas disponibles:', publicacionesCreadas.length);
         profile = publicacionesCreadas.find(p => p.status === 'aprobado' && (p.id === profileId || p.id === parseInt(profileId)));
-        console.log('Búsqueda en publicaciones creadas:', profile ? 'Encontrado' : 'No encontrado');
       }
-      
-      // 3. También buscar en publicaciones aprobadas (por compatibilidad)
-      if (!profile) {
-        const publicacionesAprobadas = await DataService.getApprovedProfiles() || [];
-        console.log('Publicaciones aprobadas disponibles:', publicacionesAprobadas.length);
-        profile = publicacionesAprobadas.find(p => p.id === profileId || p.id === parseInt(profileId));
-        console.log('Búsqueda en publicaciones aprobadas:', profile ? 'Encontrado' : 'No encontrado');
-      }
-      
-      // Si encontramos el perfil, abrir el modal directamente
+
       if (profile) {
-        console.log('✅ Perfil encontrado desde link compartido:', profile.displayName || profile.title);
-        
-        // Incrementar vistas
         if (typeof window.incrementViews === 'function') {
           window.incrementViews(profileId);
-          console.log('Vistas incrementadas para:', profileId);
         }
-        
-        // Abrir modal
-        if (typeof window.openVIPModal === 'function') {
-          console.log('Abriendo modal para perfil:', profile.displayName || profile.title);
-          window.openVIPModal(profile);
-        } else {
-          console.error('Función openVIPModal no disponible');
-        }
+        window.openVIPModal(profile);
       } else {
-        console.warn('❌ Perfil no encontrado para ID:', profileId);
-        
-        // Intentar buscar por ID numérico si el perfil tiene un ID string
-        const numericId = parseInt(profileId);
-        if (!isNaN(numericId)) {
-          console.log('Intentando búsqueda con ID numérico:', numericId);
-          const publicacionesCreadas = await DataService.getProfiles() || [];
-          profile = publicacionesCreadas.find(p => p.status === 'aprobado' && p.id === numericId);
-          
-          if (profile && typeof window.openVIPModal === 'function') {
-            console.log('✅ Perfil encontrado con ID numérico:', profile.displayName);
-            window.incrementViews(profileId);
-            window.openVIPModal(profile);
-            return;
-          }
-        }
-        
-        // Mostrar mensaje de error al usuario
-        console.error('Perfil no disponible para ID:', profileId);
         alert('El perfil que buscas no está disponible o ha sido eliminado.');
       }
-    }, 500);
+    };
+
+    setTimeout(tryOpenProfile, 300);
   }
 });
 
