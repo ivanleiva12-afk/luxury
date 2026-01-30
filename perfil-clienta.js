@@ -173,6 +173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
       if (profileIndex !== -1) {
         approvedProfiles[profileIndex].profileVisible = newState;
+        approvedProfiles[profileIndex].isActive = newState; // Activar/desactivar perfil en carruseles
         await DataService.saveApprovedProfiles(approvedProfiles);
       }
       
@@ -500,8 +501,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       birthdateField.value = formattedDate;
     }
     document.getElementById('edit-age').value = user.age || '';
-    
-    document.getElementById('edit-tagline').value = user.tagline || '';
+
+    const taglineEl = document.getElementById('edit-tagline');
+    if (taglineEl) taglineEl.value = user.tagline || '';
     document.getElementById('edit-bio').value = user.bio || '';
     document.getElementById('edit-city').value = user.city || '';
     document.getElementById('edit-commune').value = user.commune || '';
@@ -1119,7 +1121,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Actualizar datos del usuario
     currentUser.displayName = document.getElementById('edit-display-name').value;
     currentUser.age = document.getElementById('edit-age').value;
-    currentUser.tagline = document.getElementById('edit-tagline').value;
+    currentUser.tagline = document.getElementById('edit-tagline')?.value || '';
     currentUser.bio = document.getElementById('edit-bio').value;
     currentUser.city = document.getElementById('edit-city').value;
     currentUser.commune = document.getElementById('edit-commune').value;
