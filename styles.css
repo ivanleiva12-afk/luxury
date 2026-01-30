@@ -3625,13 +3625,27 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   
   .modal-gallery-section {
     min-height: 250px;
-    max-height: 35vh;
+    max-height: 45vh;
     border-radius: 12px 12px 0 0;
+    overflow: hidden;
+    position: relative;
   }
-  
+
   .modal-main-image {
-    height: 35vh;
-    max-height: 250px;
+    width: 100%;
+    height: 100%;
+    min-height: 250px;
+    max-height: 45vh;
+    object-fit: cover;
+    display: block;
+  }
+
+  .modal-main-video {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 250px;
+    max-height: 45vh !important;
+    object-fit: contain !important;
   }
   
   .modal-thumbnails {

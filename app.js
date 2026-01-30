@@ -2586,10 +2586,11 @@ function createSkeletonCard() {
       }
 
       // Duración: 5 segundos para imágenes, 15 segundos máximo para videos
-      const duration = (instante.type === 'video') ? 15000 : 5000;
+      // mediaType distingue imagen/video; type puede ser 'instante'
+      const resolvedMediaType = instante.mediaType || ((instante.type === 'video') ? 'video' : 'image');
+      const duration = (resolvedMediaType === 'video') ? 15000 : 5000;
 
-      // Determinar tipo real del contenido (instante.type puede ser 'instante', mapear a 'image')
-      const mediaType = (instante.type === 'video') ? 'video' : 'image';
+      const mediaType = resolvedMediaType;
       // La URL puede estar en .image, .media, o .src
       const mediaSrc = instante.image || instante.media || instante.src || null;
 
@@ -4009,21 +4010,34 @@ window.addEventListener('DOMContentLoaded', () => {
   async function loadEstados() {
     const globalEstados = await DataService.getEstados() || [];
     const now = new Date();
-    
+
     // Filtrar estados activos (no vencidos)
     const activeEstados = globalEstados.filter(estado => {
       const createdAt = new Date(estado.createdAt);
       const hoursAgo = (now - createdAt) / (1000 * 60 * 60);
       return hoursAgo < estado.duration;
     });
-    
+
+    // Resolver avatares faltantes desde approvedProfiles
+    const approvedProfilesForAvatars = await DataService.getApprovedProfiles() || [];
+    for (const estado of activeEstados) {
+      if (!estado.userAvatar || estado.userAvatar === 'null' || estado.userAvatar === '') {
+        const userProfile = approvedProfilesForAvatars.find(p =>
+          p.id === `profile-${estado.userId}` || p.odooId === estado.userId
+        );
+        if (userProfile) {
+          estado.userAvatar = userProfile.profilePhotosData?.[0]?.url || userProfile.profilePhoto || userProfile.avatar || null;
+        }
+      }
+    }
+
     // Ordenar: disponible primero, luego por fecha
     activeEstados.sort((a, b) => {
       if (a.type === 'disponible' && b.type !== 'disponible') return -1;
       if (b.type === 'disponible' && a.type !== 'disponible') return 1;
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
-    
+
     if (activeEstados.length === 0) {
       // Mostrar estados de ejemplo si no hay estados reales
       carousel.innerHTML = renderExampleEstados();
@@ -4057,42 +4071,46 @@ window.addEventListener('DOMContentLoaded', () => {
         const approvedProfiles = await DataService.getApprovedProfiles() || [];
         const approvedUsers = await DataService.getApprovedUsers() || [];
         
-        // Primero buscar por userId (más preciso)
+        // Primero buscar en approvedProfiles (tiene datos completos: fotos, videos, stats)
         let profile = null;
-        
+
         if (userId) {
-          profile = approvedProfiles.find(p => p.id === userId || p.odooId === userId);
-          if (!profile) {
-            profile = approvedUsers.find(u => u.id === userId);
-          }
+          // Los IDs de perfiles tienen formato "profile-{userId}"
+          profile = approvedProfiles.find(p =>
+            p.id === `profile-${userId}` || p.id === userId || p.odooId === userId
+          );
         }
-        
+
         // Si no se encuentra por userId, buscar por username
         if (!profile && username) {
           profile = approvedProfiles.find(p => p.username === username);
-          if (!profile) {
-            profile = approvedUsers.find(u => u.username === username);
-          }
         }
-        
+
         // Si no, buscar por displayName
         if (!profile && userName) {
-          profile = approvedProfiles.find(p => 
-            p.displayName === userName || 
-            p.title === userName || 
+          profile = approvedProfiles.find(p =>
+            p.displayName === userName ||
+            p.title === userName ||
             p.displayName?.toLowerCase().trim() === userName?.toLowerCase().trim()
           );
-          if (!profile) {
-            profile = approvedUsers.find(u => 
-              u.displayName === userName || 
-              u.displayName?.toLowerCase().trim() === userName?.toLowerCase().trim()
-            );
+        }
+
+        // Último recurso: buscar en approvedUsers y enriquecer con datos de profile
+        if (!profile) {
+          let userFromApproved = null;
+          if (userId) userFromApproved = approvedUsers.find(u => u.id === userId);
+          if (!userFromApproved && username) userFromApproved = approvedUsers.find(u => u.username === username);
+          if (!userFromApproved && userName) userFromApproved = approvedUsers.find(u =>
+            u.displayName?.toLowerCase().trim() === userName?.toLowerCase().trim()
+          );
+          if (userFromApproved) {
+            // Buscar perfil asociado en approvedProfiles para obtener fotos/videos
+            const enrichedProfile = approvedProfiles.find(p => p.id === `profile-${userFromApproved.id}`);
+            profile = enrichedProfile || userFromApproved;
           }
         }
-        
-        if (profile) {
-          console.log('✅ Perfil encontrado:', profile.displayName);
 
+        if (profile) {
           // Asegurar que el perfil tenga toda la información necesaria para el modal
           profile.stats = profile.stats || { likes: 0, views: 0, recommendations: 0, experiences: 0, rating: 5.0 };
           profile.profileTypes = profile.profileTypes || (profile.profileType ? [profile.profileType] : (profile.selectedPlan ? [profile.selectedPlan] : ['premium']));
@@ -4105,8 +4123,6 @@ window.addEventListener('DOMContentLoaded', () => {
           if (typeof window.openVIPModal === 'function') {
             window.openVIPModal(profile);
           }
-        } else {
-          console.log('⚠️ No se encontró perfil para este estado');
         }
       });
     });
@@ -4127,7 +4143,7 @@ window.addEventListener('DOMContentLoaded', () => {
     return `
       <div class="estado-card ${estado.type}" data-user-id="${estado.userId || ''}" data-username="${estado.username || ''}">
         <div class="estado-card-header">
-          <img class="estado-avatar" src="${estado.userAvatar || estado.profilePhoto || ''}" alt="${estado.userName}" />
+          <img class="estado-avatar" src="${estado.userAvatar || estado.profilePhoto || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiMxYTFhMmUiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjYwIiBmaWxsPSIjMzMzMzRkIi8+PHBhdGggZD0iTTEwMCAzNTBDMTAwIDI4MCAxNDAgMjMwIDIwMCAyMzBDMjYwIDIzMCAzMDAgMjgwIDMwMCAzNTAiIGZpbGw9IiMzMzMzNGQiLz48L3N2Zz4='}" alt="${estado.userName}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiMxYTFhMmUiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjYwIiBmaWxsPSIjMzMzMzRkIi8+PHBhdGggZD0iTTEwMCAzNTBDMTAwIDI4MCAxNDAgMjMwIDIwMCAyMzBDMjYwIDIzMCAzMDAgMjgwIDMwMCAzNTAiIGZpbGw9IiMzMzMzNGQiLz48L3N2Zz4='" />
           <div class="estado-user-info">
             <div class="estado-user-name">
               ${estado.userName}
@@ -4243,13 +4259,13 @@ window.addEventListener('DOMContentLoaded', () => {
 // ===========================================
 (function() {
   let currentPhotoIndex = 0;
-  let currentPhotos = [];
+  let currentPhotos = []; // Array of { src, type: 'photo'|'video' }
   let expandOverlay = null;
-  
+
   // Crear el overlay de expansión
   function createExpandOverlay() {
     if (expandOverlay) return;
-    
+
     expandOverlay = document.createElement('div');
     expandOverlay.className = 'photo-expand-overlay';
     expandOverlay.innerHTML = `
@@ -4257,6 +4273,7 @@ window.addEventListener('DOMContentLoaded', () => {
         <button class="photo-expand-close">×</button>
         <button class="photo-expand-nav prev">‹</button>
         <img src="" alt="Foto expandida" id="expanded-photo">
+        <video src="" id="expanded-video" controls playsinline style="display:none; max-width:100%; max-height:90vh; object-fit:contain;"></video>
         <button class="photo-expand-nav next">›</button>
         <div class="photo-expand-counter"><span id="photo-current">1</span> / <span id="photo-total">1</span></div>
       </div>
@@ -4293,23 +4310,39 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-  // Expandir foto
+  // Expandir foto/video
+  // photos puede ser array de strings (URLs) o array de { src, type }
   function expandPhoto(photos, index) {
     createExpandOverlay();
-    currentPhotos = photos;
+    // Normalizar: si es array de strings, convertir a objetos
+    currentPhotos = photos.map(p => typeof p === 'string' ? { src: p, type: 'photo' } : p);
     currentPhotoIndex = index;
     updateExpandedPhoto();
     expandOverlay.classList.add('active');
     document.body.style.overflow = 'hidden';
   }
-  
-  // Actualizar foto mostrada
+
+  // Actualizar foto/video mostrado
   function updateExpandedPhoto() {
     const img = expandOverlay.querySelector('#expanded-photo');
-    img.src = currentPhotos[currentPhotoIndex];
+    const video = expandOverlay.querySelector('#expanded-video');
+    const media = currentPhotos[currentPhotoIndex];
+
+    if (media.type === 'video') {
+      img.style.display = 'none';
+      video.style.display = 'block';
+      video.src = media.src;
+      video.load();
+    } else {
+      video.pause();
+      video.style.display = 'none';
+      img.style.display = 'block';
+      img.src = media.src;
+    }
+
     expandOverlay.querySelector('#photo-current').textContent = currentPhotoIndex + 1;
     expandOverlay.querySelector('#photo-total').textContent = currentPhotos.length;
-    
+
     // Ocultar/mostrar navegación
     expandOverlay.querySelector('.photo-expand-nav.prev').style.display = currentPhotoIndex === 0 ? 'none' : 'flex';
     expandOverlay.querySelector('.photo-expand-nav.next').style.display = currentPhotoIndex === currentPhotos.length - 1 ? 'none' : 'flex';
@@ -4324,9 +4357,11 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  // Cerrar foto expandida
+  // Cerrar foto/video expandido
   function closeExpandedPhoto() {
     if (expandOverlay) {
+      const video = expandOverlay.querySelector('#expanded-video');
+      if (video) { video.pause(); video.src = ''; }
       expandOverlay.classList.remove('active');
       document.body.style.overflow = '';
     }
@@ -4343,65 +4378,75 @@ window.addEventListener('DOMContentLoaded', () => {
       const galleryImage = e.target.closest('.modal-gallery-image');
       const thumbnail = e.target.closest('.modal-thumbnail');
       
-      // Si clickeó en la imagen principal del modal
-      if (mainImage) {
-        const modal = mainImage.closest('.vip-modal-container, .vip-modal-overlay');
-        if (!modal) return;
-        
-        // Recopilar todas las fotos de los thumbnails
-        const thumbnails = modal.querySelectorAll('.modal-thumbnail img');
-        const photos = [];
-        let currentIndex = 0;
-        
-        thumbnails.forEach((img, i) => {
-          if (img.src) {
-            photos.push(img.src);
+      // Función auxiliar para recopilar media (fotos + videos) de thumbnails
+      function collectMediaFromModal(modal) {
+        const allThumbnails = modal.querySelectorAll('.modal-thumbnail');
+        const media = [];
+        allThumbnails.forEach((thumb) => {
+          const img = thumb.querySelector('img');
+          const vid = thumb.querySelector('video');
+          const thumbType = thumb.dataset.type || 'photo';
+          if (thumbType === 'video' && vid && vid.src) {
+            media.push({ src: vid.src, type: 'video' });
+          } else if (img && img.src) {
+            media.push({ src: img.src, type: 'photo' });
           }
         });
-        
-        // Si no hay thumbnails, usar la imagen principal
-        if (photos.length === 0 && mainImage.src) {
-          photos.push(mainImage.src);
+        return media;
+      }
+
+      // Si clickeó en la imagen principal del modal o el video principal
+      if (mainImage || e.target.closest('#modal-main-video')) {
+        const clickedEl = mainImage || e.target.closest('#modal-main-video');
+        const modal = clickedEl.closest('.vip-modal-container, .vip-modal-overlay');
+        if (!modal) return;
+
+        const media = collectMediaFromModal(modal);
+
+        // Si no hay thumbnails, usar la imagen/video principal
+        if (media.length === 0) {
+          if (mainImage && mainImage.src) {
+            media.push({ src: mainImage.src, type: 'photo' });
+          }
+          const mainVid = modal.querySelector('#modal-main-video');
+          if (mainVid && mainVid.src && mainVid.style.display !== 'none') {
+            media.push({ src: mainVid.src, type: 'video' });
+          }
         }
-        
+
         // Encontrar índice actual basado en el contador
+        let currentIndex = 0;
         const counter = modal.querySelector('#modal-counter');
         if (counter) {
           currentIndex = parseInt(counter.textContent) - 1 || 0;
         }
-        
-        if (photos.length > 0) {
+
+        if (media.length > 0) {
           e.preventDefault();
           e.stopPropagation();
-          expandPhoto(photos, currentIndex);
+          expandPhoto(media, currentIndex);
         }
         return;
       }
-      
+
       // Si clickeó en un thumbnail del modal
       if (thumbnail) {
         const modal = thumbnail.closest('.vip-modal-container, .vip-modal-overlay');
         if (!modal) return;
-        
-        // Recopilar todas las fotos de los thumbnails
-        const allThumbnails = modal.querySelectorAll('.modal-thumbnail');
-        const photos = [];
+
+        const media = collectMediaFromModal(modal);
         let clickedIndex = 0;
-        
+        const allThumbnails = modal.querySelectorAll('.modal-thumbnail');
         allThumbnails.forEach((thumb, i) => {
-          const img = thumb.querySelector('img');
-          if (img && img.src) {
-            photos.push(img.src);
-            if (thumb === thumbnail) {
-              clickedIndex = photos.length - 1;
-            }
+          if (thumb === thumbnail && i < media.length) {
+            clickedIndex = i;
           }
         });
-        
-        if (photos.length > 0) {
+
+        if (media.length > 0) {
           e.preventDefault();
           e.stopPropagation();
-          expandPhoto(photos, clickedIndex);
+          expandPhoto(media, clickedIndex);
         }
         return;
       }

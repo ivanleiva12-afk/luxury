@@ -673,6 +673,12 @@
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
 }
 
+#edit-age {
+  color: #D4AF37 !important;
+  -webkit-text-fill-color: #D4AF37 !important;
+  opacity: 1 !important;
+}
+
 .form-actions {
   display: flex;
   gap: 12px;
