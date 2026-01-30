@@ -12,9 +12,9 @@
   <link rel="stylesheet" href="perfil-clienta.css" />
   <link rel="icon" href="assets/logo-premium.png" type="image/png" />
   <script src="config.js"></script>
-  <script src="api.js?v=20260130g"></script>
+  <script src="api.js?v=20260130h"></script>
   <script src="url-handler.js"></script>
-  <script defer src="perfil-clienta.js?v=20260130g"></script>
+  <script defer src="perfil-clienta.js?v=20260130h"></script>
 </head>
 <body>
   <header class="site-header">
@@ -438,7 +438,7 @@
                 </div>
                 <div class="form-group">
                   <label>Edad</label>
-                  <input type="text" id="edit-age" readonly tabindex="-1" style="background: rgba(255,255,255,0.05); cursor: not-allowed; color: #D4AF37 !important; -webkit-text-fill-color: #D4AF37 !important; opacity: 1 !important; font-weight: 600; pointer-events: none;" />
+                  <input type="text" id="edit-age" readonly tabindex="-1" style="background: rgba(255,255,255,0.05); cursor: not-allowed; color: #FFFFFF !important; -webkit-text-fill-color: #FFFFFF !important; opacity: 1 !important; font-weight: 600; font-size: 16px; pointer-events: none;" />
                   <small style="color: #888; font-size: 11px;">Calculada automáticamente</small>
                 </div>
               </div>
@@ -682,17 +682,34 @@
               </label>
             </div>
             <div class="form-group" style="margin-top: 16px;">
-              <label style="color: var(--text); font-weight: 500; margin-bottom: 6px; display: block;">Horario de disponibilidad</label>
-              <select id="edit-schedule" style="width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text); font-size: 14px; appearance: auto;">
-                <option value="">Selecciona</option>
-                <option value="24/7">24/7</option>
-                <option value="Mañana">Solo mañanas</option>
-                <option value="Tarde">Solo tardes</option>
-                <option value="Noche">Solo noches</option>
-                <option value="Día">Solo de día</option>
-                <option value="Fin de semana">Solo fines de semana</option>
-              </select>
-              <small style="color: var(--muted); font-size: 11px;">Este horario se mostrará en tu perfil público</small>
+              <label style="color: var(--text); font-weight: 500; margin-bottom: 8px; display: block; font-size: 14px;">🕐 Horario de disponibilidad</label>
+              <div class="schedule-options" id="schedule-options" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                <label class="schedule-option" style="display: flex; align-items: center; gap: 8px; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                  <input type="radio" name="schedule" value="24/7" style="accent-color: var(--gold); width: 16px; height: 16px;" />
+                  <span style="color: var(--text); font-size: 13px; font-weight: 500;">24/7</span>
+                </label>
+                <label class="schedule-option" style="display: flex; align-items: center; gap: 8px; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                  <input type="radio" name="schedule" value="Mañana" style="accent-color: var(--gold); width: 16px; height: 16px;" />
+                  <span style="color: var(--text); font-size: 13px;">Solo mañanas</span>
+                </label>
+                <label class="schedule-option" style="display: flex; align-items: center; gap: 8px; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                  <input type="radio" name="schedule" value="Tarde" style="accent-color: var(--gold); width: 16px; height: 16px;" />
+                  <span style="color: var(--text); font-size: 13px;">Solo tardes</span>
+                </label>
+                <label class="schedule-option" style="display: flex; align-items: center; gap: 8px; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                  <input type="radio" name="schedule" value="Noche" style="accent-color: var(--gold); width: 16px; height: 16px;" />
+                  <span style="color: var(--text); font-size: 13px;">Solo noches</span>
+                </label>
+                <label class="schedule-option" style="display: flex; align-items: center; gap: 8px; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                  <input type="radio" name="schedule" value="Día" style="accent-color: var(--gold); width: 16px; height: 16px;" />
+                  <span style="color: var(--text); font-size: 13px;">Solo de día</span>
+                </label>
+                <label class="schedule-option" style="display: flex; align-items: center; gap: 8px; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                  <input type="radio" name="schedule" value="Fin de semana" style="accent-color: var(--gold); width: 16px; height: 16px;" />
+                  <span style="color: var(--text); font-size: 13px;">Fines de semana</span>
+                </label>
+              </div>
+              <small style="color: var(--muted); font-size: 11px; margin-top: 6px; display: block;">Este horario se mostrará en tu perfil público</small>
             </div>
             <button type="button" class="btn-secondary btn-save-availability" id="save-availability-btn" style="margin-top: 16px;">Guardar Disponibilidad</button>
           </div>

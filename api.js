@@ -10,12 +10,41 @@
 
 // Proteger contra re-declaración
 if (typeof DataService === 'undefined') {
+  // Cache en memoria para evitar llamadas repetidas a la API
+  var _apiCache = {};
+  var _apiCacheTTL = 30000; // 30 segundos de cache
+
   var DataService = {
-  
+
   // ═══════════════════════════════════════════════════════════
   // FUNCIONES AUXILIARES
   // ═══════════════════════════════════════════════════════════
-  
+
+  /**
+   * Obtener datos con caché en memoria
+   */
+  async cachedFetch(endpoint, ttl) {
+    const now = Date.now();
+    const cached = _apiCache[endpoint];
+    if (cached && (now - cached.time) < (ttl || _apiCacheTTL)) {
+      return cached.data;
+    }
+    const data = await this.fetchApi(endpoint);
+    _apiCache[endpoint] = { data, time: now };
+    return data;
+  },
+
+  /**
+   * Invalidar caché para un endpoint (después de save/update/delete)
+   */
+  invalidateCache(endpoint) {
+    if (endpoint) {
+      delete _apiCache[endpoint];
+    } else {
+      _apiCache = {};
+    }
+  },
+
   /**
    * Hacer petición HTTP a la API
    */
@@ -53,7 +82,7 @@ if (typeof DataService === 'undefined') {
   
   async getApprovedProfiles() {
     try {
-      return await this.fetchApi('/profiles') || [];
+      return await this.cachedFetch('/profiles') || [];
     } catch (error) {
       console.error('Error obteniendo perfiles:', error);
       return [];
@@ -71,33 +100,39 @@ if (typeof DataService === 'undefined') {
   
   async addApprovedProfile(profile) {
     try {
-      return await this.fetchApi('/profiles', {
+      const result = await this.fetchApi('/profiles', {
         method: 'POST',
         body: JSON.stringify(profile)
       });
+      this.invalidateCache('/profiles');
+      return result;
     } catch (error) {
       console.error('Error agregando perfil:', error);
       throw error;
     }
   },
-  
+
   async updateProfile(profileId, updatedData) {
     try {
-      return await this.fetchApi(`/profiles/${profileId}`, {
+      const result = await this.fetchApi(`/profiles/${profileId}`, {
         method: 'PUT',
         body: JSON.stringify({ ...updatedData, id: profileId })
       });
+      this.invalidateCache('/profiles');
+      return result;
     } catch (error) {
       console.error('Error actualizando perfil:', error);
       throw error;
     }
   },
-  
+
   async deleteProfile(profileId) {
     try {
-      return await this.fetchApi(`/profiles/${profileId}`, {
+      const result = await this.fetchApi(`/profiles/${profileId}`, {
         method: 'DELETE'
       });
+      this.invalidateCache('/profiles');
+      return result;
     } catch (error) {
       console.error('Error eliminando perfil:', error);
       throw error;
@@ -110,7 +145,7 @@ if (typeof DataService === 'undefined') {
   
   async getPendingRegistros() {
     try {
-      return await this.fetchApi('/registros') || [];
+      return await this.cachedFetch('/registros') || [];
     } catch (error) {
       console.error('Error obteniendo registros:', error);
       return [];
@@ -119,33 +154,39 @@ if (typeof DataService === 'undefined') {
   
   async addPendingRegistro(registro) {
     try {
-      return await this.fetchApi('/registros', {
+      const result = await this.fetchApi('/registros', {
         method: 'POST',
         body: JSON.stringify(registro)
       });
+      this.invalidateCache('/registros');
+      return result;
     } catch (error) {
       console.error('Error agregando registro:', error);
       throw error;
     }
   },
-  
+
   async updateRegistro(registroId, data) {
     try {
-      return await this.fetchApi(`/registros/${registroId}`, {
+      const result = await this.fetchApi(`/registros/${registroId}`, {
         method: 'PUT',
         body: JSON.stringify({ ...data, id: registroId })
       });
+      this.invalidateCache('/registros');
+      return result;
     } catch (error) {
       console.error('Error actualizando registro:', error);
       throw error;
     }
   },
-  
+
   async deleteRegistro(registroId) {
     try {
-      return await this.fetchApi(`/registros/${registroId}`, {
+      const result = await this.fetchApi(`/registros/${registroId}`, {
         method: 'DELETE'
       });
+      this.invalidateCache('/registros');
+      return result;
     } catch (error) {
       console.error('Error eliminando registro:', error);
       throw error;
@@ -158,7 +199,7 @@ if (typeof DataService === 'undefined') {
   
   async getApprovedUsers() {
     try {
-      return await this.fetchApi('/users') || [];
+      return await this.cachedFetch('/users') || [];
     } catch (error) {
       console.error('Error obteniendo usuarios:', error);
       return [];
@@ -167,33 +208,39 @@ if (typeof DataService === 'undefined') {
   
   async addApprovedUser(user) {
     try {
-      return await this.fetchApi('/users', {
+      const result = await this.fetchApi('/users', {
         method: 'POST',
         body: JSON.stringify(user)
       });
+      this.invalidateCache('/users');
+      return result;
     } catch (error) {
       console.error('Error agregando usuario:', error);
       throw error;
     }
   },
-  
+
   async updateUser(userId, data) {
     try {
-      return await this.fetchApi(`/users/${userId}`, {
+      const result = await this.fetchApi(`/users/${userId}`, {
         method: 'PUT',
         body: JSON.stringify({ ...data, id: userId })
       });
+      this.invalidateCache('/users');
+      return result;
     } catch (error) {
       console.error('Error actualizando usuario:', error);
       throw error;
     }
   },
-  
+
   async deleteUser(userId) {
     try {
-      return await this.fetchApi(`/users/${userId}`, {
+      const result = await this.fetchApi(`/users/${userId}`, {
         method: 'DELETE'
       });
+      this.invalidateCache('/users');
+      return result;
     } catch (error) {
       console.error('Error eliminando usuario:', error);
       throw error;
@@ -301,7 +348,7 @@ if (typeof DataService === 'undefined') {
   
   async getConfig(key) {
     try {
-      const result = await this.fetchApi(`/config/${key}`);
+      const result = await this.cachedFetch(`/config/${key}`, 60000);
       return result?.value || null;
     } catch (error) {
       console.error('Error obteniendo config:', error);
@@ -510,35 +557,57 @@ if (typeof DataService === 'undefined') {
   // ═══════════════════════════════════════════════════════════
   
   async saveApprovedProfiles(profiles) {
-    for (const profile of profiles) {
+    // Enviar todas las actualizaciones en paralelo para mayor velocidad
+    await Promise.all(profiles.map(profile => {
       if (profile.id) {
-        await this.updateProfile(profile.id, profile);
+        return this.fetchApi(`/profiles/${profile.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ ...profile, id: profile.id })
+        });
       } else {
-        await this.addApprovedProfile(profile);
+        return this.fetchApi('/profiles', {
+          method: 'POST',
+          body: JSON.stringify(profile)
+        });
       }
-    }
+    }));
+    this.invalidateCache('/profiles');
     return profiles;
   },
-  
+
   async savePendingRegistros(registros) {
-    for (const registro of registros) {
+    await Promise.all(registros.map(registro => {
       if (registro.id) {
-        await this.updateRegistro(registro.id, registro);
+        return this.fetchApi(`/registros/${registro.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ ...registro, id: registro.id })
+        });
       } else {
-        await this.addPendingRegistro(registro);
+        return this.fetchApi('/registros', {
+          method: 'POST',
+          body: JSON.stringify(registro)
+        });
       }
-    }
+    }));
+    this.invalidateCache('/registros');
     return registros;
   },
-  
+
   async saveApprovedUsers(users) {
-    for (const user of users) {
+    await Promise.all(users.map(user => {
       if (user.id) {
-        await this.updateUser(user.id, user);
+        return this.fetchApi(`/users/${user.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ ...user, id: user.id })
+        });
       } else {
-        await this.addApprovedUser(user);
+        return this.fetchApi('/users', {
+          method: 'POST',
+          body: JSON.stringify(user)
+        });
       }
-    }
+    }));
+    this.invalidateCache('/users');
     return users;
   },
 
@@ -722,7 +791,7 @@ if (typeof DataService === 'undefined') {
       if (userId) params.push(`userId=${userId}`);
       if (type) params.push(`type=${type}`);
       if (params.length > 0) endpoint += '?' + params.join('&');
-      return await this.fetchApi(endpoint) || [];
+      return await this.cachedFetch(endpoint, 15000) || [];
     } catch (error) {
       console.error('Error obteniendo stories:', error);
       return [];
@@ -731,21 +800,26 @@ if (typeof DataService === 'undefined') {
   
   async addStory(story) {
     try {
-      return await this.fetchApi('/stories', {
+      const result = await this.fetchApi('/stories', {
         method: 'POST',
         body: JSON.stringify(story)
       });
+      // Invalidar todas las cachés de stories
+      Object.keys(_apiCache).forEach(k => { if (k.startsWith('/stories')) delete _apiCache[k]; });
+      return result;
     } catch (error) {
       console.error('Error creando story:', error);
       throw error;
     }
   },
-  
+
   async deleteStory(storyId) {
     try {
-      return await this.fetchApi(`/stories/${storyId}`, {
+      const result = await this.fetchApi(`/stories/${storyId}`, {
         method: 'DELETE'
       });
+      Object.keys(_apiCache).forEach(k => { if (k.startsWith('/stories')) delete _apiCache[k]; });
+      return result;
     } catch (error) {
       console.error('Error eliminando story:', error);
       throw error;

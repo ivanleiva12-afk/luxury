@@ -495,12 +495,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Fecha de nacimiento y edad (solo lectura)
     const birthdateField = document.getElementById('edit-birthdate');
     if (birthdateField && user.birthdate) {
-      // Formatear fecha como DD/MM/YYYY
       const date = new Date(user.birthdate);
       const formattedDate = date.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
       birthdateField.value = formattedDate;
+      // Calcular edad real desde fecha de nacimiento
+      const today = new Date();
+      let calculatedAge = today.getFullYear() - date.getFullYear();
+      const monthDiff = today.getMonth() - date.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
+        calculatedAge--;
+      }
+      user.age = calculatedAge.toString();
     }
-    document.getElementById('edit-age').value = user.age || '';
+    document.getElementById('edit-age').value = user.age ? `${user.age} años` : '';
 
     const taglineEl = document.getElementById('edit-tagline');
     if (taglineEl) taglineEl.value = user.tagline || '';
@@ -656,12 +663,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const incallCheckbox = document.getElementById('incall-option');
     const outcallCheckbox = document.getElementById('outcall-option');
     const travelCheckbox = document.getElementById('travel-option');
-    const scheduleInput = document.getElementById('edit-schedule');
-
     if (incallCheckbox) incallCheckbox.checked = user.incall === 'true' || user.incall === true;
     if (outcallCheckbox) outcallCheckbox.checked = user.outcall === 'true' || user.outcall === true;
     if (travelCheckbox) travelCheckbox.checked = user.travel === 'true' || user.travel === true;
-    if (scheduleInput) scheduleInput.value = user.availability || user.schedule || '';
+    // Cargar horario como radio button
+    const scheduleValue = user.availability || user.schedule || '';
+    const scheduleRadio = document.querySelector(`input[name="schedule"][value="${scheduleValue}"]`);
+    if (scheduleRadio) scheduleRadio.checked = true;
   }
 
   // ========== STATS ==========
@@ -1118,7 +1126,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   profileEditForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     // Actualizar datos del usuario
     currentUser.displayName = document.getElementById('edit-display-name').value;
     currentUser.age = document.getElementById('edit-age').value;
@@ -1131,20 +1139,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentUser.priceHour = document.getElementById('price-1h').value;
     currentUser.priceTwoHours = document.getElementById('price-2h').value;
     currentUser.priceOvernight = document.getElementById('price-night').value;
-    
+
+    // Guardar en localStorage inmediatamente (instantáneo)
     await DataService.setCurrentUser(currentUser);
-    
-    // Actualizar también en approvedUsers
-    const approvedUsers = await DataService.getApprovedUsers() || [];
-    const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
+
+    // Actualizar header inmediatamente
+    document.getElementById('user-display-name').textContent = currentUser.displayName;
+    const usernameDisplay = document.getElementById('user-username-display');
+    if (usernameDisplay && currentUser.username) {
+      usernameDisplay.textContent = `@${currentUser.username}`;
+    }
+    showToast('¡Perfil actualizado!');
+
+    // Cargar approvedUsers y approvedProfiles EN PARALELO
+    const [approvedUsers, approvedProfiles] = await Promise.all([
+      DataService.getApprovedUsers() || [],
+      DataService.getApprovedProfiles() || []
+    ]);
+
+    // Preparar actualizaciones
+    const savePromises = [];
+
+    const userIndex = (approvedUsers || []).findIndex(u => u.id === currentUser.id);
     if (userIndex !== -1) {
       approvedUsers[userIndex] = { ...approvedUsers[userIndex], ...currentUser };
-      await DataService.saveApprovedUsers(approvedUsers);
+      savePromises.push(DataService.saveApprovedUsers(approvedUsers));
     }
-    
-    // Actualizar perfil en carrusel si existe
-    const approvedProfiles = await DataService.getApprovedProfiles() || [];
-    const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
+
+    const profileIndex = (approvedProfiles || []).findIndex(p => p.id === `profile-${currentUser.id}`);
     if (profileIndex !== -1) {
       approvedProfiles[profileIndex] = {
         ...approvedProfiles[profileIndex],
@@ -1152,28 +1174,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         title: currentUser.displayName,
         physicalInfo: {
           ...approvedProfiles[profileIndex].physicalInfo,
-          age: parseInt(currentUser.age) || 25,
+          age: parseInt(currentUser.age) || approvedProfiles[profileIndex].physicalInfo?.age || 25,
         },
+        bio: currentUser.bio,
         commune: currentUser.commune,
+        city: currentUser.city,
+        whatsapp: currentUser.whatsapp,
         prices: {
           hour: { CLP: parseInt(currentUser.priceHour) || 150000, USD: Math.round((parseInt(currentUser.priceHour) || 150000) / 830) },
           twoHours: { CLP: parseInt(currentUser.priceTwoHours) || 0, USD: Math.round((parseInt(currentUser.priceTwoHours) || 0) / 830) },
           overnight: { CLP: parseInt(currentUser.priceOvernight) || 0, USD: Math.round((parseInt(currentUser.priceOvernight) || 0) / 830) }
         }
       };
-      await DataService.saveApprovedProfiles(approvedProfiles);
+      savePromises.push(DataService.saveApprovedProfiles(approvedProfiles));
     }
-    
-    // Actualizar nombre en header
-    document.getElementById('user-display-name').textContent = currentUser.displayName;
-    
-    // Actualizar username en header
-    const usernameDisplay = document.getElementById('user-username-display');
-    if (usernameDisplay && currentUser.username) {
-      usernameDisplay.textContent = `@${currentUser.username}`;
+
+    // Guardar ambos EN PARALELO en background (no bloquea UI)
+    if (savePromises.length > 0) {
+      Promise.all(savePromises).catch(err => console.error('Error guardando perfil:', err));
     }
-    
-    showToast('¡Perfil actualizado!');
   });
 
   // ========== GUARDAR TARIFAS ==========
@@ -1254,7 +1273,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const incall = document.getElementById('incall-option')?.checked || false;
     const outcall = document.getElementById('outcall-option')?.checked || false;
     const travel = document.getElementById('travel-option')?.checked || false;
-    const schedule = document.getElementById('edit-schedule')?.value?.trim() || '';
+    const scheduleRadio = document.querySelector('input[name="schedule"]:checked');
+    const schedule = scheduleRadio?.value?.trim() || '';
 
     currentUser.incall = incall;
     currentUser.outcall = outcall;
@@ -1262,27 +1282,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentUser.availability = schedule;
 
     await DataService.setCurrentUser(currentUser);
+    showToast('¡Disponibilidad actualizada!');
 
-    // Actualizar en approvedUsers
-    const approvedUsers = await DataService.getApprovedUsers() || [];
-    const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
+    // Actualizar en AWS en paralelo (background)
+    const [approvedUsers, approvedProfiles] = await Promise.all([
+      DataService.getApprovedUsers(),
+      DataService.getApprovedProfiles()
+    ]);
+
+    const savePromises = [];
+    const userIndex = (approvedUsers || []).findIndex(u => u.id === currentUser.id);
     if (userIndex !== -1) {
       approvedUsers[userIndex] = { ...approvedUsers[userIndex], incall, outcall, travel, availability: schedule };
-      await DataService.saveApprovedUsers(approvedUsers);
+      savePromises.push(DataService.saveApprovedUsers(approvedUsers));
     }
 
-    // Actualizar perfil en carrusel
-    const approvedProfiles = await DataService.getApprovedProfiles() || [];
-    const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
+    const profileIndex = (approvedProfiles || []).findIndex(p => p.id === `profile-${currentUser.id}`);
     if (profileIndex !== -1) {
       approvedProfiles[profileIndex].incall = incall;
       approvedProfiles[profileIndex].outcall = outcall;
       approvedProfiles[profileIndex].travel = travel;
       approvedProfiles[profileIndex].availability = schedule;
-      await DataService.saveApprovedProfiles(approvedProfiles);
+      savePromises.push(DataService.saveApprovedProfiles(approvedProfiles));
     }
 
-    showToast('¡Disponibilidad actualizada!');
+    Promise.all(savePromises).catch(err => console.error('Error guardando disponibilidad:', err));
   });
 
   // ========== PHOTO UPLOAD ==========

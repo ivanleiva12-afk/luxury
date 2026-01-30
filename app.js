@@ -480,124 +480,75 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = document.getElementById('login-email').value;
+    const email = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
 
-    // Primero buscar en usuarios aprobados desde AWS
-    const approvedUsers = await DataService.getApprovedUsers() || [];
-    let approvedUser = approvedUsers.find(u => u.email === email && u.status === 'aprobado');
+    // Cargar todas las fuentes EN PARALELO para velocidad
+    const [approvedUsers, pendingRegistros] = await Promise.all([
+      DataService.getApprovedUsers(),
+      DataService.getPendingRegistros()
+    ]);
 
+    // Buscar la contraseña en TODAS las fuentes (puede estar en una u otra)
+    const allSources = [...(approvedUsers || []), ...(pendingRegistros || [])];
+    let storedPassword = null;
+    for (const source of allSources) {
+      if (source.email === email && source.password) {
+        storedPassword = source.password;
+        break;
+      }
+    }
+
+    // Si no encontramos al usuario en ninguna fuente
+    const userExists = allSources.some(u => u.email === email);
+    if (!userExists) {
+      alert('No se encontró una cuenta con ese correo. ¿Ya te registraste?');
+      return;
+    }
+
+    // Verificar contraseña una sola vez
+    if (!storedPassword || storedPassword.trim() !== password.trim()) {
+      alert('Contraseña incorrecta. Por favor verifica tus credenciales.');
+      return;
+    }
+
+    // Contraseña correcta - buscar el usuario aprobado
+    const approvedUser = (approvedUsers || []).find(u => u.email === email && u.status === 'aprobado');
     if (approvedUser) {
-      // Si no tiene password guardada, buscar en registros originales
-      let storedPassword = approvedUser.password;
-      if (!storedPassword) {
-        const allRegistros = await DataService.getPendingRegistros() || [];
-        const originalReg = allRegistros.find(r => r.email === email);
-        if (originalReg && originalReg.password) {
-          storedPassword = originalReg.password;
-        }
-      }
-
-      if (!storedPassword || storedPassword.trim() !== password.trim()) {
-        alert('Contraseña incorrecta. Por favor verifica tus credenciales.');
-        return;
-      }
-      // Usuario aprobado - permitir login (currentUser en localStorage temporal)
       await DataService.setCurrentUser(approvedUser);
       closeModal();
       form.reset();
       window.location.href = 'profile';
       return;
     }
-    
-    // Buscar en registros pendientes desde AWS
-    const pendingRegistros = await DataService.getPendingRegistros() || [];
-    let pendingUser = pendingRegistros.find(u => u.email === email);
 
+    // Buscar en registros pendientes
+    const pendingUser = (pendingRegistros || []).find(u => u.email === email);
     if (pendingUser) {
-      if (!pendingUser.password || pendingUser.password.trim() !== password.trim()) {
-        alert('Contraseña incorrecta. Por favor verifica tus credenciales.');
-        return;
-      }
-      
       if (pendingUser.status === 'aprobado') {
         const currentUser = {
-          id: pendingUser.id,
-          email: pendingUser.email,
-          displayName: pendingUser.displayName,
-          username: pendingUser.username,
-          whatsapp: pendingUser.whatsapp,
-          city: pendingUser.city,
-          commune: pendingUser.commune,
-          bio: pendingUser.bio,
-          age: pendingUser.age,
+          id: pendingUser.id, email: pendingUser.email,
+          displayName: pendingUser.displayName, username: pendingUser.username,
+          whatsapp: pendingUser.whatsapp, city: pendingUser.city,
+          commune: pendingUser.commune, bio: pendingUser.bio,
+          age: pendingUser.age, birthdate: pendingUser.birthdate,
           selectedPlan: pendingUser.selectedPlan,
           registrationDate: pendingUser.date || new Date().toISOString(),
-          priceHour: pendingUser.priceHour,
-          priceTwoHours: pendingUser.priceTwoHours,
+          priceHour: pendingUser.priceHour, priceTwoHours: pendingUser.priceTwoHours,
           priceOvernight: pendingUser.priceOvernight,
           avatar: pendingUser.avatar || null,
           status: 'aprobado',
           stats: pendingUser.stats || { views: 0, likes: 0, contacts: 0 }
         };
-        
         await DataService.setCurrentUser(currentUser);
         closeModal();
         form.reset();
         window.location.href = 'profile';
-      } else if (pendingUser.status === 'pendiente') {
-        console.log('⏳ Usuario en estado pendiente');
+      } else if (pendingUser.status === 'pendiente' || pendingUser.status === 'pending') {
         alert('⏳ Tu cuenta está pendiente de aprobación.\n\nNuestro equipo está revisando tu solicitud. Te contactaremos pronto por WhatsApp.');
       } else if (pendingUser.status === 'rechazado') {
-        console.log('❌ Usuario rechazado');
         alert('❌ Tu solicitud fue rechazada.\n\nMotivo: ' + (pendingUser.rejectionReason || 'No especificado') + '\n\nPuedes contactarnos para más información.');
       }
-      return;
-    }
-    
-    console.log('❌ Usuario no encontrado en ningún registro');
-    console.log('🔍 Verificando publicaciones creadas...');
-    
-    // Buscar en publicaciones creadas (para compatibilidad con perfiles antiguos)
-    const publicacionesCreadas = await DataService.getProfiles() || [];
-    let user = publicacionesCreadas.find(u => u.email === email);
-    
-    if (user) {
-      // Verificar contraseña
-      if (user.password !== password) {
-        alert('❌ Contraseña incorrecta. Por favor verifica tus credenciales.');
-        return;
-      }
-      // Guardar usuario actual en sesión
-      const currentUser = {
-        id: user.id,
-        email: user.email,
-        displayName: user.displayName,
-        username: user.username,
-        whatsapp: user.whatsapp,
-        city: user.city,
-        commune: user.commune,
-        bio: user.bio,
-        age: user.age,
-        selectedPlan: user.selectedPlan,
-        registrationDate: user.date || new Date().toISOString(),
-        priceHour: user.priceHour,
-        priceTwoHours: user.priceTwoHours,
-        priceOvernight: user.priceOvernight,
-        avatar: user.avatar || user.profilePhoto || (user.profilePhotosData && user.profilePhotosData.length > 0 ? (user.profilePhotosData[0].url || user.profilePhotosData[0].base64) : null),
-        status: 'aprobado',
-        stats: user.stats || { views: 0, likes: 0, contacts: 0 }
-      };
-      
-      await DataService.setCurrentUser(currentUser);
-      
-      closeModal();
-      form.reset();
-      
-      // Redirigir al panel de la clienta
-      window.location.href = 'profile';
-    } else {
-      alert('No se encontró una cuenta con ese correo. ¿Ya te registraste?');
     }
   });
 
@@ -3975,7 +3926,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const check = () => {
         if (typeof window.openVIPModal === 'function') {
           resolve();
-        } else if (++attempts >= 40) {
+        } else if (++attempts >= 150) {
           reject(new Error('openVIPModal no disponible'));
         } else {
           setTimeout(check, 100);
@@ -4207,19 +4158,19 @@ window.addEventListener('DOMContentLoaded', () => {
       featuredCarousel.style.cssText = 'display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; padding: 4px !important; width: 100% !important; overflow: visible !important;';
     }
     
-    // Tarjetas VIP Black y Premium Select - 23vh (4 por pantalla)
+    // Tarjetas VIP Black y Premium Select - misma proporción que Luxury
     document.querySelectorAll('.creator-card, .premium-select-card').forEach(card => {
-      card.style.cssText = 'width: 100% !important; height: 23vh !important; min-width: 0 !important; max-width: none !important; border-radius: 10px !important; overflow: hidden !important; position: relative !important;';
+      card.style.cssText = 'width: 100% !important; aspect-ratio: 3/4 !important; height: auto !important; min-height: 0 !important; min-width: 0 !important; max-width: none !important; border-radius: 10px !important; overflow: hidden !important; position: relative !important;';
     });
-    
-    // Tarjetas Luxury - 45vh (2 por pantalla)
+
+    // Tarjetas Luxury - misma proporción
     document.querySelectorAll('.featured-card').forEach(card => {
-      card.style.cssText = 'width: 100% !important; height: 45vh !important; min-width: 0 !important; max-width: none !important; border-radius: 10px !important; overflow: hidden !important; position: relative !important;';
+      card.style.cssText = 'width: 100% !important; aspect-ratio: 3/4 !important; height: auto !important; min-height: 0 !important; min-width: 0 !important; max-width: none !important; border-radius: 10px !important; overflow: hidden !important; position: relative !important;';
     });
-    
-    // Imágenes
+
+    // Imágenes - cubrir 100% sin cortes
     document.querySelectorAll('.creator-cover-image, .premium-select-cover-image, .featured-card-img, .vip-card-image').forEach(img => {
-      img.style.cssText = 'width: 100% !important; height: 100% !important; object-fit: cover !important; position: absolute !important; top: 0 !important; left: 0 !important;';
+      img.style.cssText = 'width: 100% !important; height: 100% !important; object-fit: cover !important; position: absolute !important; top: 0 !important; left: 0 !important; display: block !important;';
     });
     
     // Ocultar stats
