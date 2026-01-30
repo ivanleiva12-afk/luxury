@@ -1456,29 +1456,40 @@ window.refreshCarouselsWithFilter = function(filters) {
           <div class="vip-modal-inner">
             <!-- Galería Izquierda -->
             <div class="modal-gallery-section">
-              <img class="modal-main-image" src="${profile.profilePhotosData && profile.profilePhotosData.length > 0 ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) : (profile.profilePhoto || profile.avatar || defaultPlaceholder)}" alt="${profile.displayName}" id="modal-main-img" />
-              
+              <img class="modal-main-image" src="${profile.profilePhotosData && profile.profilePhotosData.length > 0 ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) : (profile.profilePhoto || profile.avatar || defaultPlaceholder)}" alt="${profile.displayName}" id="modal-main-img" style="${profile.profileVideosData && profile.profileVideosData.length > 0 ? '' : ''}" />
+              <video class="modal-main-video" id="modal-main-video" controls playsinline style="display:none; width:100%; height:100%; object-fit:cover; border-radius:16px;"></video>
+
               <div class="modal-media-counter">
-                <span id="modal-counter">1</span> / ${profile.profilePhotosData?.length || profile.photos || 1}
+                <span id="modal-counter">1</span> / ${(profile.profilePhotosData?.length || 0) + (profile.profileVideosData?.length || 0) || profile.photos || 1}
               </div>
-              
+
               <button class="gallery-nav-button prev" id="gallery-prev">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
               </button>
               <button class="gallery-nav-button next" id="gallery-next">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
               </button>
-              
+
               <div class="modal-thumbnails" id="modal-thumbnails">
-                ${profile.profilePhotosData && profile.profilePhotosData.length > 0 
+                ${profile.profilePhotosData && profile.profilePhotosData.length > 0
                   ? profile.profilePhotosData.map((photo, i) => `
-                    <div class="modal-thumbnail ${i === 0 ? 'active' : ''}" data-index="${i}">
+                    <div class="modal-thumbnail ${i === 0 ? 'active' : ''}" data-index="${i}" data-type="photo">
                       <img src="${photo.url || photo.base64 || photo}" alt="Foto ${i+1}" />
                     </div>
                   `).join('')
-                  : `<div class="modal-thumbnail active" data-index="0">
+                  : `<div class="modal-thumbnail active" data-index="0" data-type="photo">
                       <img src="${profile.profilePhoto || profile.avatar || defaultPlaceholder}" alt="Foto 1" />
                     </div>`
+                }
+                ${profile.profileVideosData && profile.profileVideosData.length > 0
+                  ? profile.profileVideosData.map((video, i) => `
+                    <div class="modal-thumbnail" data-index="${(profile.profilePhotosData?.length || 0) + i}" data-type="video">
+                      <div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000;border-radius:8px;">
+                        <span style="font-size:18px;">🎬</span>
+                      </div>
+                    </div>
+                  `).join('')
+                  : ''
                 }
               </div>
             </div>
@@ -1791,16 +1802,33 @@ window.refreshCarouselsWithFilter = function(filters) {
     const modal = document.getElementById('vip-modal');
     const closeBtn = document.getElementById('modal-close');
     const mainImg = document.getElementById('modal-main-img');
+    const mainVideo = document.getElementById('modal-main-video');
     const counter = document.getElementById('modal-counter');
     const thumbnails = document.querySelectorAll('.modal-thumbnail');
     const prevBtn = document.getElementById('gallery-prev');
     const nextBtn = document.getElementById('gallery-next');
-    
+
+    // Construir array combinado de media (fotos + videos)
+    const allMedia = [];
+    if (profile.profilePhotosData && profile.profilePhotosData.length > 0) {
+      profile.profilePhotosData.forEach(photo => {
+        allMedia.push({ type: 'photo', src: photo.url || photo.base64 || photo });
+      });
+    } else {
+      allMedia.push({ type: 'photo', src: profile.profilePhoto || profile.avatar || defaultPlaceholder });
+    }
+    if (profile.profileVideosData && profile.profileVideosData.length > 0) {
+      profile.profileVideosData.forEach(video => {
+        allMedia.push({ type: 'video', src: video.url || video.data });
+      });
+    }
+
     let currentIndex = 0;
-    const totalImages = profile.photos + profile.videos;
+    const totalMedia = allMedia.length;
 
     // Cerrar modal
     let closeModal = () => {
+      if (mainVideo) { mainVideo.pause(); mainVideo.src = ''; }
       modal.remove();
       document.body.style.overflow = '';
     };
@@ -1810,15 +1838,24 @@ window.refreshCarouselsWithFilter = function(filters) {
       if (e.target === modal) closeModal();
     });
 
-    // Navegación de galería
+    // Navegación de galería con soporte para fotos y videos
     const updateGallery = (index) => {
-      currentIndex = (index + totalImages) % totalImages;
-      // Usar las fotos reales del perfil
-      if (profile.profilePhotosData && profile.profilePhotosData[currentIndex]) {
-        mainImg.src = profile.profilePhotosData[currentIndex].url || profile.profilePhotosData[currentIndex].base64 || profile.profilePhotosData[currentIndex];
+      currentIndex = (index + totalMedia) % totalMedia;
+      const media = allMedia[currentIndex];
+
+      if (media.type === 'video') {
+        mainImg.style.display = 'none';
+        mainVideo.style.display = 'block';
+        mainVideo.src = media.src;
+        mainVideo.load();
+      } else {
+        mainVideo.pause();
+        mainVideo.style.display = 'none';
+        mainImg.style.display = 'block';
+        mainImg.src = media.src;
       }
+
       counter.textContent = currentIndex + 1;
-      
       thumbnails.forEach((thumb, i) => {
         thumb.classList.toggle('active', i === currentIndex);
       });
@@ -1826,7 +1863,7 @@ window.refreshCarouselsWithFilter = function(filters) {
 
     prevBtn.addEventListener('click', () => updateGallery(currentIndex - 1));
     nextBtn.addEventListener('click', () => updateGallery(currentIndex + 1));
-    
+
     thumbnails.forEach((thumb, i) => {
       thumb.addEventListener('click', () => updateGallery(i));
     });
@@ -3874,35 +3911,34 @@ window.addEventListener('DOMContentLoaded', () => {
   const profileId = urlParams.get('profile');
 
   if (profileId) {
-    // Esperar a que openVIPModal esté disponible (puede tardar por async IIFEs)
-    let attempts = 0;
-    const maxAttempts = 20;
-
-    const tryOpenProfile = async () => {
-      attempts++;
-
-      // Esperar a que openVIPModal esté disponible
-      if (typeof window.openVIPModal !== 'function') {
-        if (attempts < maxAttempts) {
-          setTimeout(tryOpenProfile, 250);
-          return;
-        }
-        console.error('openVIPModal no disponible después de esperar');
-        return;
-      }
-
-      let profile = null;
-
-      // Buscar en approvedProfiles desde AWS
+    // Iniciar la carga del perfil INMEDIATAMENTE en paralelo
+    const profilePromise = (async () => {
       const approvedProfiles = await DataService.getApprovedProfiles() || [];
-      profile = approvedProfiles.find(p => p.id === profileId);
-
-      // Buscar en publicaciones creadas aprobadas
+      let profile = approvedProfiles.find(p => p.id === profileId);
       if (!profile) {
         const publicacionesCreadas = await DataService.getProfiles() || [];
         profile = publicacionesCreadas.find(p => p.status === 'aprobado' && (p.id === profileId || p.id === parseInt(profileId)));
       }
+      return profile;
+    })();
 
+    // Esperar a que openVIPModal esté disponible en paralelo
+    const waitForModal = () => new Promise((resolve, reject) => {
+      let attempts = 0;
+      const check = () => {
+        if (typeof window.openVIPModal === 'function') {
+          resolve();
+        } else if (++attempts >= 40) {
+          reject(new Error('openVIPModal no disponible'));
+        } else {
+          setTimeout(check, 100);
+        }
+      };
+      check();
+    });
+
+    // Ejecutar ambos en paralelo y abrir modal cuando ambos estén listos
+    Promise.all([profilePromise, waitForModal()]).then(([profile]) => {
       if (profile) {
         if (typeof window.incrementViews === 'function') {
           window.incrementViews(profileId);
@@ -3911,9 +3947,9 @@ window.addEventListener('DOMContentLoaded', () => {
       } else {
         alert('El perfil que buscas no está disponible o ha sido eliminado.');
       }
-    };
-
-    setTimeout(tryOpenProfile, 300);
+    }).catch(err => {
+      console.error('Error abriendo perfil compartido:', err);
+    });
   }
 });
 

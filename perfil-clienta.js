@@ -861,7 +861,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    showToast('Subiendo instante...');
+    showUploadOverlay('Subiendo instante...');
 
     try {
       const restrictions = await getPlanRestrictions();
@@ -903,6 +903,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast(`¡Instante publicado! (${newCounter.count}/${restrictions.instantes} hoy, dura ${restrictions.instantesDuracion}h) - Restantes: ${remaining}`);
     } catch (err) {
       showToast('Error al publicar instante.');
+    } finally {
+      hideUploadOverlay();
     }
   });
 
@@ -1493,7 +1495,68 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast(`Solo se pueden subir ${remaining} foto(s) más según tu plan.`);
     }
 
-    // Subir fotos a S3 y guardar URLs
+    // Función para aplicar marca de agua a una imagen antes de subir
+    function applyWatermarkToFile(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+
+          const w = canvas.width;
+          const h = canvas.height;
+
+          // Marca de agua diagonal repetitiva
+          ctx.save();
+          ctx.globalAlpha = 0.18;
+          ctx.font = `bold ${Math.max(20, Math.round(w / 22))}px "Playfair Display", serif`;
+          ctx.fillStyle = '#FFFFFF';
+          ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+          ctx.lineWidth = 1;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.shadowColor = 'rgba(0,0,0,0.4)';
+          ctx.shadowBlur = 3;
+          ctx.translate(w / 2, h / 2);
+          ctx.rotate(-Math.PI / 6);
+          const spacing = Math.max(80, Math.round(w / 6));
+          for (let y = -h; y < h * 2; y += spacing) {
+            for (let x = -w; x < w * 2; x += spacing * 1.8) {
+              ctx.fillText('SalaOscura', x, y);
+              ctx.strokeText('SalaOscura', x, y);
+            }
+          }
+          ctx.restore();
+
+          // Marca de agua esquina inferior derecha
+          ctx.save();
+          ctx.globalAlpha = 0.35;
+          ctx.font = `italic ${Math.max(14, Math.round(w / 35))}px "Playfair Display", serif`;
+          ctx.fillStyle = '#D4AF37';
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'bottom';
+          ctx.shadowColor = 'rgba(0,0,0,0.7)';
+          ctx.shadowBlur = 6;
+          ctx.shadowOffsetX = 2;
+          ctx.shadowOffsetY = 2;
+          ctx.fillText('SalaOscura', w - 15, h - 15);
+          ctx.restore();
+
+          canvas.toBlob(blob => {
+            if (blob) resolve(blob);
+            else reject(new Error('Error generando imagen con marca de agua'));
+          }, 'image/jpeg', 0.92);
+        };
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
+    // Subir fotos a S3 con marca de agua
+    showUploadOverlay(`Subiendo ${filesToProcess.length} foto(s)...`);
     let uploaded = 0;
     for (const file of filesToProcess) {
       if (file.size > 15 * 1024 * 1024) {
@@ -1504,17 +1567,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         const photoId = Date.now().toString() + Math.random().toString(36).slice(2, 6);
 
-        // 1. Obtener URL pre-firmada de S3
+        // 1. Aplicar marca de agua a la imagen
+        const watermarkedBlob = await applyWatermarkToFile(file);
+
+        // 2. Obtener URL pre-firmada de S3
         const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
           currentUser.id,
           `${photoId}.jpg`,
-          file.type || 'image/jpeg'
+          'image/jpeg'
         );
 
-        // 2. Subir archivo directamente a S3
-        await DataService.uploadFileToS3(uploadUrl, file, file.type || 'image/jpeg');
+        // 3. Subir imagen con marca de agua a S3
+        await DataService.uploadFileToS3(uploadUrl, watermarkedBlob, 'image/jpeg');
 
-        // 3. Guardar referencia (URL, no base64) en localStorage
+        // 4. Guardar referencia (URL, no base64) en localStorage
         userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
         userPhotos.push({
           id: photoId,
@@ -1524,7 +1590,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
 
-        // 4. Mostrar en el grid
+        // 5. Mostrar en el grid
         await addPhotoToGrid(publicUrl, photoId, true);
         uploaded++;
       } catch (err) {
@@ -1532,6 +1598,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
+    hideUploadOverlay();
     await loadMediaLimits();
     if (uploaded > 0) {
       showToast(`${uploaded} foto(s) subida(s)`);
@@ -1567,7 +1634,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    showToast('Subiendo video...');
+    showUploadOverlay('Subiendo video...');
 
     try {
       const videoId = Date.now().toString();
@@ -1587,8 +1654,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       addVideoToGrid(publicUrl, videoId, true);
       await loadMediaLimits();
       showToast('¡Video subido!');
+      // Sincronizar videos al perfil público
+      syncPhotoToProfiles().catch(() => {});
     } catch (err) {
       showToast('Error al subir el video.');
+    } finally {
+      hideUploadOverlay();
     }
 
     videoUpload.value = '';
@@ -1877,52 +1948,82 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   saveEditorBtn?.addEventListener('click', async () => {
     if (!editorCanvas) return;
-    
+
     // Asegurar que la marca de agua esté aplicada
     if (!previewWatermarkCheckbox?.checked) {
       drawWatermark();
     }
-    
-    // Obtener imagen final
-    const finalImageData = editorCanvas.toDataURL('image/jpeg', 0.9);
-    
-    const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
-    
-    // Si estamos editando una foto existente
-    if (currentEditingPhotoId) {
-      const existingPhotoIndex = userPhotos.findIndex(p => p.id === currentEditingPhotoId);
-      if (existingPhotoIndex !== -1) {
-        // Actualizar foto existente
-        userPhotos[existingPhotoIndex].data = finalImageData;
-        userPhotos[existingPhotoIndex].editedAt = new Date().toISOString();
-        localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
-        
-        // Actualizar imagen en el grid
-        const photoSlot = document.querySelector(`.photo-slot[data-id="${currentEditingPhotoId}"]`);
-        if (photoSlot) {
-          photoSlot.querySelector('img').src = finalImageData;
+
+    // Mostrar indicador de carga
+    showUploadOverlay('Guardando imagen...');
+
+    try {
+      // Convertir canvas a blob para subir a S3
+      const blob = await new Promise(resolve => editorCanvas.toBlob(resolve, 'image/jpeg', 0.92));
+
+      const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
+
+      // Si estamos editando una foto existente
+      if (currentEditingPhotoId) {
+        const existingPhotoIndex = userPhotos.findIndex(p => p.id === currentEditingPhotoId);
+        if (existingPhotoIndex !== -1) {
+          // Eliminar versión anterior de S3
+          if (userPhotos[existingPhotoIndex].key) {
+            DataService.deleteMedia(userPhotos[existingPhotoIndex].key).catch(() => {});
+          }
+
+          // Subir nueva versión a S3
+          const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
+            currentUser.id, `${currentEditingPhotoId}.jpg`, 'image/jpeg'
+          );
+          await DataService.uploadFileToS3(uploadUrl, blob, 'image/jpeg');
+
+          // Actualizar referencia
+          userPhotos[existingPhotoIndex].url = publicUrl;
+          userPhotos[existingPhotoIndex].key = key;
+          userPhotos[existingPhotoIndex].editedAt = new Date().toISOString();
+          delete userPhotos[existingPhotoIndex].data; // Eliminar base64 legacy
+          localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
+
+          // Actualizar imagen en el grid
+          const photoSlot = document.querySelector(`.photo-slot[data-id="${currentEditingPhotoId}"]`);
+          if (photoSlot) {
+            photoSlot.querySelector('img').src = publicUrl;
+          }
+
+          // Sincronizar cambios
+          await syncPhotoToProfiles();
+
+          showToast('¡Foto actualizada con éxito!');
         }
-        
-        // Sincronizar cambios
-        await syncPhotoToProfiles();
-        
-        showToast('¡Foto actualizada con éxito!');
+      } else {
+        // Guardar como foto nueva
+        const photoId = Date.now().toString();
+
+        // Subir a S3
+        const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
+          currentUser.id, `${photoId}.jpg`, 'image/jpeg'
+        );
+        await DataService.uploadFileToS3(uploadUrl, blob, 'image/jpeg');
+
+        userPhotos.push({ id: photoId, url: publicUrl, key, createdAt: new Date().toISOString() });
+        localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
+
+        // Añadir al grid
+        await addPhotoToGrid(publicUrl, photoId, true);
+
+        // Actualizar límites
+        await loadMediaLimits();
+
+        showToast('¡Foto guardada con marca de agua!');
       }
-    } else {
-      // Guardar como foto nueva
-      const photoId = Date.now().toString();
-      userPhotos.push({ id: photoId, data: finalImageData, createdAt: new Date().toISOString() });
-      localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
-      
-      // Añadir al grid
-      await addPhotoToGrid(finalImageData, photoId, true);
-      
-      // Actualizar límites
-      await loadMediaLimits();
-      
-      showToast('¡Foto guardada con marca de agua!');
+    } catch (err) {
+      console.error('Error guardando foto editada:', err);
+      showToast('Error al guardar la foto.');
+    } finally {
+      hideUploadOverlay();
     }
-    
+
     // Cerrar modal
     modalEditor.style.display = 'none';
     currentEditingImage = null;
@@ -2044,12 +2145,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function syncPhotoToProfiles() {
     const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
+    const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
 
     // Construir array de fotos con URLs de S3 (no base64)
     const photosData = userPhotos.slice(0, 15).map(photo => ({
       url: photo.url || photo.data, // URL de S3 o base64 legacy
       key: photo.key || null,
       name: `photo_${photo.id}`
+    }));
+
+    // Construir array de videos con URLs de S3
+    const videosData = userVideos.slice(0, 10).map(video => ({
+      url: video.url || video.data,
+      key: video.key || null,
+      name: `video_${video.id}`
     }));
 
     // Actualizar SOLO el perfil del carrusel
@@ -2059,10 +2168,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (existingProfile) {
         existingProfile.profilePhotosData = photosData;
         existingProfile.photos = userPhotos.length;
+        existingProfile.profileVideosData = videosData;
+        existingProfile.videos = userVideos.length;
         await DataService.updateProfile(profileId, existingProfile);
       }
     } catch (err) {
-      console.error('Error sincronizando fotos:', err.message);
+      console.error('Error sincronizando media:', err.message);
     }
   }
 
@@ -2228,6 +2339,35 @@ document.addEventListener('DOMContentLoaded', async () => {
       toast.style.animation = 'toastOut 300ms ease forwards';
       setTimeout(() => toast.remove(), 300);
     }, 2500);
+  }
+
+  // ========== OVERLAY DE CARGA PARA UPLOADS ==========
+  function showUploadOverlay(message = 'Subiendo...') {
+    let overlay = document.getElementById('upload-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'upload-overlay';
+      overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7); display: flex; flex-direction: column;
+        align-items: center; justify-content: center; z-index: 99999;
+      `;
+      overlay.innerHTML = `
+        <div style="width:50px;height:50px;border:4px solid rgba(212,175,55,0.3);border-top:4px solid #D4AF37;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+        <p id="upload-overlay-text" style="color:#D4AF37;font-size:16px;font-weight:600;margin-top:16px;font-family:'Playfair Display',serif;"></p>
+      `;
+      const style = document.createElement('style');
+      style.textContent = '@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}';
+      overlay.appendChild(style);
+      document.body.appendChild(overlay);
+    }
+    overlay.querySelector('#upload-overlay-text').textContent = message;
+    overlay.style.display = 'flex';
+  }
+
+  function hideUploadOverlay() {
+    const overlay = document.getElementById('upload-overlay');
+    if (overlay) overlay.style.display = 'none';
   }
 
   // ========== MODAL RENOVAR PLAN ==========

@@ -338,7 +338,7 @@ if (typeof DataService === 'undefined') {
   },
   
   async getPlansConfig() {
-    return await this.getConfig('plans') || {};
+    return await this.getConfig('plansConfig') || {};
   },
   
   async getEmailConfig() {
