@@ -457,21 +457,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       usernameDisplay.textContent = user.username ? `@${user.username}` : '@usuario';
     }
     
-    // Avatar - usar primera foto de perfil si existe
+    // Avatar - priorizar fotos locales (más rápido), luego S3, luego AWS
     const avatar = document.getElementById('user-avatar');
     if (avatar) {
-      // Buscar fotos de perfil del registro desde AWS
-      const pendingRegistros = await DataService.getPendingRegistros() || [];
-      const approvedUsers = await DataService.getApprovedUsers() || [];
-      let userData = approvedUsers.find(u => u.id === user.id || u.email === user.email);
-      if (!userData) userData = pendingRegistros.find(r => r.id === user.id || r.email === user.email);
-      
-      if (userData?.profilePhotosData?.[0]?.base64) {
-        avatar.src = userData.profilePhotosData[0].base64;
-      } else if (user.avatar && !user.avatar.includes('unsplash')) {
+      const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiMxYTFhMmUiLz48Y2lyY2xlIGN4PSIxMDAiIGN5PSI3NSIgcj0iMzAiIGZpbGw9IiMzMzMzNGQiLz48cGF0aCBkPSJNNTAgMTc1QzUwIDE0MCA3MCAxMTUgMTAwIDExNUMxMzAgMTE1IDE1MCAxNDAgMTUwIDE3NSIgZmlsbD0iIzMzMzM0ZCIvPjwvc3ZnPg==';
+
+      // 1. Intentar desde localStorage (más rápido - sin API call)
+      const localPhotos = JSON.parse(localStorage.getItem(`photos_${user.id}`) || '[]');
+      const firstLocalPhoto = localPhotos[0];
+
+      if (firstLocalPhoto?.url) {
+        avatar.src = firstLocalPhoto.url;
+      } else if (firstLocalPhoto?.data) {
+        avatar.src = firstLocalPhoto.data;
+      } else if (user.avatar && !user.avatar.includes('unsplash') && user.avatar !== 'null') {
         avatar.src = user.avatar;
       } else {
-        avatar.src = 'https://via.placeholder.com/200x200?text=' + (user.displayName?.charAt(0) || 'U');
+        avatar.src = defaultAvatar;
+        // Cargar desde perfil aprobado en background
+        DataService.getProfileById(`profile-${user.id}`).then(profile => {
+          if (profile?.profilePhotosData?.[0]) {
+            const photoSrc = profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64;
+            if (photoSrc) avatar.src = photoSrc;
+          }
+        }).catch(() => {});
       }
     }
     
@@ -869,11 +878,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       const instanteId = Date.now().toString();
       const ext = selectedInstanteFile.name.split('.').pop() || 'jpg';
 
-      // Subir archivo a S3 en carpeta instantes
+      // Aplicar marca de agua si es imagen, luego subir a S3
+      const isImage = selectedInstanteFile.type?.startsWith('image/');
+      const fileToUpload = isImage ? await applyWatermarkToFile(selectedInstanteFile) : selectedInstanteFile;
+      const uploadType = isImage ? 'image/jpeg' : (selectedInstanteFile.type || 'video/mp4');
+      const uploadExt = isImage ? 'jpg' : ext;
+
       const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
-        currentUser.id, `${instanteId}.${ext}`, selectedInstanteFile.type || 'image/jpeg', 'instantes'
+        currentUser.id, `${instanteId}.${uploadExt}`, uploadType, 'instantes'
       );
-      await DataService.uploadFileToS3(uploadUrl, selectedInstanteFile, selectedInstanteFile.type || 'image/jpeg');
+      await DataService.uploadFileToS3(uploadUrl, fileToUpload, uploadType);
+
+      // Obtener avatar actual del usuario (S3 URL preferida)
+      const localPhotosForAvatar = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
+      const currentAvatar = localPhotosForAvatar[0]?.url || currentUser.avatar || null;
 
       // Guardar instante en DynamoDB con URL de S3 (no base64)
       await DataService.addStory({
@@ -884,11 +902,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         createdAt: new Date().toISOString(),
         userId: currentUser.id,
         duration: restrictions.instantesDuracion,
-        type: 'instante',
+        type: isImage ? 'image' : 'video',
         userName: currentUser.displayName,
-        userAvatar: currentUser.avatar,
+        userAvatar: currentAvatar,
         whatsapp: currentUser.whatsapp,
-        userBadge: currentUser.profileType || 'premium'
+        userBadge: currentUser.profileType || currentUser.selectedPlan || 'premium'
       });
 
       const newCounter = incrementDailyCounter('instantes');
@@ -1033,13 +1051,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast(`Duración limitada a ${restrictions.estadosDuracion}h por tu plan ${restrictions.planName}`);
     }
     
+    // Obtener avatar actual (S3 URL preferida)
+    const estadoLocalPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
+    const estadoAvatar = estadoLocalPhotos[0]?.url || currentUser.avatar || null;
+
     // Guardar estado en AWS
     await DataService.addStory({
       ...estado,
       type: 'estado',
       userId: currentUser.id,
       userName: currentUser.displayName,
-      userAvatar: currentUser.avatar || currentUser.profilePhotosData?.[0]?.data,
+      userAvatar: estadoAvatar,
       whatsapp: currentUser.whatsapp,
       city: currentUser.city,
       commune: currentUser.commune,
@@ -1403,28 +1425,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     let userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
     const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
 
-    // Si no hay fotos en localStorage, intentar cargar desde profilePhotosData (registro inicial)
-    if (userPhotos.length === 0 && currentUser.profilePhotosData && currentUser.profilePhotosData.length > 0) {
-      const uniquePhotos = [];
-      const seen = new Set();
-      currentUser.profilePhotosData.forEach((photo, index) => {
-        // Soportar tanto URLs de S3 como base64 legacy
-        const src = photo.url || photo.base64;
-        const photoKey = photo.key || photo.url || photo.base64?.substring(0, 100);
-        if (src && !seen.has(photoKey)) {
-          seen.add(photoKey);
-          uniquePhotos.push({
-            id: `verification_photo_${index}_${Date.now()}`,
-            url: photo.url || null,
-            key: photo.key || null,
-            data: photo.base64 || null, // legacy base64
-            createdAt: new Date().toISOString(),
-            isVerificationPhoto: true
-          });
-        }
-      });
-      userPhotos = uniquePhotos;
-      localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
+    // Si no hay fotos en localStorage, cargar desde perfil aprobado o registro inicial
+    if (userPhotos.length === 0) {
+      let photosSource = currentUser.profilePhotosData || [];
+
+      // Si currentUser no tiene fotos, intentar desde el perfil aprobado en AWS
+      if (photosSource.length === 0) {
+        try {
+          const profileData = await DataService.getProfileById(`profile-${currentUser.id}`);
+          if (profileData?.profilePhotosData?.length > 0) {
+            photosSource = profileData.profilePhotosData;
+          }
+        } catch (e) { /* ignore */ }
+      }
+
+      if (photosSource.length > 0) {
+        const uniquePhotos = [];
+        const seen = new Set();
+        photosSource.forEach((photo, index) => {
+          // Soportar tanto URLs de S3 como base64 legacy
+          const src = photo.url || photo.base64;
+          // Usar index como parte del key para evitar deduplicación incorrecta
+          const photoKey = photo.key || photo.url || `photo_${index}_${photo.base64?.substring(0, 50)}`;
+          if (src && !seen.has(photoKey)) {
+            seen.add(photoKey);
+            uniquePhotos.push({
+              id: `verification_photo_${index}_${Date.now() + index}`,
+              url: photo.url || null,
+              key: photo.key || null,
+              data: photo.base64 || null,
+              createdAt: new Date().toISOString(),
+              isVerificationPhoto: true
+            });
+          }
+        });
+        userPhotos = uniquePhotos;
+        localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
+      }
     }
 
     // Cargar fotos (usar URL de S3 si existe, sino base64 legacy)
@@ -1441,6 +1478,66 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (src) {
         addVideoToGrid(src, video.id, false);
       }
+    });
+  }
+
+  // Función compartida para aplicar marca de agua a una imagen antes de subir
+  function applyWatermarkToFile(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // Marca de agua diagonal repetitiva
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        ctx.font = `bold ${Math.max(20, Math.round(w / 22))}px "Playfair Display", serif`;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.lineWidth = 1;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0,0,0,0.4)';
+        ctx.shadowBlur = 3;
+        ctx.translate(w / 2, h / 2);
+        ctx.rotate(-Math.PI / 6);
+        const spacing = Math.max(80, Math.round(w / 6));
+        for (let y = -h; y < h * 2; y += spacing) {
+          for (let x = -w; x < w * 2; x += spacing * 1.8) {
+            ctx.fillText('SalaOscura', x, y);
+            ctx.strokeText('SalaOscura', x, y);
+          }
+        }
+        ctx.restore();
+
+        // Marca de agua esquina inferior derecha
+        ctx.save();
+        ctx.globalAlpha = 0.35;
+        ctx.font = `italic ${Math.max(14, Math.round(w / 35))}px "Playfair Display", serif`;
+        ctx.fillStyle = '#D4AF37';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        ctx.shadowColor = 'rgba(0,0,0,0.7)';
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+        ctx.fillText('SalaOscura', w - 15, h - 15);
+        ctx.restore();
+
+        canvas.toBlob(blob => {
+          if (blob) resolve(blob);
+          else reject(new Error('Error generando imagen con marca de agua'));
+        }, 'image/jpeg', 0.92);
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
     });
   }
 
@@ -1493,66 +1590,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const filesToProcess = files.slice(0, remaining);
     if (files.length > remaining) {
       showToast(`Solo se pueden subir ${remaining} foto(s) más según tu plan.`);
-    }
-
-    // Función para aplicar marca de agua a una imagen antes de subir
-    function applyWatermarkToFile(file) {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0);
-
-          const w = canvas.width;
-          const h = canvas.height;
-
-          // Marca de agua diagonal repetitiva
-          ctx.save();
-          ctx.globalAlpha = 0.18;
-          ctx.font = `bold ${Math.max(20, Math.round(w / 22))}px "Playfair Display", serif`;
-          ctx.fillStyle = '#FFFFFF';
-          ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-          ctx.lineWidth = 1;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.shadowColor = 'rgba(0,0,0,0.4)';
-          ctx.shadowBlur = 3;
-          ctx.translate(w / 2, h / 2);
-          ctx.rotate(-Math.PI / 6);
-          const spacing = Math.max(80, Math.round(w / 6));
-          for (let y = -h; y < h * 2; y += spacing) {
-            for (let x = -w; x < w * 2; x += spacing * 1.8) {
-              ctx.fillText('SalaOscura', x, y);
-              ctx.strokeText('SalaOscura', x, y);
-            }
-          }
-          ctx.restore();
-
-          // Marca de agua esquina inferior derecha
-          ctx.save();
-          ctx.globalAlpha = 0.35;
-          ctx.font = `italic ${Math.max(14, Math.round(w / 35))}px "Playfair Display", serif`;
-          ctx.fillStyle = '#D4AF37';
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'bottom';
-          ctx.shadowColor = 'rgba(0,0,0,0.7)';
-          ctx.shadowBlur = 6;
-          ctx.shadowOffsetX = 2;
-          ctx.shadowOffsetY = 2;
-          ctx.fillText('SalaOscura', w - 15, h - 15);
-          ctx.restore();
-
-          canvas.toBlob(blob => {
-            if (blob) resolve(blob);
-            else reject(new Error('Error generando imagen con marca de agua'));
-          }, 'image/jpeg', 0.92);
-        };
-        img.onerror = reject;
-        img.src = URL.createObjectURL(file);
-      });
     }
 
     // Subir fotos a S3 con marca de agua

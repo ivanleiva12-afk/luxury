@@ -742,7 +742,10 @@ const isInPromotion = (profile) => {
 
 // Obtiene los profileTypes incluyendo 'en-promocion' si corresponde
 const getProfileTypesWithPromotion = (profile) => {
-  let types = profile.profileTypes || [profile.profileType] || [profile.selectedPlan] || ['premium'];
+  let types = (profile.profileTypes && profile.profileTypes.length > 0)
+    ? profile.profileTypes
+    : (profile.profileType ? [profile.profileType] : (profile.selectedPlan ? [profile.selectedPlan] : ['premium']));
+  types = types.filter(t => t != null);
   
   // Si está en promoción, agregar badge
   if (isInPromotion(profile)) {
@@ -1270,21 +1273,20 @@ window.refreshCarouselsWithFilter = function(filters) {
   let autoplayInterval = null;
   const AUTOPLAY_DELAY = 5000; // 5 segundos
 
-  // Función para cargar perfiles aprobados del admin para Luxury & Exclusive
+  // Función para cargar todos los perfiles aprobados del admin
   const loadApprovedLuxuryProfiles = async () => {
     const approvedProfiles = await DataService.getApprovedProfiles() || [];
     const today = new Date().toISOString().split('T')[0];
-    // Solo mostrar perfiles que estén visibles, activos y con plan válido (no vencido)
+    // Mostrar todos los perfiles aprobados que estén visibles, activos y con plan válido
     return approvedProfiles.filter(profile => {
       const isVisible = profile.profileVisible === true;
       const isActive = profile.isActive !== false; // Por defecto activo si no existe la propiedad
-      const isLuxury = profile.carouselType === 'luxury';
       const planNotExpired = !profile.planExpiry || profile.planExpiry >= today;
-      
+
       // Aplicar filtros globales
       const passesFilter = window.profilePassesFilter ? window.profilePassesFilter(profile, window.currentGlobalFilters) : true;
-      
-      return isVisible && isActive && isLuxury && planNotExpired && passesFilter;
+
+      return isVisible && isActive && planNotExpired && passesFilter;
     });
   };
 
@@ -1369,8 +1371,9 @@ window.refreshCarouselsWithFilter = function(filters) {
         recommendations: car.stats?.recommendations || 0,
         experiences: car.stats?.experiences || 0
       },
-      // Guardar datos originales para fotos
+      // Guardar datos originales para fotos y videos
       profilePhotosData: car.profilePhotosData || [],
+      profileVideosData: car.profileVideosData || [],
       profilePhoto: car.profilePhoto || car.avatar || null
     };
     
@@ -1392,8 +1395,9 @@ window.refreshCarouselsWithFilter = function(filters) {
       return badges[type] || badges['vip'];
     };
     
-    // Filtrar tipos de perfil válidos y eliminar "nuevo" si han pasado más de 7 días
-    const validProfileTypes = profile.profileTypes.filter(type => {
+    // Filtrar tipos de perfil válidos - eliminar undefined/null y "nuevo" si pasaron 7 días
+    const validProfileTypes = (profile.profileTypes || []).filter(type => {
+      if (!type) return false;
       if (type === 'nuevo' && car.createdAt) {
         const daysPassed = (Date.now() - car.createdAt) / (1000 * 60 * 60 * 24);
         return daysPassed <= 7;
@@ -1995,7 +1999,7 @@ window.refreshCarouselsWithFilter = function(filters) {
                 </div>
               </div>
               
-              <div class="vip-price">$${car.price.CLP.toLocaleString('es-CL')} <span class="price-duration">1h</span></div>
+              ${car.price?.CLP ? `<div class="vip-price">$${car.price.CLP.toLocaleString('es-CL')} <span class="price-duration">1h</span></div>` : ''}
             </div>
           </div>
         </div>
@@ -2379,7 +2383,7 @@ window.refreshCarouselsWithFilter = function(filters) {
     info.className = 'experiencias-info';
     const price = document.createElement('div');
     price.className = 'experiencias-price';
-    price.textContent = formatPrice(car.price.CLP);
+    price.textContent = car.price?.CLP ? formatPrice(car.price.CLP) : '';
 
     info.appendChild(price);
     div.appendChild(img);
@@ -2399,7 +2403,7 @@ window.refreshCarouselsWithFilter = function(filters) {
       const car = visibleCars[i];
       if (!car) return;
       const priceEl = card.querySelector('.experiencias-price');
-      if (priceEl) priceEl.textContent = formatPrice(car.price.CLP);
+      if (priceEl && car.price?.CLP) priceEl.textContent = formatPrice(car.price.CLP);
     });
   };
 
@@ -2542,18 +2546,28 @@ function createSkeletonCard() {
       return hoursAgo < 24; // Los instantes duran 24 horas
     });
     
+    // Cargar perfiles aprobados una sola vez para resolver avatares
+    const approvedProfiles = await DataService.getApprovedProfiles() || [];
+
     // Agrupar por usuario
     const userInstantesMap = {};
-    activeInstantes.forEach(instante => {
+    for (const instante of activeInstantes) {
       if (!userInstantesMap[instante.userId]) {
+        // Obtener avatar real del perfil aprobado si el instante no lo tiene
+        let avatarSrc = instante.userAvatar || null;
+        if (!avatarSrc || avatarSrc === 'null') {
+          const userProfile = approvedProfiles.find(p => p.id === `profile-${instante.userId}` || p.odooId === instante.userId);
+          if (userProfile) {
+            avatarSrc = userProfile.profilePhotosData?.[0]?.url || userProfile.profilePhoto || userProfile.avatar || null;
+          }
+        }
         userInstantesMap[instante.userId] = {
           id: `clienta-${instante.userId}`,
           name: instante.userName,
-          avatar: instante.userAvatar || null,
+          avatar: avatarSrc,
           whatsapp: instante.whatsapp || '',
           badge: instante.userBadge || 'premium',
           stories: [],
-          // Guardar el timestamp de la historia más reciente para detectar contenido nuevo
           latestStoryTime: instante.createdAt
         };
       }
@@ -2561,18 +2575,23 @@ function createSkeletonCard() {
       if (instante.createdAt > userInstantesMap[instante.userId].latestStoryTime) {
         userInstantesMap[instante.userId].latestStoryTime = instante.createdAt;
       }
-      
+
       // Duración: 5 segundos para imágenes, 15 segundos máximo para videos
       const duration = (instante.type === 'video') ? 15000 : 5000;
-      
+
+      // Determinar tipo real del contenido (instante.type puede ser 'instante', mapear a 'image')
+      const mediaType = (instante.type === 'video') ? 'video' : 'image';
+      // La URL puede estar en .image, .media, o .src
+      const mediaSrc = instante.image || instante.media || instante.src || null;
+
       userInstantesMap[instante.userId].stories.push({
-        type: instante.type || 'image',
-        src: instante.media,
+        type: mediaType,
+        src: mediaSrc,
         duration: duration,
         caption: instante.caption,
-        createdAt: instante.createdAt // Guardar timestamp de cada historia
+        createdAt: instante.createdAt
       });
-    });
+    }
     
     return Object.values(userInstantesMap);
   }
@@ -2722,17 +2741,24 @@ function createSkeletonCard() {
 
     // Actualizar info del usuario
     document.getElementById('stories-user-name').textContent = user.name;
-    document.getElementById('stories-user-avatar').src = user.avatar;
-    document.getElementById('stories-user-time').textContent = 'Hace 2h';
+    const avatarEl = document.getElementById('stories-user-avatar');
+    const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiMxYTFhMmUiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjYwIiBmaWxsPSIjMzMzMzRkIi8+PHBhdGggZD0iTTEwMCAzNTBDMTAwIDI4MCAxNDAgMjMwIDIwMCAyMzBDMjYwIDIzMCAzMDAgMjgwIDMwMCAzNTAiIGZpbGw9IiMzMzMzNGQiLz48L3N2Zz4=';
+    avatarEl.src = user.avatar || defaultAvatar;
+
+    // Calcular tiempo transcurrido
+    const storyDate = new Date(story.createdAt);
+    const hoursAgo = Math.floor((Date.now() - storyDate) / (1000 * 60 * 60));
+    const timeText = hoursAgo < 1 ? 'Hace menos de 1h' : `Hace ${hoursAgo}h`;
+    document.getElementById('stories-user-time').textContent = timeText;
 
     // Renderizar contenido
     contentDiv.innerHTML = '';
-    if (story.type === 'image') {
+    if (story.src && story.type === 'image') {
       const img = document.createElement('img');
       img.src = story.src;
       img.alt = 'Story';
       contentDiv.appendChild(img);
-    } else if (story.type === 'video') {
+    } else if (story.src && story.type === 'video') {
       const video = document.createElement('video');
       video.src = story.src;
       video.autoplay = true;
@@ -2740,6 +2766,8 @@ function createSkeletonCard() {
       video.controls = false;
       video.loop = false;
       contentDiv.appendChild(video);
+    } else {
+      contentDiv.innerHTML = '<p style="color:#999;text-align:center;padding:40px;">Contenido no disponible</p>';
     }
 
     // Actualizar barra de progreso
@@ -4046,10 +4074,16 @@ window.addEventListener('DOMContentLoaded', () => {
         
         if (profile) {
           console.log('✅ Perfil encontrado:', profile.displayName);
-          
-          // Asegurar que el perfil tenga toda la información
+
+          // Asegurar que el perfil tenga toda la información necesaria para el modal
           profile.stats = profile.stats || { likes: 0, views: 0, recommendations: 0, experiences: 0, rating: 5.0 };
-          
+          profile.profileTypes = profile.profileTypes || (profile.profileType ? [profile.profileType] : (profile.selectedPlan ? [profile.selectedPlan] : ['premium']));
+          profile.price = profile.price || { CLP: 0 };
+          profile.photos = profile.photos || profile.profilePhotosData?.length || 0;
+          profile.videos = profile.videos || profile.profileVideosData?.length || 0;
+          profile.physicalInfo = profile.physicalInfo || {};
+          profile.services = profile.services || [];
+
           if (typeof window.openVIPModal === 'function') {
             window.openVIPModal(profile);
           }
