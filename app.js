@@ -2719,14 +2719,41 @@ function createSkeletonCard() {
       img.src = story.src;
       img.alt = 'Story';
       contentDiv.appendChild(img);
+      // Marca de agua CSS para imágenes
+      const wmOverlay = document.createElement('div');
+      wmOverlay.className = 'story-watermark-overlay';
+      wmOverlay.innerHTML = '<span>SalaOscura</span>';
+      contentDiv.appendChild(wmOverlay);
     } else if (story.src && story.type === 'video') {
       const video = document.createElement('video');
       video.src = story.src;
       video.autoplay = true;
-      video.muted = true;
+      video.muted = false;
       video.controls = false;
       video.loop = false;
+      video.playsInline = true;
+      video.setAttribute('playsinline', '');
       contentDiv.appendChild(video);
+      // Fallback: si autoplay con audio falla, intentar muted
+      video.play().catch(() => {
+        video.muted = true;
+        video.play().catch(() => {});
+      });
+      // Marca de agua CSS para videos
+      const wmOverlay = document.createElement('div');
+      wmOverlay.className = 'story-watermark-overlay';
+      wmOverlay.innerHTML = '<span>SalaOscura</span>';
+      contentDiv.appendChild(wmOverlay);
+      // Botón de sonido
+      const soundBtn = document.createElement('button');
+      soundBtn.className = 'story-sound-toggle';
+      soundBtn.innerHTML = video.muted ? '🔇' : '🔊';
+      soundBtn.onclick = (e) => {
+        e.stopPropagation();
+        video.muted = !video.muted;
+        soundBtn.innerHTML = video.muted ? '🔇' : '🔊';
+      };
+      contentDiv.appendChild(soundBtn);
     } else {
       contentDiv.innerHTML = '<p style="color:#999;text-align:center;padding:40px;">Contenido no disponible</p>';
     }

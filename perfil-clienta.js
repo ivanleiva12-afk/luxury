@@ -736,9 +736,17 @@ document.addEventListener('DOMContentLoaded', async () => {
           const createdDate = new Date(instante.createdAt);
           const hoursAgo = Math.max(1, Math.floor((now - createdDate) / (1000 * 60 * 60)));
           const timeText = hoursAgo < 24 ? `Hace ${hoursAgo}h` : 'Hace 24h+';
+          const isVideo = instante.mediaType === 'video';
+          const mediaSrc = instante.image || instante.media || instante.src || '';
+          const mediaHTML = isVideo
+            ? `<video src="${mediaSrc}" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onloadeddata="this.currentTime=0.5"></video>
+               <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;background:rgba(0,0,0,0.6);border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+                 <span style="color:white;font-size:16px;margin-left:2px;">▶</span>
+               </div>`
+            : `<img src="${mediaSrc}" alt="Instante" />`;
           return `
-            <div class="instante-card" data-id="${instante.id}">
-              <img src="${instante.image}" alt="Instante" />
+            <div class="instante-card" data-id="${instante.id}" style="position:relative;">
+              ${mediaHTML}
               <div class="instante-overlay">
                 <span class="instante-caption">${instante.caption || ''}</span>
                 <span class="instante-time">${timeText}</span>
@@ -1201,41 +1209,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentUser.priceHour = document.getElementById('price-1h').value;
     currentUser.priceTwoHours = document.getElementById('price-2h').value;
     currentUser.priceOvernight = document.getElementById('price-night').value;
-    
+
     await DataService.setCurrentUser(currentUser);
-    
-    // Actualizar en approvedUsers
-    const approvedUsers = await DataService.getApprovedUsers() || [];
-    const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
+    showToast('¡Tarifas actualizadas!');
+
+    // Actualizar en AWS en paralelo (background)
+    const [approvedUsers, approvedProfiles] = await Promise.all([
+      DataService.getApprovedUsers(),
+      DataService.getApprovedProfiles()
+    ]);
+
+    const savePromises = [];
+    const userIndex = (approvedUsers || []).findIndex(u => u.id === currentUser.id);
     if (userIndex !== -1) {
       approvedUsers[userIndex] = { ...approvedUsers[userIndex], ...currentUser };
-      await DataService.saveApprovedUsers(approvedUsers);
+      savePromises.push(DataService.saveApprovedUsers(approvedUsers));
     }
-    
-    // Actualizar perfil en carrusel
-    const approvedProfiles = await DataService.getApprovedProfiles() || [];
-    const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
+
+    const profileIndex = (approvedProfiles || []).findIndex(p => p.id === `profile-${currentUser.id}`);
     if (profileIndex !== -1) {
       const priceHourCLP = parseInt(currentUser.priceHour) || 150000;
       const priceTwoHoursCLP = parseInt(currentUser.priceTwoHours) || 0;
       const priceOvernightCLP = parseInt(currentUser.priceOvernight) || 0;
-      
-      // Actualizar price (usado por tarjetas VIP/Premium)
+
       approvedProfiles[profileIndex].price = {
         CLP: priceHourCLP,
         USD: Math.round(priceHourCLP / 830)
       };
-      
-      // Actualizar prices (usado por modal de perfil completo)
       approvedProfiles[profileIndex].prices = {
         hour: { CLP: priceHourCLP, USD: Math.round(priceHourCLP / 830) },
         twoHours: { CLP: priceTwoHoursCLP, USD: Math.round(priceTwoHoursCLP / 830) },
         overnight: { CLP: priceOvernightCLP, USD: Math.round(priceOvernightCLP / 830) }
       };
-      await DataService.saveApprovedProfiles(approvedProfiles);
+      savePromises.push(DataService.saveApprovedProfiles(approvedProfiles));
     }
-    
-    showToast('¡Tarifas actualizadas!');
+
+    Promise.all(savePromises).catch(err => console.error('Error guardando tarifas:', err));
   });
 
   // ========== GUARDAR SERVICIOS ==========
@@ -1244,27 +1253,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     const servicesGrid = document.getElementById('services-grid');
     const checkboxes = servicesGrid.querySelectorAll('input[name="services"]:checked');
     const services = Array.from(checkboxes).map(cb => cb.value);
-    
+
     currentUser.services = services;
     await DataService.setCurrentUser(currentUser);
-    
-    // Actualizar en approvedUsers
-    const approvedUsers = await DataService.getApprovedUsers() || [];
-    const userIndex = approvedUsers.findIndex(u => u.id === currentUser.id);
+    showToast('¡Servicios actualizados!');
+
+    // Actualizar en AWS en paralelo (background)
+    const [approvedUsers, approvedProfiles] = await Promise.all([
+      DataService.getApprovedUsers(),
+      DataService.getApprovedProfiles()
+    ]);
+
+    const savePromises = [];
+    const userIndex = (approvedUsers || []).findIndex(u => u.id === currentUser.id);
     if (userIndex !== -1) {
       approvedUsers[userIndex] = { ...approvedUsers[userIndex], services };
-      await DataService.saveApprovedUsers(approvedUsers);
+      savePromises.push(DataService.saveApprovedUsers(approvedUsers));
     }
-    
-    // Actualizar perfil en carrusel
-    const approvedProfiles = await DataService.getApprovedProfiles() || [];
-    const profileIndex = approvedProfiles.findIndex(p => p.userId === currentUser.id || p.id === `profile-${currentUser.id}`);
+
+    const profileIndex = (approvedProfiles || []).findIndex(p => p.userId === currentUser.id || p.id === `profile-${currentUser.id}`);
     if (profileIndex !== -1) {
       approvedProfiles[profileIndex].services = services;
-      await DataService.saveApprovedProfiles(approvedProfiles);
+      savePromises.push(DataService.saveApprovedProfiles(approvedProfiles));
     }
-    
-    showToast('¡Servicios actualizados!');
+
+    Promise.all(savePromises).catch(err => console.error('Error guardando servicios:', err));
   });
 
   // ========== GUARDAR DISPONIBILIDAD ==========
@@ -1303,6 +1316,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       approvedProfiles[profileIndex].outcall = outcall;
       approvedProfiles[profileIndex].travel = travel;
       approvedProfiles[profileIndex].availability = schedule;
+      approvedProfiles[profileIndex].availabilityDetails = { incall, outcall, travel };
+      approvedProfiles[profileIndex].horario = schedule;
       savePromises.push(DataService.saveApprovedProfiles(approvedProfiles));
     }
 
@@ -1487,13 +1502,43 @@ document.addEventListener('DOMContentLoaded', async () => {
               key: photo.key || null,
               data: photo.base64 || null,
               createdAt: new Date().toISOString(),
-              isVerificationPhoto: true
+              isVerificationPhoto: true,
+              watermarked: false
             });
           }
         });
         userPhotos = uniquePhotos;
         localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
       }
+    }
+
+    // Aplicar marca de agua a fotos de verificación que no la tienen
+    let photosUpdated = false;
+    for (let i = 0; i < userPhotos.length; i++) {
+      const photo = userPhotos[i];
+      if (photo.isVerificationPhoto && !photo.watermarked) {
+        try {
+          const imgSrc = photo.url || photo.data;
+          if (!imgSrc) continue;
+          const watermarkedBlob = await applyWatermarkToUrl(imgSrc);
+          if (watermarkedBlob) {
+            const photoId = photo.id || Date.now().toString() + Math.random().toString(36).slice(2, 6);
+            const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
+              currentUser.id, `${photoId}_wm.jpg`, 'image/jpeg'
+            );
+            await DataService.uploadFileToS3(uploadUrl, watermarkedBlob, 'image/jpeg');
+            userPhotos[i] = { ...photo, url: publicUrl, key: key, watermarked: true };
+            photosUpdated = true;
+          }
+        } catch (e) {
+          console.warn('Error aplicando marca de agua a foto de verificación:', e);
+        }
+      }
+    }
+    if (photosUpdated) {
+      localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
+      // Sincronizar URLs actualizadas al perfil público
+      syncPhotoToProfiles().catch(() => {});
     }
 
     // Cargar fotos (usar URL de S3 si existe, sino base64 legacy)
@@ -1570,6 +1615,67 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
       img.onerror = reject;
       img.src = URL.createObjectURL(file);
+    });
+  }
+
+  // Aplicar marca de agua a una imagen desde URL (para fotos de verificación existentes)
+  function applyWatermarkToUrl(imageUrl) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // Marca de agua diagonal repetitiva
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        ctx.font = `bold ${Math.max(20, Math.round(w / 22))}px "Playfair Display", serif`;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.lineWidth = 1;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0,0,0,0.4)';
+        ctx.shadowBlur = 3;
+        ctx.translate(w / 2, h / 2);
+        ctx.rotate(-Math.PI / 6);
+        const spacing = Math.max(80, Math.round(w / 6));
+        for (let y = -h; y < h * 2; y += spacing) {
+          for (let x = -w; x < w * 2; x += spacing * 1.8) {
+            ctx.fillText('SalaOscura', x, y);
+            ctx.strokeText('SalaOscura', x, y);
+          }
+        }
+        ctx.restore();
+
+        // Marca de agua esquina inferior derecha
+        ctx.save();
+        ctx.globalAlpha = 0.35;
+        ctx.font = `italic ${Math.max(14, Math.round(w / 35))}px "Playfair Display", serif`;
+        ctx.fillStyle = '#D4AF37';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        ctx.shadowColor = 'rgba(0,0,0,0.7)';
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+        ctx.fillText('SalaOscura', w - 15, h - 15);
+        ctx.restore();
+
+        canvas.toBlob(blob => {
+          if (blob) resolve(blob);
+          else reject(new Error('Error generando imagen con marca de agua'));
+        }, 'image/jpeg', 0.92);
+      };
+      img.onerror = () => resolve(null); // No fallar si la imagen no carga
+      img.src = imageUrl;
     });
   }
 
