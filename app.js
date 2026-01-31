@@ -889,8 +889,8 @@ window.shareProfile = async (profileId) => {
   const shareMessage = `🔥 ¡Mira este perfil increíble en Sala Oscura!
 
 ✨ ${profile.displayName || profile.title}
-📍 ${profile.commune || 'Santiago'}, ${profile.city || 'Chile'}
-💰 Desde $${(profile.prices?.hour?.CLP || 200000).toLocaleString('es-CL')} CLP
+📍 ${profile.commune || ''}, ${profile.city || ''}
+💰 Desde $${(profile.prices?.hour?.CLP || 0).toLocaleString('es-CL')} CLP
 ⭐ ${profile.stats?.likes || 0} Me Gusta | ${profile.stats?.experiences || 0} Experiencias
 
 👉 Ver perfil completo:`;
@@ -995,7 +995,7 @@ window.shareViaWhatsApp = async (profileId) => {
   if (!profile) return;
   
   const profileLink = `${window.location.origin}/index.html?profile=${profileId}`;
-  const message = `🔥 ¡Mira este perfil increíble en Sala Oscura!\n\n✨ ${profile.displayName || profile.title}\n📍 ${profile.commune || 'Santiago'}, ${profile.city || 'Chile'}\n💰 Desde $${(profile.prices?.hour?.CLP || 200000).toLocaleString('es-CL')} CLP\n⭐ ${profile.stats?.likes || 0} Me Gusta | ${profile.stats?.experiences || 0} Experiencias\n\n👉 Ver perfil completo:\n${profileLink}`;
+  const message = `🔥 ¡Mira este perfil increíble en Sala Oscura!\n\n✨ ${profile.displayName || profile.title}\n📍 ${profile.commune || ''}, ${profile.city || ''}\n💰 Desde $${(profile.prices?.hour?.CLP || 0).toLocaleString('es-CL')} CLP\n⭐ ${profile.stats?.likes || 0} Me Gusta | ${profile.stats?.experiences || 0} Experiencias\n\n👉 Ver perfil completo:\n${profileLink}`;
   
   window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
   incrementRecommendation(profileId);
@@ -1016,7 +1016,7 @@ window.shareViaTelegram = async (profileId) => {
   if (!profile) return;
   
   const profileLink = `${window.location.origin}/index.html?profile=${profileId}`;
-  const message = `🔥 ${profile.displayName || profile.title} - Sala Oscura\n📍 ${profile.commune || 'Santiago'}\n💰 Desde $${(profile.prices?.hour?.CLP || 200000).toLocaleString('es-CL')} CLP`;
+  const message = `🔥 ${profile.displayName || profile.title} - Sala Oscura\n📍 ${profile.commune || ''}\n💰 Desde $${(profile.prices?.hour?.CLP || 0).toLocaleString('es-CL')} CLP`;
   
   window.open(`https://t.me/share/url?url=${encodeURIComponent(profileLink)}&text=${encodeURIComponent(message)}`, '_blank');
   incrementRecommendation(profileId);
@@ -1044,7 +1044,7 @@ window.shareViaTwitter = async (profileId) => {
   if (!profile) return;
   
   const profileLink = `${window.location.origin}/index.html?profile=${profileId}`;
-  const message = `🔥 Conoce a ${profile.displayName || profile.title} en Sala Oscura - ${profile.commune || 'Santiago'}, ${profile.city || 'Chile'}`;
+  const message = `🔥 Conoce a ${profile.displayName || profile.title} en Sala Oscura - ${profile.commune || ''}, ${profile.city || ''}`;
   
   window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(profileLink)}`, '_blank');
   incrementRecommendation(profileId);
@@ -1066,7 +1066,7 @@ window.shareViaEmail = async (profileId) => {
   
   const profileLink = `${window.location.origin}/index.html?profile=${profileId}`;
   const subject = `Te recomiendo ver este perfil en Sala Oscura`;
-  const body = `Hola,\n\nTe comparto este perfil que me pareció interesante:\n\n✨ ${profile.displayName || profile.title}\n📍 ${profile.commune || 'Santiago'}, ${profile.city || 'Chile'}\n💰 Desde $${(profile.prices?.hour?.CLP || 200000).toLocaleString('es-CL')} CLP\n⭐ ${profile.stats?.likes || 0} Me Gusta | ${profile.stats?.experiences || 0} Experiencias\n\nVer perfil completo: ${profileLink}\n\nSaludos!`;
+  const body = `Hola,\n\nTe comparto este perfil que me pareció interesante:\n\n✨ ${profile.displayName || profile.title}\n📍 ${profile.commune || ''}, ${profile.city || ''}\n💰 Desde $${(profile.prices?.hour?.CLP || 0).toLocaleString('es-CL')} CLP\n⭐ ${profile.stats?.likes || 0} Me Gusta | ${profile.stats?.experiences || 0} Experiencias\n\nVer perfil completo: ${profileLink}\n\nSaludos!`;
   
   window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   incrementRecommendation(profileId);
@@ -1248,11 +1248,12 @@ window.refreshCarouselsWithFilter = function(filters) {
   };
 
   // Usar el array de perfiles aprobados
-  const featuredCars = await getAllLuxuryProfiles();
+  const featuredProfiles = await getAllLuxuryProfiles();
 
   // Función para abrir modal VIP (definida ANTES del early return para que siempre esté disponible globalmente)
-  const openVIPModal = async (car) => {
+  const openVIPModal = async (profileData) => {
     // Usar solo datos reales del perfil, sin valores por defecto inventados
+    const car = profileData; // alias temporal para compatibilidad interna
     const hasPhysicalInfo = car.physicalInfo || car.height || car.weight || car.measurements;
     const hasAttributes = car.attributes || car.hairColor || car.eyeColor;
     const hasPrices = car.prices || car.price || car.priceHour;
@@ -1882,7 +1883,7 @@ window.refreshCarouselsWithFilter = function(filters) {
   window.openVIPModal = openVIPModal;
 
   // Si no hay perfiles luxury, ocultar sección pero mantener openVIPModal disponible
-  if (featuredCars.length === 0) {
+  if (featuredProfiles.length === 0) {
     const section = document.getElementById('featured-section');
     if (section) section.style.display = 'none';
     return;
@@ -1893,13 +1894,13 @@ window.refreshCarouselsWithFilter = function(filters) {
 
   // Renderizar tarjetas
   const renderCards = () => {
-    carousel.innerHTML = featuredCars.map((car, index) => {
+    carousel.innerHTML = featuredProfiles.map((car, index) => {
       // Usar foto real del perfil o placeholder
       const imgSrc = (car.profilePhotosData && car.profilePhotosData.length > 0) 
         ? (car.profilePhotosData[0].url || car.profilePhotosData[0].base64 || car.profilePhotosData[0]) 
         : (car.avatar || car.profilePhoto || defaultPlaceholder);
       return `
-        <div class="featured-card vip-card" data-index="${index}" data-car-id="${car.id}">
+        <div class="featured-card vip-card" data-index="${index}" data-profile-id="${car.id}">
           <div class="featured-card-inner vip-card-inner">
             <img class="featured-card-img vip-card-image" src="${imgSrc}" alt="${car.displayName}" loading="${index === 0 ? 'eager' : 'lazy'}" />
             <div class="featured-card-overlay vip-card-overlay"></div>
@@ -1966,10 +1967,10 @@ window.refreshCarouselsWithFilter = function(filters) {
     // Agregar event listeners para abrir detalle
     carousel.querySelectorAll('.featured-card').forEach(card => {
       card.addEventListener('click', () => {
-        const carId = card.dataset.carId;
-        const car = featuredCars.find(c => c.id === carId);
-        if (car) {
-          openVIPModal(car);
+        const profileId = card.dataset.profileId;
+        const prof = featuredProfiles.find(c => c.id === profileId);
+        if (prof) {
+          openVIPModal(prof);
         }
       });
     });
@@ -1983,7 +1984,7 @@ window.refreshCarouselsWithFilter = function(filters) {
     dotsContainer.innerHTML = '';
     
     // Crear un dot por cada perfil aprobado
-    featuredCars.forEach((_, index) => {
+    featuredProfiles.forEach((_, index) => {
       const dot = document.createElement('button');
       dot.className = `featured-dot ${index === 0 ? 'active' : ''}`;
       dot.setAttribute('data-index', index);
@@ -2027,13 +2028,13 @@ window.refreshCarouselsWithFilter = function(filters) {
 
   // Siguiente slide
   const nextSlide = () => {
-    currentSlide = (currentSlide + 1) % featuredCars.length;
+    currentSlide = (currentSlide + 1) % featuredProfiles.length;
     goToSlide(currentSlide);
   };
 
   // Slide anterior
   const prevSlide = () => {
-    currentSlide = (currentSlide - 1 + featuredCars.length) % featuredCars.length;
+    currentSlide = (currentSlide - 1 + featuredProfiles.length) % featuredProfiles.length;
     goToSlide(currentSlide);
   };
 
@@ -2105,12 +2106,12 @@ window.refreshCarouselsWithFilter = function(filters) {
     // Recargar perfiles con filtros aplicados
     const newFeaturedCars = getAllLuxuryProfiles();
     // Actualizar referencia local
-    featuredCars.length = 0;
-    featuredCars.push(...newFeaturedCars);
+    featuredProfiles.length = 0;
+    featuredProfiles.push(...newFeaturedCars);
     
     // Si no hay resultados, ocultar sección
     const section = document.getElementById('featured-section');
-    if (featuredCars.length === 0) {
+    if (featuredProfiles.length === 0) {
       if (section) section.style.display = 'none';
     } else {
       if (section) section.style.display = 'block';
@@ -2128,31 +2129,30 @@ window.refreshCarouselsWithFilter = function(filters) {
   // Cargar perfiles aprobados desde AWS
   const approvedProfiles = await DataService.getApprovedProfiles() || [];
   
-  // Cargar publicaciones creadas desde AWS con defaults
-  const publicacionesCreadas = (await DataService.getProfiles() || []).map((p, idx) => ({
+  // Cargar publicaciones creadas desde AWS
+  const publicacionesCreadas = (await DataService.getProfiles() || []).map((p) => ({
     ...p,
-    profileTypes: p.profileTypes || [p.profileType] || ['vip'],
+    profileTypes: p.profileTypes || [p.profileType].filter(Boolean),
     price: p.price || { CLP: Number(p.precioCLP) || 0 },
-    location: p.ubicacion || 'Santiago Centro',
-    availability: p.disponibilidad || 'Programar',
-    category: p.categoria || 'premium',
-    featured: p.featured || 'nuevo',
-    services: p.servicios || ['in-call'],
-    popularity: p.popularidad || 45 + idx,
-    createdAt: p.createdAt || Date.now() - idx * 3600 * 1000,
+    location: p.ubicacion || p.commune || null,
+    availability: p.disponibilidad || null,
+    category: p.categoria || null,
+    services: p.servicios || [],
+    popularity: p.popularidad || (p.stats?.views || 0),
+    createdAt: p.createdAt || Date.now(),
   }));
 
   // Combinar perfiles aprobados con publicaciones creadas
-  let CARS = [...approvedProfiles, ...publicacionesCreadas].map((car, i) => {
+  let ALL_PROFILES = [...approvedProfiles, ...publicacionesCreadas].map((p) => {
     return {
-      ...car,
-      profileTypes: car.profileTypes || [car.profileType] || ['vip'],
-      categoryNew: car.categoryNew || categoryMap[car.category] || 'Estándar',
-      services: car.services || ['in-call'],
-      availability: car.availability || 'Disponible ahora',
-      location: car.location || 'Santiago Centro',
-      popularity: car.popularity || 50 + i,
-      createdAt: car.createdAt || Date.now() - i * 7200000,
+      ...p,
+      profileTypes: p.profileTypes || [p.profileType].filter(Boolean),
+      categoryNew: p.categoryNew || categoryMap[p.category] || null,
+      services: p.services || [],
+      availability: p.availability || null,
+      location: p.location || p.commune || null,
+      popularity: p.popularity || (p.stats?.views || 0),
+      createdAt: p.createdAt || Date.now(),
     };
   });
 
@@ -2190,7 +2190,7 @@ window.refreshCarouselsWithFilter = function(filters) {
   const initialLoad = 8; // Carga inicial: 8 tarjetas siempre (2 filas desktop, 4 filas móvil)
   const itemsPerLoad = window.innerWidth >= 768 ? 8 : 6; // Desktop/Tablet: 8 (2 filas de 4), Móvil: 6 (3 filas de 2)
 
-  let visibleCars = [];
+  let visibleProfiles = [];
   let currentViewMode = 'grid';
 
   const formatPrice = (price) => {
@@ -2223,7 +2223,8 @@ window.refreshCarouselsWithFilter = function(filters) {
     });
   };
 
-  const createCard = (car, index) => {
+  const createCard = (cardProfile) => {
+    const car = cardProfile; // alias para compatibilidad interna
     const div = document.createElement('div');
     div.className = 'experiencias-card animate';
     // Clase animate activa la animación CSS fadeInUp
@@ -2357,7 +2358,7 @@ window.refreshCarouselsWithFilter = function(filters) {
 
   const updateAllPrices = () => {
     document.querySelectorAll('.experiencias-card').forEach((card, i) => {
-      const car = visibleCars[i];
+      const car = visibleProfiles[i];
       if (!car) return;
       const priceEl = card.querySelector('.experiencias-price');
       if (priceEl && car.price?.CLP) priceEl.textContent = formatPrice(car.price.CLP);
@@ -2371,10 +2372,10 @@ window.refreshCarouselsWithFilter = function(filters) {
     return `Actualizado hace ${d} días`;
   };
 
-  const buildMedia = (car) => {
+  const buildMedia = (profileItem) => {
     // Usar fotos reales del perfil
-    if (car.profilePhotosData && car.profilePhotosData.length > 0) {
-      return car.profilePhotosData.map(photo => ({
+    if (profileItem.profilePhotosData && profileItem.profilePhotosData.length > 0) {
+      return profileItem.profilePhotosData.map(photo => ({
         type: 'image',
         src: photo.url || photo.base64 || photo
       }));
@@ -2409,20 +2410,19 @@ window.refreshCarouselsWithFilter = function(filters) {
     }
   };
 
-  const openDetail = (car) => {
+  const openDetail = (profileItem) => {
     if (!detailModal) return;
-    
-    // Usar la misma función que el modal VIP pero con el modal de detalle
+
     // Cerrar modal anterior si existe
     const existingVipModal = document.getElementById('vip-modal');
     if (existingVipModal) {
       existingVipModal.remove();
       document.body.style.overflow = '';
     }
-    
-    // Llamar al modal VIP con el perfil del carrusel normal
+
+    // Abrir modal VIP con el perfil
     if (typeof window.openVIPModal === 'function') {
-      window.openVIPModal(car);
+      window.openVIPModal(profileItem);
     }
   };
 
@@ -2448,10 +2448,10 @@ window.refreshCarouselsWithFilter = function(filters) {
     if (!grid) return; // Verificar que grid existe
     const start = itemsLoaded;
     const loadAmount = isInitial ? initialLoad : itemsPerLoad;
-    const availableCars = CARS;
+    const availableCars = ALL_PROFILES;
     const end = Math.min(start + loadAmount, availableCars.length);
     for (let i = start; i < end; i++) {
-      grid.appendChild(createCard(availableCars[i], i - start));
+      grid.appendChild(createCard(availableCars[i]));
     }
     itemsLoaded = end;
   };
@@ -2468,7 +2468,7 @@ window.refreshCarouselsWithFilter = function(filters) {
   window.addEventListener('scroll', () => {
     const scrollThreshold = window.innerWidth >= 768 ? 400 : 200;
     if (window.innerHeight + window.scrollY >= document.body.offsetHeight - scrollThreshold) {
-      if (itemsLoaded < CARS.length) {
+      if (itemsLoaded < ALL_PROFILES.length) {
         loadCards();
       }
     }
@@ -3785,14 +3785,7 @@ function createSkeletonCard() {
 
   if (!section || !slider || !track || !dots) return;
 
-  const SAMPLE = [
-    { id: 's1', carId: 'ferrari-f8', name: 'Carlos M.', rating: 5, text: 'Experiencia impecable, atención de primer nivel. 100% recomendado.', date: '2025-01-02' },
-    { id: 's2', carId: 'lamborghini-huracán', name: 'Sofía G.', rating: 5, text: 'Profesionalismo y puntualidad. Superó mis expectativas.', date: '2024-12-18' },
-    { id: 's3', carId: 'bentley-continental', name: 'Andrés T.', rating: 4, text: 'Presentación premium y ambiente seguro. Muy buena experiencia.', date: '2025-01-05' },
-    { id: 's4', carId: 'maserati-mc20', name: 'Valentina R.', rating: 5, text: 'Atención personalizada y discreta. Servicio de alta calidad.', date: '2024-11-30' },
-    { id: 's5', carId: 'porsche-911-gt3', name: 'Miguel D.', rating: 4, text: 'Excelente trato y confirmación rápida. Volveré.', date: '2025-01-07' },
-    { id: 's6', carId: 'aston-martin-db11', name: 'Lucía P.', rating: 5, text: 'Ambiente muy cómodo y elegante, todo perfecto.', date: '2024-12-02' },
-  ];
+  // Testimonios se cargan desde la BD - sin datos de muestra
 
   const loadApproved = async () => {
     const arr = await DataService.getTestimonials() || [];
@@ -3804,7 +3797,6 @@ function createSkeletonCard() {
   let autoplayId = null;
   const AUTOPLAY_MS = 6000;
   let currentList = await loadApproved();
-  if (!currentList.length) currentList = SAMPLE.slice(0,6);
 
   const getItemsPerView = () => {
     if (window.innerWidth <= 640) return 1;
@@ -3890,8 +3882,8 @@ function createSkeletonCard() {
     slideToIndex(Math.floor(currentIndex / itemsPerView) * itemsPerView);
   };
 
-  const setList = (list) => {
-    currentList = list && list.length ? list : (loadApproved().length ? loadApproved() : SAMPLE.slice(0,6));
+  const setList = async (list) => {
+    currentList = list && list.length ? list : await loadApproved();
     itemsPerView = getItemsPerView();
     renderCards(currentList);
     renderDots();
@@ -3899,13 +3891,13 @@ function createSkeletonCard() {
   };
 
   // Expose setter for detail modal linkage
-  function setTestimonialsForCar(car) {
-    if (!car) return;
-    const approved = loadApproved();
-    const filtered = approved.filter(t => t.carId === car.id);
-    setList(filtered.length ? filtered : approved.slice(0, 6));
+  async function setTestimonialsForProfile(profile) {
+    if (!profile) return;
+    const approved = await loadApproved();
+    const filtered = approved.filter(t => t.profileId === profile.id);
+    await setList(filtered.length ? filtered : approved.slice(0, 6));
   }
-  window.setTestimonialsForCar = setTestimonialsForCar;
+  window.setTestimonialsForProfile = setTestimonialsForProfile;
 
   // Init
   if (document.readyState === 'loading') {

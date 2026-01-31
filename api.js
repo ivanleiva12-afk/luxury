@@ -51,7 +51,6 @@ if (typeof DataService === 'undefined') {
   async fetchApi(endpoint, options = {}) {
     const url = CONFIG.getApiUrl();
     if (!url) {
-      console.error('API URL no configurada');
       return null;
     }
     
@@ -415,66 +414,6 @@ if (typeof DataService === 'undefined') {
   // ═══════════════════════════════════════════════════════════
   // MEDIA - Subida de fotos y videos a S3
   // ═══════════════════════════════════════════════════════════
-  
-  /**
-   * Obtiene una URL firmada para subir un archivo a S3
-   */
-  async getUploadUrl(fileName, fileType, userId) {
-    try {
-      return await this.fetchApi('/media/upload-url', {
-        method: 'POST',
-        body: JSON.stringify({ fileName, fileType, userId })
-      });
-    } catch (error) {
-      console.error('Error obteniendo URL de subida:', error);
-      throw error;
-    }
-  },
-  
-  /**
-   * Sube un archivo a S3 usando la URL firmada
-   */
-  async uploadFile(file, userId) {
-    try {
-      // 1. Obtener URL firmada
-      const { uploadUrl, publicUrl, key } = await this.getUploadUrl(
-        file.name, 
-        file.type, 
-        userId
-      );
-      
-      // 2. Subir archivo directamente a S3
-      const uploadResponse = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type
-        }
-      });
-      
-      if (!uploadResponse.ok) {
-        throw new Error('Error subiendo archivo a S3');
-      }
-      
-      // 3. Guardar metadata en DynamoDB
-      await this.fetchApi('/media', {
-        method: 'POST',
-        body: JSON.stringify({
-          userId,
-          key,
-          url: publicUrl,
-          type: file.type.startsWith('video/') ? 'video' : 'photo',
-          fileName: file.name,
-          size: file.size
-        })
-      });
-      
-      return { url: publicUrl, key };
-    } catch (error) {
-      console.error('Error en uploadFile:', error);
-      throw error;
-    }
-  },
   
   // ═══════════════════════════════════════════════════════════
   // MEDIA - Fotos y Videos en S3

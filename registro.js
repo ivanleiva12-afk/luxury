@@ -222,14 +222,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    console.log('Formulario enviado - Validando paso', currentStep);
     
     if (!validateStep(currentStep)) {
-      console.log('Validación fallida');
       return;
     }
     
-    console.log('Validación exitosa - Procesando datos');
     
     // Collect all form data
     const formData = new FormData(form);
@@ -331,19 +328,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Convertir archivos a base64 para almacenamiento
     const filesPromises = [];
     
-    console.log('📁 Procesando archivos...', { accumulatedFiles });
     
     // Documento ID
     const docInput = document.getElementById('docUpload');
     if (docInput?.files?.[0]) {
-      console.log('📄 Procesando documento ID');
       filesPromises.push(
         fileToBase64(docInput.files[0])
           .then(base64 => {
             registro.idDocumentData = base64;
             registro.idDocumentName = docInput.files[0].name;
             registro.hasIdDocument = true;
-            console.log('✅ Documento ID procesado');
           })
           .catch(error => {
             console.error('❌ Error procesando documento ID:', error);
@@ -355,14 +349,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Selfie de verificación
     const selfieInput = document.getElementById('selfieUpload');
     if (selfieInput?.files?.[0]) {
-      console.log('📸 Procesando selfie');
       filesPromises.push(
         fileToBase64(selfieInput.files[0], 400, 400, 0.8) // Selfie: max 400x400px, calidad 80%
           .then(base64 => {
             registro.verificationSelfieData = base64;
             registro.verificationSelfieName = selfieInput.files[0].name;
             registro.hasVerificationSelfie = true;
-            console.log('✅ Selfie procesado');
           })
           .catch(error => {
             console.error('❌ Error procesando selfie:', error);
@@ -373,16 +365,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Fotos de perfil (hasta 5) - usar archivos acumulados
     const photosFiles = accumulatedFiles['photosUpload'] || [];
-    console.log('🖼️ Fotos acumuladas encontradas:', photosFiles.length);
     
     if (photosFiles.length > 0) {
       const photosArray = photosFiles.slice(0, 5);
-      console.log('📷 Procesando fotos de perfil:', photosArray.length);
       
       const photoPromises = photosArray.map((file, index) => 
         fileToBase64(file, 600, 600, 0.7) // Comprimir fotos: max 600x600px, calidad 70%
           .then(base64 => {
-            console.log(`✅ Foto ${index + 1} procesada`);
             return { index, base64, name: file.name };
           })
           .catch(error => {
@@ -396,7 +385,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           .then(photos => {
             registro.profilePhotosData = photos.sort((a, b) => a.index - b.index).map(p => ({ base64: p.base64, name: p.name }));
             registro.hasProfilePhotos = true;
-            console.log('✅ Todas las fotos procesadas correctamente');
           })
           .catch(error => {
             console.error('❌ Error procesando conjunto de fotos:', error);
@@ -408,14 +396,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Comprobante de pago
     const receiptInput = document.getElementById('transferReceipt');
     if (receiptInput?.files?.[0]) {
-      console.log('🧾 Procesando comprobante');
       filesPromises.push(
         fileToBase64(receiptInput.files[0])
           .then(base64 => {
             registro.transferReceiptData = base64;
             registro.transferReceiptName = receiptInput.files[0].name;
             registro.hasTransferReceipt = true;
-            console.log('✅ Comprobante procesado');
           })
           .catch(error => {
             console.error('❌ Error procesando comprobante:', error);
@@ -424,17 +410,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       );
     }
     
-    console.log('⏳ Esperando procesamiento de', filesPromises.length, 'archivos...');
     
     // Esperar a que todos los archivos se conviertan
     if (filesPromises.length === 0) {
       // No hay archivos que procesar, guardar directamente
-      console.log('ℹ️ No hay archivos para procesar, guardando registro...');
       saveRegistration(registro);
     } else {
       Promise.all(filesPromises)
         .then(() => {
-          console.log('✅ Todos los archivos procesados correctamente');
           saveRegistration(registro);
         })
         .catch(error => {
@@ -452,25 +435,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       // Verificar tamaño aproximado del registro
       const registroSize = JSON.stringify(registro).length;
-      console.log(`📦 Tamaño del registro: ${(registroSize/1024).toFixed(0)}KB`);
       
       if (registroSize > 2 * 1024 * 1024) { // 2MB
         throw new Error('El registro es demasiado grande. Por favor, usa imágenes más pequeñas.');
       }
       
       // Guardar directamente usando addPendingRegistro
-      console.log('💾 Guardando registro con ID:', registro.id);
       await DataService.addPendingRegistro(registro);
       
-      // Log censurado sin información sensible
-      const registroForLog = { ...registro };
-      delete registroForLog.password;
-      delete registroForLog.idDocumentData; // También ocultar datos binarios largos
-      delete registroForLog.verificationSelfieData;
-      delete registroForLog.profilePhotosData;
-      
-      console.log('💾 Registro guardado exitosamente (ID:', registro.id, ')');
-      console.log('📋 Datos del registro (censurados):', registroForLog);
       showSuccessMessage();
       
     } catch (error) {
@@ -531,7 +503,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Convertir a base64 con calidad reducida
         const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
         
-        console.log(`🗜️ Imagen comprimida: ${file.name} (${(file.size/1024).toFixed(0)}KB → ${(compressedBase64.length*0.75/1024).toFixed(0)}KB)`);
         resolve(compressedBase64);
       };
       
@@ -550,13 +521,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       const validRequests = recoveryRequests.filter(r => r.expiry > Date.now());
       if (validRequests.length !== recoveryRequests.length) {
         await DataService.savePasswordRecoveryRequests(validRequests);
-        console.log('🧹 Limpiados tokens de recuperación expirados');
       }
       
       // Nota: La limpieza de instantes ahora se maneja en el backend/DataService
-      console.log('✅ Limpieza completada');
     } catch (error) {
-      console.warn('⚠️ Error durante limpieza:', error);
     }
   }
 
@@ -602,7 +570,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Auto-generate username from display name
   function setupAutoUsername() {
-    console.log('🔄 Intentando configurar auto-username...');
     
     const displayNameInput = document.getElementById('displayName');
     const usernameInput = document.getElementById('username');
@@ -617,7 +584,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     
-    console.log('✅ Campos encontrados, configurando eventos...');
     
     // Generate username when display name changes (but wait for complete input)
     displayNameInput.addEventListener('input', () => {
@@ -629,7 +595,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           usernameInput.value = '';
           usernameInput.placeholder = 'tu.usuario';
           usernameInput.dataset.autoGenerated = 'false';
-          console.log('🧹 Username limpiado porque el nombre está vacío');
         }
         return;
       }
@@ -656,11 +621,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const generated = generateUsernameInstant(displayValue);
         usernameInput.value = generated;
         usernameInput.dataset.autoGenerated = 'true';
-        console.log('🎯 Username generado automáticamente:', generated);
       }
     });
 
-    console.log('✅ Auto-username configurado correctamente');
   }
 
   // Generación INSTANTÁNEA de username (sin async, sin consultas a BD)
@@ -692,44 +655,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     return username;
   }
   
-  async function generateUsername(displayName) {
-    if (!displayName) return '';
-    
-    // Convert to lowercase
-    let username = displayName.toLowerCase().trim();
-    
-    // Remove accents/diacritics
-    username = username.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    
-    // Replace spaces with dots (for multiple names)
-    username = username.replace(/\s+/g, '.');
-    
-    // Remove special characters, keep only letters, numbers, dots and underscores
-    username = username.replace(/[^a-z0-9._]/g, '');
-    
-    // Remove consecutive dots
-    username = username.replace(/\.{2,}/g, '.');
-    
-    // Remove leading/trailing dots
-    username = username.replace(/^\.+|\.+$/g, '');
-    
-    // Check if username already exists in pending registrations
-    const pendingRegistros = await DataService.getPendingRegistros() || [];
-    const approvedUsers = await DataService.getApprovedUsers() || [];
-    const allUsers = [...pendingRegistros, ...approvedUsers];
-    
-    let finalUsername = username;
-    let counter = 1;
-    
-    // Keep checking until we find a unique username
-    while (allUsers.some(user => user.username === finalUsername)) {
-      finalUsername = `${username}.${counter}`;
-      counter++;
-    }
-    
-    return finalUsername;
-  }
-
   // Price validation - minimum $100.000 CLP
   function setupPriceValidation() {
     const priceHourInput = document.getElementById('priceHour');
@@ -1101,11 +1026,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load plans from config (set by admin)
   async function loadPlansFromStorage() {
     const stored = await DataService.getConfig('luxuryPlans');
-    console.log('📋 Registro - Cargando planes desde config:', stored ? 'encontrado' : 'no encontrado');
     
     if (!stored) {
       // Si no hay planes configurados, inicializar con valores básicos
-      console.log('🔧 Registro - Inicializando planes básicos...');
       const basicPlans = {
         vip: {
           name: 'VIP Black',
@@ -1130,7 +1053,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       try {
         await DataService.setConfig('luxuryPlans', basicPlans);
-        console.log('✅ Registro - Planes básicos inicializados');
         updatePlanCards(basicPlans);
       } catch (error) {
         console.error('❌ Error inicializando planes:', error);
@@ -1140,7 +1062,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     const plans = stored;
-    console.log('📋 Registro - Planes cargados:', plans);
     updatePlanCards(plans);
   }
   
@@ -1159,7 +1080,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const card = document.querySelector(`.plan-card[data-plan="${planId}"]`);
     if (!card || !planData) return;
     
-    console.log(`📋 Actualizando plan ${planId}:`, planData);
     
     // Hide card if plan is not active
     if (!planData.active) {
@@ -1181,10 +1101,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Update features
     const featuresList = card.querySelector(`.plan-features[data-plan="${planId}"]`);
-    console.log(`📋 Features list para ${planId}:`, featuresList, 'Features data:', planData.features);
     if (featuresList && planData.features) {
       featuresList.innerHTML = planData.features.map(f => `<li>✓ ${f}</li>`).join('');
-      console.log(`✅ Features actualizadas para ${planId}`);
     }
     
     // Handle Premium "featured" badge
@@ -1691,8 +1609,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Setup interview date with minimum date (tomorrow) and load time slots
   function setupInterviewDate() {
     const dateInput = document.getElementById('interviewDate');
-    const timeSelect = document.getElementById('interviewTime');
-    
     if (!dateInput) return;
     
     // Set minimum date to tomorrow
@@ -1707,52 +1623,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     dateInput.max = maxDate.toISOString().split('T')[0];
     
     // Load interview time slots from admin configuration
-    loadInterviewTimeSlots(timeSelect);
-  }
-  
-  // Load interview time slots from config (set by admin)
-  async function loadInterviewTimeSlots(timeSelect) {
-    if (!timeSelect) return;
-    
-    const schedule = await DataService.getConfig('luxuryInterviewSchedule');
-    let times = [];
-    
-    if (schedule) {
-      times = schedule.times || [];
-    } else {
-      // Default times if no admin configuration
-      times = [
-        { value: '10:00', label: '10:00 AM' },
-        { value: '10:30', label: '10:30 AM' },
-        { value: '11:00', label: '11:00 AM' },
-        { value: '11:30', label: '11:30 AM' },
-        { value: '12:00', label: '12:00 PM' },
-        { value: '14:00', label: '02:00 PM' },
-        { value: '14:30', label: '02:30 PM' },
-        { value: '15:00', label: '03:00 PM' },
-        { value: '15:30', label: '03:30 PM' },
-        { value: '16:00', label: '04:00 PM' },
-        { value: '16:30', label: '04:30 PM' },
-        { value: '17:00', label: '05:00 PM' },
-        { value: '17:30', label: '05:30 PM' },
-        { value: '18:00', label: '06:00 PM' },
-        { value: '18:30', label: '06:30 PM' },
-        { value: '19:00', label: '07:00 PM' },
-        { value: '19:30', label: '07:30 PM' },
-        { value: '20:00', label: '08:00 PM' }
-      ];
-    }
-    
-    // Clear existing options except first one
-    timeSelect.innerHTML = '<option value="">Selecciona una hora</option>';
-    
-    // Add time options
-    times.forEach(time => {
-      const option = document.createElement('option');
-      option.value = time.value;
-      option.textContent = time.label;
-      timeSelect.appendChild(option);
-    });
+    loadInterviewTimes();
   }
   
   // Discount code functionality
@@ -1833,13 +1704,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const activeDurationBtn = selectedCard ? selectedCard.querySelector('.duration-btn.active') : null;
     const actualDuration = activeDurationBtn ? parseInt(activeDurationBtn.dataset.days) : selectedDuration;
 
-    console.log('🎯 Aplicando cupón:', {
-      selectedPlan,
-      selectedDurationFromInput: selectedDuration,
-      actualDurationFromButton: actualDuration,
-      finalDuration: actualDuration
-    });
-
     const plans = await DataService.getConfig('luxuryPlans') || {};
     const planData = plans[selectedPlan];
 
@@ -1855,11 +1719,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Intentar obtener el precio de la configuración del admin usando la duración real del botón activo
     if (planData && planData.prices && planData.prices[actualDuration]) {
       originalPrice = planData.prices[actualDuration];
-      console.log(`✅ Usando precio de admin: ${originalPrice} para ${actualDuration} días`);
     } else if (defaultPrices[selectedPlan] && defaultPrices[selectedPlan][actualDuration]) {
       // Usar precio por defecto si no hay config de admin
       originalPrice = defaultPrices[selectedPlan][actualDuration];
-      console.log(`✅ Usando precio por defecto: ${originalPrice} para ${actualDuration} días`);
     } else {
       console.error('❌ No se encontró precio para:', { selectedPlan, actualDuration, planData, defaultPrices: defaultPrices[selectedPlan] });
       showDiscountMessage('Error al obtener precio del plan', 'error');

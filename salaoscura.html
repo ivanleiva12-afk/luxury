@@ -1662,8 +1662,9 @@
     // ========================================
     document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('year').textContent = new Date().getFullYear();
-      await initTestUsers();
       initRatingButtons();
+      // Pre-cargar caché de usuarios mencionables
+      getMentionableUsers().catch(() => {});
       updateUI();
       
       // Verificar si viene desde una mención con post específico
@@ -1745,8 +1746,8 @@
     // ========================================
     // FILTRAR POR MENCIONES DE UN PERFIL
     // ========================================
-    function loadPostsFilteredByMention(profileName) {
-      const posts = JSON.parse(localStorage.getItem('salaOscuraPosts') || '[]');
+    async function loadPostsFilteredByMention(profileName) {
+      const posts = await DataService.getSalaOscuraThreads();
       const searchName = profileName.toLowerCase();
       
       // Filtrar posts donde se menciona al perfil
@@ -1844,66 +1845,11 @@
     });
 
     // ========================================
-    // INICIALIZACIÓN DE DATOS DE PRUEBA EN AWS
+    // INICIALIZACIÓN
     // ========================================
     async function initTestUsers() {
-      try {
-        // Verificar usuario de prueba en AWS
-        const usuarios = await DataService.getForumUsers();
-        if (!usuarios.find(u => u.email === 'demo@demo.com')) {
-          await DataService.addForumUser({
-            id: 1,
-            nombre: 'DemoUser',
-            email: 'demo@demo.com',
-            edad: 25,
-            password: '123456',
-            fechaRegistro: new Date().toISOString()
-          });
-          console.log('✅ Usuario de prueba creado en AWS');
-        }
-
-        // Los escorts ya están en pendingRegistros desde el registro principal
-        
-        // Verificar posts de ejemplo en AWS
-        const posts = await DataService.getSalaOscuraThreads();
-        if (posts.length === 0) {
-          const ejemploPosts = [
-            {
-              id: Date.now(),
-              autorId: 2,
-              autorNombre: 'Demo Escort',
-              autorTipo: 'escort',
-              categoria: 'general',
-              titulo: '¡Bienvenidos a Sala Negra!',
-              contenido: 'Hola a todos, soy parte de este espacio. Encantada de formar parte de esta comunidad. Estoy disponible para citas y me encanta conocer gente nueva. ¡Espero que disfruten el foro!',
-              rating: 0,
-              fecha: new Date().toISOString(),
-              respuestas: [],
-              likes: 5,
-              likedBy: []
-            },
-          {
-            id: Date.now() + 1,
-            autorId: 1,
-            autorNombre: 'DemoUser',
-            autorTipo: 'usuario',
-            categoria: 'experiencias',
-            titulo: 'Mi primera experiencia positiva',
-            contenido: 'Quería compartir con ustedes una excelente experiencia que tuve recientemente. El trato fue muy profesional y amable. Definitivamente recomendado.',
-            rating: 0,
-            fecha: new Date().toISOString(),
-            respuestas: [],
-            likes: 3,
-            likedBy: []
-          }
-        ];
-        await DataService.saveSalaOscuraThreads(ejemploPosts);
-        console.log('✅ Posts de ejemplo creados en AWS');
-      }
-    } catch (error) {
-      console.error('Error inicializando datos de prueba:', error);
+      // No-op: datos reales provienen de AWS/DataService
     }
-  }
 
     // ========================================
     // MODALES
@@ -2101,11 +2047,6 @@
         console.error('Error en registro:', error);
         alert('Error de conexión. Por favor intenta nuevamente.');
       }
-
-      closeModal('register');
-      updateUI();
-      loadPosts();
-      alert('¡Cuenta creada exitosamente! Ya puedes participar en el foro.');
     }
 
     function cerrarSesion() {
@@ -2169,27 +2110,28 @@
     }
     
     // Controlar visibilidad de Zona Clientas según tipo de usuario
-    function updateZonaClientasVisibility() {
+    async function updateZonaClientasVisibility() {
       const zonaClientasOption = document.querySelector('#post-category option[value="zonaclientas"]');
       const zonaClientasCard = document.querySelector('.foro-category.zona-clientas');
-      
+
       const isEscort = currentUser && currentUser.tipo === 'escort';
-      
+
       // Ocultar/mostrar opción en selector de categorías
       if (zonaClientasOption) {
         zonaClientasOption.style.display = isEscort ? 'block' : 'none';
         zonaClientasOption.disabled = !isEscort;
       }
-      
+
       // Mostrar/ocultar mensaje en la tarjeta de Zona Clientas
       if (zonaClientasCard) {
         const countDiv = zonaClientasCard.querySelector('.foro-category-count');
         if (countDiv) {
           if (isEscort) {
-            // Mostrar contador real para escorts
-            const posts = JSON.parse(localStorage.getItem('salaOscuraPosts') || '[]');
-            const count = posts.filter(p => p.categoria === 'zonaclientas').length;
-            countDiv.innerHTML = `${count} tema${count !== 1 ? 's' : ''}`;
+            try {
+              const posts = await DataService.getSalaOscuraThreads();
+              const count = posts.filter(p => p.categoria === 'zonaclientas').length;
+              countDiv.innerHTML = `${count} tema${count !== 1 ? 's' : ''}`;
+            } catch { countDiv.innerHTML = '0 temas'; }
           } else {
             countDiv.innerHTML = '🔒 Solo Escorts';
           }
@@ -2436,48 +2378,52 @@
     }
     
     // Expandir un post para ver su contenido completo
-    function expandirPost(postId) {
-      const posts = JSON.parse(localStorage.getItem('salaOscuraPosts') || '[]');
-      const post = posts.find(p => p.id === postId);
-      
-      if (!post) {
-        alert('Post no encontrado');
-        return;
-      }
-      
-      // Verificar acceso a Zona Clientas
-      if (post.categoria === 'zonaclientas') {
-        if (!currentUser || currentUser.tipo !== 'escort') {
-          alert('⚠️ Acceso restringido\n\nEste hilo es de Zona Clientas, exclusiva para Escorts.');
+    async function expandirPost(postId) {
+      try {
+        const posts = await DataService.getSalaOscuraThreads();
+        const post = posts.find(p => p.id === postId);
+
+        if (!post) {
+          alert('Post no encontrado');
           return;
         }
+
+        // Verificar acceso a Zona Clientas
+        if (post.categoria === 'zonaclientas') {
+          if (!currentUser || currentUser.tipo !== 'escort') {
+            alert('⚠️ Acceso restringido\n\nEste hilo es de Zona Clientas, exclusiva para Escorts.');
+            return;
+          }
+        }
+
+        currentFilter = 'hilo';
+
+        // Ocultar sección de escorts en vista de hilo único
+        document.getElementById('escort-posts-section').style.display = 'none';
+
+        // Mostrar post expandido
+        const postsList = document.getElementById('posts-list');
+        const emptyState = document.getElementById('empty-state');
+
+        postsList.innerHTML = renderPost(post, true);
+        emptyState.style.display = 'none';
+
+        // Actualizar título con botón de volver
+        document.getElementById('section-title').innerHTML = `
+          <span style="display: flex; align-items: center; gap: 12px;">
+            <button onclick="volverALista()" style="background: rgba(212,175,55,0.2); border: 1px solid rgba(212,175,55,0.3); color: #D4AF37; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Volver
+            </button>
+            <span>📌 ${escapeHtml(post.titulo)}</span>
+          </span>
+        `;
+
+        // Scroll al post
+        postsList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (error) {
+        console.error('Error expandiendo post:', error);
       }
-      
-      currentFilter = 'hilo';
-      
-      // Ocultar sección de escorts en vista de hilo único
-      document.getElementById('escort-posts-section').style.display = 'none';
-      
-      // Mostrar post expandido
-      const postsList = document.getElementById('posts-list');
-      const emptyState = document.getElementById('empty-state');
-      
-      postsList.innerHTML = renderPost(post, true); // true = expandido
-      emptyState.style.display = 'none';
-      
-      // Actualizar título con botón de volver
-      document.getElementById('section-title').innerHTML = `
-        <span style="display: flex; align-items: center; gap: 12px;">
-          <button onclick="volverALista()" style="background: rgba(212,175,55,0.2); border: 1px solid rgba(212,175,55,0.3); color: #D4AF37; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-            Volver
-          </button>
-          <span>📌 ${escapeHtml(post.titulo)}</span>
-        </span>
-      `;
-      
-      // Scroll al post
-      postsList.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     
     // Volver a la lista de posts
@@ -2497,8 +2443,8 @@
       loadPosts(categoria);
     }
 
-    function updateCategoryCounts() {
-      const posts = JSON.parse(localStorage.getItem('salaOscuraPosts') || '[]');
+    async function updateCategoryCounts() {
+      const posts = await DataService.getSalaOscuraThreads();
       
       const counts = {
         general: posts.filter(p => p.categoria === 'general').length,
@@ -2661,21 +2607,23 @@
     // ========================================
     // RESPUESTAS Y LIKES
     // ========================================
-    function abrirResponder(postId) {
+    async function abrirResponder(postId) {
       if (!currentUser) {
         alert('Debes iniciar sesión para responder.');
         openModal('login');
         return;
       }
-      
+
       // Verificar si el post es de Zona Clientas
-      const posts = JSON.parse(localStorage.getItem('salaOscuraPosts') || '[]');
-      const post = posts.find(p => p.id === postId);
-      if (post && post.categoria === 'zonaclientas' && currentUser.tipo !== 'escort') {
-        alert('⚠️ Acceso restringido\n\nSolo las Escorts pueden responder en Zona Clientas.');
-        return;
-      }
-      
+      try {
+        const posts = await DataService.getSalaOscuraThreads();
+        const post = posts.find(p => p.id === postId);
+        if (post && post.categoria === 'zonaclientas' && currentUser.tipo !== 'escort') {
+          alert('⚠️ Acceso restringido\n\nSolo las Escorts pueden responder en Zona Clientas.');
+          return;
+        }
+      } catch {}
+
       document.getElementById('reply-post-id').value = postId;
       openModal('reply');
     }
@@ -2776,42 +2724,22 @@
     let selectedMentionIndex = -1;
     let mentionableUsers = [];
 
-    // Obtener todos los usuarios mencionables (clientas aprobadas)
-    function getMentionableUsers() {
+    // Obtener todos los usuarios mencionables (perfiles aprobados)
+    // Cache local para evitar llamadas repetidas durante la misma sesión
+    let _mentionableUsersCache = null;
+    let _mentionableUsersCacheTime = 0;
+
+    async function getMentionableUsers() {
+      const now = Date.now();
+      if (_mentionableUsersCache && (now - _mentionableUsersCacheTime) < 30000) {
+        return _mentionableUsersCache;
+      }
+
       const users = [];
-      
-      // Obtener de approvedUsers (clientas aprobadas)
-      const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
-      approvedUsers.forEach(u => {
-        if (u.status === 'aprobado') {
-          users.push({
-            id: u.id,
-            email: u.email,
-            name: u.displayName || u.artisticName || u.name || 'Clienta',
-            type: 'clienta',
-            avatar: u.avatar || null
-          });
-        }
-      });
-      
-      // También de pendingRegistros con status aprobado (escorts)
-      const pendingRegistros = JSON.parse(localStorage.getItem('pendingRegistros') || '[]');
-      pendingRegistros.forEach(e => {
-        if (e.status === 'aprobado' && !users.find(u => u.email === e.email)) {
-          users.push({
-            id: e.id,
-            email: e.email,
-            name: e.displayName || e.artisticName || e.name || 'Escort',
-            type: 'escort',
-            avatar: e.avatar || null
-          });
-        }
-      });
-      
-      // También de approvedProfiles
-      const approvedProfiles = JSON.parse(localStorage.getItem('approvedProfiles') || '[]');
-      approvedProfiles.forEach(p => {
-        if (!users.find(u => u.email === p.email)) {
+      try {
+        // Obtener perfiles aprobados desde AWS
+        const approvedProfiles = await DataService.getApprovedProfiles();
+        approvedProfiles.forEach(p => {
           users.push({
             id: p.id,
             email: p.email,
@@ -2819,9 +2747,11 @@
             type: 'perfil',
             avatar: p.avatar || null
           });
-        }
-      });
-      
+        });
+      } catch {}
+
+      _mentionableUsersCache = users;
+      _mentionableUsersCacheTime = now;
       return users;
     }
 
@@ -2861,8 +2791,8 @@
       hideMentionAutocomplete(autocomplete);
     }
 
-    function showMentionAutocomplete(searchTerm, textarea, autocomplete) {
-      mentionableUsers = getMentionableUsers();
+    async function showMentionAutocomplete(searchTerm, textarea, autocomplete) {
+      mentionableUsers = await getMentionableUsers();
       
       const filtered = mentionableUsers.filter(u => 
         u.name.toLowerCase().includes(searchTerm)
@@ -2957,9 +2887,9 @@
       hideMentionAutocomplete(autocomplete);
     }
 
-    // Convertir menciones @ en links clickeables
+    // Convertir menciones @ en links clickeables (usa caché sync)
     function processMentions(text) {
-      const users = getMentionableUsers();
+      const users = _mentionableUsersCache || [];
       let processedText = escapeHtml(text);
       
       // Buscar todas las menciones @nombre
@@ -2979,22 +2909,24 @@
     }
 
     // Navegar al perfil de la clienta mencionada
-    function goToProfile(email) {
-      // Buscar en approvedUsers
-      const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
-      const user = approvedUsers.find(u => u.email === email);
-      
-      if (user && user.id) {
-        // Redirigir a la página principal con el perfil
-        window.location.href = `home?profile=${user.id}`;
-      } else {
-        alert('Perfil no encontrado');
+    async function goToProfile(email) {
+      try {
+        const profiles = await DataService.getApprovedProfiles();
+        const user = profiles.find(u => u.email === email);
+
+        if (user && user.id) {
+          window.location.href = `home?profile=${user.id}`;
+        } else {
+          alert('Perfil no encontrado');
+        }
+      } catch {
+        alert('Error de conexión');
       }
     }
 
     // Extraer menciones de un texto y guardar notificaciones
-    function extractAndSaveMentions(text, postId, postTitle, autorNombre) {
-      const users = getMentionableUsers();
+    async function extractAndSaveMentions(text, postId, postTitle, autorNombre) {
+      const users = await getMentionableUsers();
       const mentionRegex = /@(\w+(?:\s\w+)*)/g;
       let match;
       

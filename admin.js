@@ -10,10 +10,13 @@ async function loadAdminPassword() {
   try {
     const response = await fetch(`${CONFIG.getApiUrl()}/config/adminPassword`);
     const data = await response.json();
-    ADMIN_PASSWORD = data.value || 'admin2026'; // fallback inicial
+    ADMIN_PASSWORD = data.value || null;
+    if (!ADMIN_PASSWORD) {
+      console.error('Clave admin no configurada en AWS');
+    }
   } catch (error) {
     console.error('Error cargando clave admin:', error);
-    ADMIN_PASSWORD = 'admin2026'; // fallback si falla
+    ADMIN_PASSWORD = null;
   }
 }
 
@@ -1086,7 +1089,6 @@ publicacionForm.addEventListener('submit', async (e) => {
       createdAt: Date.now()
     };
     publicacionesCreadas.push(newProfile);
-    publicacionesPendientes.push(newProfile);
     showFormMessage('Perfil creado y enviado para aprobación', 'success');
   }
 
@@ -1598,10 +1600,6 @@ window.rejectPlanRequest = async function(requestId) {
   renderRenovaciones();
   updateRenovacionesBadge();
 };
-
-// Mantener compatibilidad con funciones anteriores
-window.approveRenovacion = window.approvePlanRequest;
-window.rejectRenovacion = window.rejectPlanRequest;
 
 // ============================================
 // BADGE DE REGISTROS PENDIENTES
@@ -2860,12 +2858,12 @@ if (codeTypeSelect) {
 // ========================================
 
 const DEFAULT_BANK_DATA = {
-  bankName: 'Banco Estado',
-  accountType: 'Cuenta Corriente',
-  accountNumber: '1234567890',
-  rut: '12.345.678-9',
-  holder: 'Luxury Services SpA',
-  email: 'pagos@luxury.cl'
+  bankName: '',
+  accountType: '',
+  accountNumber: '',
+  rut: '',
+  holder: '',
+  email: ''
 };
 
 const DEFAULT_PAYMENT_OPTIONS = {
