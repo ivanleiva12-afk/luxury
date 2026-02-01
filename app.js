@@ -1357,9 +1357,6 @@ window.refreshCarouselsWithFilter = function(filters) {
       }
       return true;
     });
-    
-    // Placeholder para perfiles sin foto
-    const defaultPlaceholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiMxYTFhMmUiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjYwIiBmaWxsPSIjMzMzMzRkIi8+PHBhdGggZD0iTTEwMCAzNTBDMTAwIDI4MCAxNDAgMjMwIDIwMCAyMzBDMjYwIDIzMCAzMDAgMjgwIDMwMCAzNTAiIGZpbGw9IiMzMzMzNGQiLz48dGV4dCB4PSIyMDAiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY2NiIgZm9udC1zaXplPSIxNCI+U2luIGZvdG88L3RleHQ+PC9zdmc+';
 
     // Crear modal HTML
     const serviceNames = {
@@ -1413,8 +1410,8 @@ window.refreshCarouselsWithFilter = function(filters) {
           <div class="vip-modal-inner">
             <!-- Galería Izquierda -->
             <div class="modal-gallery-section">
-              <img class="modal-main-image" src="${profile.profilePhotosData && profile.profilePhotosData.length > 0 ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) : (profile.profilePhoto || profile.avatar || defaultPlaceholder)}" alt="${profile.displayName}" id="modal-main-img" style="${profile.profileVideosData && profile.profileVideosData.length > 0 ? '' : ''}" />
-              <video class="modal-main-video" id="modal-main-video" controls playsinline style="display:none; width:100%; max-height:600px; object-fit:contain; border-radius:16px; background:#000;"></video>
+              <img class="modal-main-image" src="${profile.profilePhotosData && profile.profilePhotosData.length > 0 ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) : (profile.profilePhoto || profile.avatar || '')}" alt="${profile.displayName}" id="modal-main-img" />
+              <video class="modal-main-video" id="modal-main-video" controls playsinline style="display:none; width:100%; height:100%; object-fit:contain; background:#000;"></video>
 
               <div class="modal-media-counter">
                 <span id="modal-counter">1</span> / ${(profile.profilePhotosData?.length || 0) + (profile.profileVideosData?.length || 0) || profile.photos || 1}
@@ -1435,7 +1432,7 @@ window.refreshCarouselsWithFilter = function(filters) {
                     </div>
                   `).join('')
                   : `<div class="modal-thumbnail active" data-index="0" data-type="photo">
-                      <img src="${profile.profilePhoto || profile.avatar || defaultPlaceholder}" alt="Foto 1" />
+                      <img src="${profile.profilePhoto || profile.avatar || ''}" alt="Foto 1" />
                     </div>`
                 }
                 ${profile.profileVideosData && profile.profileVideosData.length > 0
@@ -1777,7 +1774,7 @@ window.refreshCarouselsWithFilter = function(filters) {
         allMedia.push({ type: 'photo', src: photo.url || photo.base64 || photo });
       });
     } else {
-      allMedia.push({ type: 'photo', src: profile.profilePhoto || profile.avatar || defaultPlaceholder });
+      allMedia.push({ type: 'photo', src: profile.profilePhoto || profile.avatar || '' });
     }
     if (profile.profileVideosData && profile.profileVideosData.length > 0) {
       profile.profileVideosData.forEach(video => {
@@ -1889,16 +1886,13 @@ window.refreshCarouselsWithFilter = function(filters) {
     return;
   }
 
-  // Placeholder para perfiles sin foto
-  const defaultPlaceholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiMxYTFhMmUiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjYwIiBmaWxsPSIjMzMzMzRkIi8+PHBhdGggZD0iTTEwMCAzNTBDMTAwIDI4MCAxNDAgMjMwIDIwMCAyMzBDMjYwIDIzMCAzMDAgMjgwIDMwMCAzNTAiIGZpbGw9IiMzMzMzNGQiLz48dGV4dCB4PSIyMDAiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY2NiIgZm9udC1zaXplPSIxNCI+U2luIGZvdG88L3RleHQ+PC9zdmc+';
-
   // Renderizar tarjetas
   const renderCards = () => {
     carousel.innerHTML = featuredProfiles.map((car, index) => {
       // Usar foto real del perfil o placeholder
       const imgSrc = (car.profilePhotosData && car.profilePhotosData.length > 0) 
         ? (car.profilePhotosData[0].url || car.profilePhotosData[0].base64 || car.profilePhotosData[0]) 
-        : (car.avatar || car.profilePhoto || defaultPlaceholder);
+        : (car.avatar || car.profilePhoto || '');
       return `
         <div class="featured-card vip-card" data-index="${index}" data-profile-id="${car.id}">
           <div class="featured-card-inner vip-card-inner">
@@ -2995,7 +2989,6 @@ function createSkeletonCard() {
   const carousel = document.getElementById('creators-carousel');
   const prevBtn = document.getElementById('creators-prev');
   const nextBtn = document.getElementById('creators-next');
-  const defaultPlaceholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiMxYTFhMmUiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjYwIiBmaWxsPSIjMzMzMzRkIi8+PHBhdGggZD0iTTEwMCAzNTBDMTAwIDI4MCAxNDAgMjMwIDIwMCAyMzBDMjYwIDIzMCAzMDAgMjgwIDMwMCAzNTAiIGZpbGw9IiMzMzMzNGQiLz48dGV4dCB4PSIyMDAiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY2NiIgZm9udC1zaXplPSIxNCI+U2luIGZvdG88L3RleHQ+PC9zdmc+';
 
   if (!carousel) {
     return;
@@ -3072,7 +3065,7 @@ function createSkeletonCard() {
 
     // Imagen de portada que ocupa toda la tarjeta
     const coverImage = document.createElement('img');
-    coverImage.src = creator.avatar || defaultPlaceholder;
+    coverImage.src = creator.avatar || '';
     coverImage.alt = creator.name;
     coverImage.className = 'creator-cover-image';
     
@@ -3292,7 +3285,6 @@ function createSkeletonCard() {
   const carousel = document.getElementById('premium-select-carousel');
   const prevBtn = document.getElementById('premium-select-prev');
   const nextBtn = document.getElementById('premium-select-next');
-  const defaultPlaceholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiMxYTFhMmUiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjYwIiBmaWxsPSIjMzMzMzRkIi8+PHBhdGggZD0iTTEwMCAzNTBDMTAwIDI4MCAxNDAgMjMwIDIwMCAyMzBDMjYwIDIzMCAzMDAgMjgwIDMwMCAzNTAiIGZpbGw9IiMzMzMzNGQiLz48dGV4dCB4PSIyMDAiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY2NiIgZm9udC1zaXplPSIxNCI+U2luIGZvdG88L3RleHQ+PC9zdmc+';
 
   if (!carousel) {
     // Si no existe el carrusel, no ejecutar esta función
@@ -3371,7 +3363,7 @@ function createSkeletonCard() {
 
     // Imagen de portada que ocupa toda la tarjeta
     const coverImage = document.createElement('img');
-    coverImage.src = creator.avatar || defaultPlaceholder;
+    coverImage.src = creator.avatar || '';
     coverImage.alt = creator.name;
     coverImage.className = 'premium-select-cover-image';
     
