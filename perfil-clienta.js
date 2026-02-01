@@ -734,8 +734,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else {
         grid.innerHTML = activeInstantes.map((instante, index) => {
           const createdDate = new Date(instante.createdAt);
-          const hoursAgo = Math.max(1, Math.floor((now - createdDate) / (1000 * 60 * 60)));
-          const timeText = hoursAgo < 24 ? `Hace ${hoursAgo}h` : 'Hace 24h+';
+          const minutesAgo = Math.floor((now - createdDate) / (1000 * 60));
+          const hoursAgo = Math.floor(minutesAgo / 60);
+          let timeText;
+          if (minutesAgo < 1) {
+            timeText = 'Hace un momento';
+          } else if (minutesAgo < 60) {
+            timeText = `Hace ${minutesAgo}min`;
+          } else if (hoursAgo < 24) {
+            timeText = `Hace ${hoursAgo}h`;
+          } else {
+            timeText = 'Hace 24h+';
+          }
           const isVideo = instante.mediaType === 'video';
           const mediaSrc = instante.image || instante.media || instante.src || '';
           const mediaHTML = isVideo
@@ -2551,22 +2561,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const closeModalRenew = document.getElementById('close-modal-renew');
   const formRenewPlan = document.getElementById('form-renew-plan');
 
-  // Obtener precios de los planes desde localStorage (configurados en admin)
+  // Obtener precios de los planes desde config (configurados en admin)
   async function getPlanPrices() {
-    const stored = await DataService.getConfig('luxuryPlans');
-    if (stored) {
-      const plans = JSON.parse(stored);
-      return {
-        'premium': plans.premium?.prices || { 7: 29990, 15: 54990, 30: 79990 },
-        'vip': plans.vip?.prices || { 7: 19990, 15: 34990, 30: 49990 },
-        'luxury': plans.luxury?.prices || { 7: 59990, 15: 99990, 30: 149990 }
-      };
-    }
-    // Precios por defecto si no hay configuración
+    const plans = await DataService.getConfig('luxuryPlans') || {};
     return {
-      'premium': { 7: 29990, 15: 54990, 30: 79990 },
-      'vip': { 7: 19990, 15: 34990, 30: 49990 },
-      'luxury': { 7: 59990, 15: 99990, 30: 149990 }
+      'premium': plans.premium?.prices || { 7: 29990, 15: 54990, 30: 79990 },
+      'vip': plans.vip?.prices || { 7: 19990, 15: 34990, 30: 49990 },
+      'luxury': plans.luxury?.prices || { 7: 59990, 15: 99990, 30: 149990 }
     };
   }
 

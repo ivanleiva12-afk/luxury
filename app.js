@@ -2708,8 +2708,16 @@ function createSkeletonCard() {
 
     // Calcular tiempo transcurrido
     const storyDate = new Date(story.createdAt);
-    const hoursAgo = Math.floor((Date.now() - storyDate) / (1000 * 60 * 60));
-    const timeText = hoursAgo < 1 ? 'Hace menos de 1h' : `Hace ${hoursAgo}h`;
+    const minutesAgo = Math.floor((Date.now() - storyDate) / (1000 * 60));
+    const hoursAgo = Math.floor(minutesAgo / 60);
+    let timeText;
+    if (minutesAgo < 1) {
+      timeText = 'Hace un momento';
+    } else if (minutesAgo < 60) {
+      timeText = `Hace ${minutesAgo}min`;
+    } else {
+      timeText = `Hace ${hoursAgo}h`;
+    }
     document.getElementById('stories-user-time').textContent = timeText;
 
     // Renderizar contenido
@@ -2987,9 +2995,9 @@ function createSkeletonCard() {
   const carousel = document.getElementById('creators-carousel');
   const prevBtn = document.getElementById('creators-prev');
   const nextBtn = document.getElementById('creators-next');
+  const defaultPlaceholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiMxYTFhMmUiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjYwIiBmaWxsPSIjMzMzMzRkIi8+PHBhdGggZD0iTTEwMCAzNTBDMTAwIDI4MCAxNDAgMjMwIDIwMCAyMzBDMjYwIDIzMCAzMDAgMjgwIDMwMCAzNTAiIGZpbGw9IiMzMzMzNGQiLz48dGV4dCB4PSIyMDAiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY2NiIgZm9udC1zaXplPSIxNCI+U2luIGZvdG88L3RleHQ+PC9zdmc+';
 
   if (!carousel) {
-    // Si no existe el carrusel, no ejecutar esta función
     return;
   }
 
@@ -3064,7 +3072,7 @@ function createSkeletonCard() {
 
     // Imagen de portada que ocupa toda la tarjeta
     const coverImage = document.createElement('img');
-    coverImage.src = creator.avatar || '';
+    coverImage.src = creator.avatar || defaultPlaceholder;
     coverImage.alt = creator.name;
     coverImage.className = 'creator-cover-image';
     
@@ -3284,6 +3292,7 @@ function createSkeletonCard() {
   const carousel = document.getElementById('premium-select-carousel');
   const prevBtn = document.getElementById('premium-select-prev');
   const nextBtn = document.getElementById('premium-select-next');
+  const defaultPlaceholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiMxYTFhMmUiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjYwIiBmaWxsPSIjMzMzMzRkIi8+PHBhdGggZD0iTTEwMCAzNTBDMTAwIDI4MCAxNDAgMjMwIDIwMCAyMzBDMjYwIDIzMCAzMDAgMjgwIDMwMCAzNTAiIGZpbGw9IiMzMzMzNGQiLz48dGV4dCB4PSIyMDAiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY2NiIgZm9udC1zaXplPSIxNCI+U2luIGZvdG88L3RleHQ+PC9zdmc+';
 
   if (!carousel) {
     // Si no existe el carrusel, no ejecutar esta función
@@ -3362,7 +3371,7 @@ function createSkeletonCard() {
 
     // Imagen de portada que ocupa toda la tarjeta
     const coverImage = document.createElement('img');
-    coverImage.src = creator.avatar || '';
+    coverImage.src = creator.avatar || defaultPlaceholder;
     coverImage.alt = creator.name;
     coverImage.className = 'premium-select-cover-image';
     

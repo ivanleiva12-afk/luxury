@@ -466,6 +466,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 16px;
+  max-height: none;
 }
 
 .instante-card {
@@ -1195,7 +1196,7 @@
   right: 8px;
   font-size: 11px;
   font-style: italic;
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.12);
   font-family: "Playfair Display", serif;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   pointer-events: none;
@@ -1854,20 +1855,29 @@
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .instantes-header,
   .estados-header {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
   }
-  
+
   .btn-primary {
     justify-content: center;
   }
-  
+
   .videos-grid {
     grid-template-columns: 1fr;
+  }
+
+  .instantes-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .instante-card {
+    border-radius: 8px;
   }
 }
 
