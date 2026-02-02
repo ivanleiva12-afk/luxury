@@ -2055,12 +2055,22 @@
 .duration-option {
   display: flex;
   align-items: center;
-  padding: 12px;
+  justify-content: center;
+  padding: 12px 8px;
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   cursor: pointer;
   transition: all 300ms ease;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.duration-option span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
 }
 
 .duration-option:hover {
@@ -2075,6 +2085,52 @@
 
 .duration-option input[type="radio"] {
   accent-color: var(--gold);
+  flex-shrink: 0;
+}
+
+.duration-options {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 8px !important;
+}
+
+/* ========== SERVICIOS GRID FIX ========== */
+.services-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 8px !important;
+}
+
+.service-checkbox {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 10px 10px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+  cursor: pointer;
+  overflow: hidden !important;
+  min-width: 0 !important;
+}
+
+.service-checkbox input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.service-checkbox span {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 12px !important;
+  min-width: 0;
+}
+
+.service-checkbox:has(input:checked) {
+  border-color: var(--gold) !important;
+  background: rgba(212, 175, 55, 0.1) !important;
 }
 
 /* ========== SECCIÓN MENCIONES ========== */

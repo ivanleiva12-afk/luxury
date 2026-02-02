@@ -1582,40 +1582,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         const w = canvas.width;
         const h = canvas.height;
 
-        // Marca de agua diagonal repetitiva
+        // Marca de agua diagonal repetitiva (sutil)
         ctx.save();
-        ctx.globalAlpha = 0.18;
-        ctx.font = `bold ${Math.max(20, Math.round(w / 22))}px "Playfair Display", serif`;
+        ctx.globalAlpha = 0.07;
+        ctx.font = `bold ${Math.max(18, Math.round(w / 28))}px "Playfair Display", serif`;
         ctx.fillStyle = '#FFFFFF';
-        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-        ctx.lineWidth = 1;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.shadowColor = 'rgba(0,0,0,0.4)';
-        ctx.shadowBlur = 3;
         ctx.translate(w / 2, h / 2);
         ctx.rotate(-Math.PI / 6);
-        const spacing = Math.max(80, Math.round(w / 6));
+        const spacing = Math.max(140, Math.round(w / 3.5));
         for (let y = -h; y < h * 2; y += spacing) {
-          for (let x = -w; x < w * 2; x += spacing * 1.8) {
+          for (let x = -w; x < w * 2; x += spacing * 2) {
             ctx.fillText('SalaOscura', x, y);
-            ctx.strokeText('SalaOscura', x, y);
           }
         }
-        ctx.restore();
-
-        // Marca de agua esquina inferior derecha
-        ctx.save();
-        ctx.globalAlpha = 0.35;
-        ctx.font = `italic ${Math.max(14, Math.round(w / 35))}px "Playfair Display", serif`;
-        ctx.fillStyle = '#D4AF37';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'bottom';
-        ctx.shadowColor = 'rgba(0,0,0,0.7)';
-        ctx.shadowBlur = 6;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
-        ctx.fillText('SalaOscura', w - 15, h - 15);
         ctx.restore();
 
         canvas.toBlob(blob => {
@@ -1643,40 +1624,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         const w = canvas.width;
         const h = canvas.height;
 
-        // Marca de agua diagonal repetitiva
+        // Marca de agua diagonal repetitiva (sutil)
         ctx.save();
-        ctx.globalAlpha = 0.18;
-        ctx.font = `bold ${Math.max(20, Math.round(w / 22))}px "Playfair Display", serif`;
+        ctx.globalAlpha = 0.07;
+        ctx.font = `bold ${Math.max(18, Math.round(w / 28))}px "Playfair Display", serif`;
         ctx.fillStyle = '#FFFFFF';
-        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-        ctx.lineWidth = 1;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.shadowColor = 'rgba(0,0,0,0.4)';
-        ctx.shadowBlur = 3;
         ctx.translate(w / 2, h / 2);
         ctx.rotate(-Math.PI / 6);
-        const spacing = Math.max(80, Math.round(w / 6));
+        const spacing = Math.max(140, Math.round(w / 3.5));
         for (let y = -h; y < h * 2; y += spacing) {
-          for (let x = -w; x < w * 2; x += spacing * 1.8) {
+          for (let x = -w; x < w * 2; x += spacing * 2) {
             ctx.fillText('SalaOscura', x, y);
-            ctx.strokeText('SalaOscura', x, y);
           }
         }
-        ctx.restore();
-
-        // Marca de agua esquina inferior derecha
-        ctx.save();
-        ctx.globalAlpha = 0.35;
-        ctx.font = `italic ${Math.max(14, Math.round(w / 35))}px "Playfair Display", serif`;
-        ctx.fillStyle = '#D4AF37';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'bottom';
-        ctx.shadowColor = 'rgba(0,0,0,0.7)';
-        ctx.shadowBlur = 6;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
-        ctx.fillText('SalaOscura', w - 15, h - 15);
         ctx.restore();
 
         canvas.toBlob(blob => {
@@ -2086,48 +2048,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     editorCtx.save();
     
-    // Marca de agua más visible con sombra
-    editorCtx.globalAlpha = 0.18; // Más visible
-    editorCtx.font = 'bold 28px "Playfair Display", serif';
+    // Marca de agua diagonal sutil
+    editorCtx.globalAlpha = 0.07;
+    editorCtx.font = 'bold 22px "Playfair Display", serif';
     editorCtx.fillStyle = '#FFFFFF';
-    editorCtx.strokeStyle = 'rgba(0,0,0,0.3)';
-    editorCtx.lineWidth = 1;
     editorCtx.textAlign = 'center';
     editorCtx.textBaseline = 'middle';
-    editorCtx.shadowColor = 'rgba(0,0,0,0.4)';
-    editorCtx.shadowBlur = 3;
-    editorCtx.shadowOffsetX = 1;
-    editorCtx.shadowOffsetY = 1;
-    
+
     // Rotación diagonal
     editorCtx.translate(width / 2, height / 2);
-    editorCtx.rotate(-Math.PI / 6); // -30 grados
-    
-    // Patrón repetitivo más visible
+    editorCtx.rotate(-Math.PI / 6);
+
     const text = 'SalaOscura';
-    const spacing = 100;
-    
+    const spacing = 160;
+
     for (let y = -height; y < height * 2; y += spacing) {
-      for (let x = -width; x < width * 2; x += spacing * 1.8) {
+      for (let x = -width; x < width * 2; x += spacing * 2) {
         editorCtx.fillText(text, x, y);
-        editorCtx.strokeText(text, x, y);
       }
     }
-    
-    editorCtx.restore();
-    
-    // Marca de agua en esquina (más visible y elegante)
-    editorCtx.save();
-    editorCtx.globalAlpha = 0.35;
-    editorCtx.font = 'italic 18px "Playfair Display", serif';
-    editorCtx.fillStyle = '#D4AF37';
-    editorCtx.textAlign = 'right';
-    editorCtx.textBaseline = 'bottom';
-    editorCtx.shadowColor = 'rgba(0,0,0,0.7)';
-    editorCtx.shadowBlur = 6;
-    editorCtx.shadowOffsetX = 2;
-    editorCtx.shadowOffsetY = 2;
-    editorCtx.fillText('SalaOscura', width - 15, height - 15);
+
     editorCtx.restore();
   }
 
