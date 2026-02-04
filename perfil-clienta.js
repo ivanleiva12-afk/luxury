@@ -1583,18 +1583,20 @@ document.addEventListener('DOMContentLoaded', async () => {
           const w = canvas.width;
           const h = canvas.height;
 
-          // Marca de agua diagonal repetitiva (sutil)
+          // Marca de agua diagonal repetitiva (dorada sutil)
           ctx.save();
-          ctx.globalAlpha = 0.07;
-          ctx.font = `bold ${Math.max(18, Math.round(w / 28))}px "Playfair Display", serif`;
-          ctx.fillStyle = '#FFFFFF';
+          ctx.globalAlpha = 0.15;
+          ctx.font = `bold ${Math.max(20, Math.round(w / 25))}px "Playfair Display", serif`;
+          ctx.fillStyle = '#D4AF37';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+          ctx.shadowBlur = 2;
           ctx.translate(w / 2, h / 2);
           ctx.rotate(-Math.PI / 6);
-          const spacing = Math.max(140, Math.round(w / 3.5));
+          const spacing = Math.max(120, Math.round(w / 4));
           for (let y = -h; y < h * 2; y += spacing) {
-            for (let x = -w; x < w * 2; x += spacing * 2) {
+            for (let x = -w; x < w * 2; x += spacing * 1.8) {
               ctx.fillText('SalaOscura', x, y);
             }
           }
@@ -1628,18 +1630,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         const w = canvas.width;
         const h = canvas.height;
 
-        // Marca de agua diagonal repetitiva (sutil)
+        // Marca de agua diagonal repetitiva (dorada sutil)
         ctx.save();
-        ctx.globalAlpha = 0.07;
-        ctx.font = `bold ${Math.max(18, Math.round(w / 28))}px "Playfair Display", serif`;
-        ctx.fillStyle = '#FFFFFF';
+        ctx.globalAlpha = 0.15;
+        ctx.font = `bold ${Math.max(20, Math.round(w / 25))}px "Playfair Display", serif`;
+        ctx.fillStyle = '#D4AF37';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 2;
         ctx.translate(w / 2, h / 2);
         ctx.rotate(-Math.PI / 6);
-        const spacing = Math.max(140, Math.round(w / 3.5));
+        const spacing = Math.max(120, Math.round(w / 4));
         for (let y = -h; y < h * 2; y += spacing) {
-          for (let x = -w; x < w * 2; x += spacing * 2) {
+          for (let x = -w; x < w * 2; x += spacing * 1.8) {
             ctx.fillText('SalaOscura', x, y);
           }
         }
@@ -1908,8 +1912,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       modalEditor.style.display = 'none';
     };
 
-    // Necesario para evitar "tainted canvas" con imágenes de S3
-    img.crossOrigin = 'anonymous';
+    // Solo usar crossOrigin para URLs externas, no para data URLs
+    if (imageData && !imageData.startsWith('data:')) {
+      img.crossOrigin = 'anonymous';
+    }
     img.src = imageData;
   }
 
@@ -2045,28 +2051,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function drawWatermark() {
     if (!editorCtx || !editorCanvas) return;
-    
+
     const width = editorCanvas.width;
     const height = editorCanvas.height;
-    
+
     editorCtx.save();
-    
-    // Marca de agua diagonal sutil
-    editorCtx.globalAlpha = 0.07;
-    editorCtx.font = 'bold 22px "Playfair Display", serif';
-    editorCtx.fillStyle = '#FFFFFF';
+
+    // Marca de agua diagonal dorada
+    editorCtx.globalAlpha = 0.15;
+    editorCtx.font = 'bold 24px "Playfair Display", serif';
+    editorCtx.fillStyle = '#D4AF37';
     editorCtx.textAlign = 'center';
     editorCtx.textBaseline = 'middle';
+    editorCtx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    editorCtx.shadowBlur = 2;
 
     // Rotación diagonal
     editorCtx.translate(width / 2, height / 2);
     editorCtx.rotate(-Math.PI / 6);
 
     const text = 'SalaOscura';
-    const spacing = 160;
+    const spacing = 120;
 
     for (let y = -height; y < height * 2; y += spacing) {
-      for (let x = -width; x < width * 2; x += spacing * 2) {
+      for (let x = -width; x < width * 2; x += spacing * 1.8) {
         editorCtx.fillText(text, x, y);
       }
     }
