@@ -3674,8 +3674,8 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
 @media (max-width: 768px) {
   .vip-modal-container {
     grid-template-columns: 1fr;
-    width: 94vw;
-    max-width: 440px;
+    width: 96vw;
+    max-width: 500px;
     height: auto;
     max-height: none;
     padding: 0;
@@ -3684,23 +3684,23 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
     border: 1px solid rgba(212, 175, 55, 0.3);
     border-radius: 16px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
-    animation: modalIn 400ms ease forwards;
-    transform: scale(0.95);
+    animation: none;
+    transform: none;
   }
 
   .vip-modal-overlay {
-    padding: 15px;
+    padding: 10px;
     align-items: flex-start;
-    padding-top: 20px;
+    padding-top: 15px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 
   .modal-gallery-section {
     width: 100%;
-    height: 60vh;
-    min-height: 320px;
-    max-height: 500px;
+    height: 65vh;
+    min-height: 350px;
+    max-height: 550px;
     border-radius: 16px 16px 0 0;
     overflow: hidden;
     position: relative;
@@ -3710,8 +3710,8 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   .modal-main-image {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    object-position: center top;
+    object-fit: contain;
+    object-position: center;
     display: block;
   }
 

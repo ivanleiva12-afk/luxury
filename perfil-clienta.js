@@ -1481,44 +1481,54 @@ document.addEventListener('DOMContentLoaded', async () => {
     let userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
     const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
 
-    // Si no hay fotos en localStorage, cargar desde perfil aprobado o registro inicial
-    if (userPhotos.length === 0) {
-      let photosSource = currentUser.profilePhotosData || [];
+    // Siempre intentar sincronizar desde AWS para obtener fotos actualizadas
+    try {
+      const profileData = await DataService.getProfileById(`profile-${currentUser.id}`);
+      if (profileData?.profilePhotosData?.length > 0) {
+        const awsPhotos = profileData.profilePhotosData;
+        const localPhotoKeys = new Set(userPhotos.map(p => p.key || p.url).filter(Boolean));
 
-      // Si currentUser no tiene fotos, intentar desde el perfil aprobado en AWS
-      if (photosSource.length === 0) {
-        try {
-          const profileData = await DataService.getProfileById(`profile-${currentUser.id}`);
-          if (profileData?.profilePhotosData?.length > 0) {
-            photosSource = profileData.profilePhotosData;
-          }
-        } catch (e) { /* ignore */ }
-      }
-
-      if (photosSource.length > 0) {
-        const uniquePhotos = [];
-        const seen = new Set();
-        photosSource.forEach((photo, index) => {
-          // Soportar tanto URLs de S3 como base64 legacy
-          const src = photo.url || photo.base64;
-          // Usar index como parte del key para evitar deduplicación incorrecta
-          const photoKey = photo.key || photo.url || `photo_${index}_${photo.base64?.substring(0, 50)}`;
-          if (src && !seen.has(photoKey)) {
-            seen.add(photoKey);
-            uniquePhotos.push({
-              id: `verification_photo_${index}_${Date.now() + index}`,
+        // Agregar fotos de AWS que no están en localStorage
+        awsPhotos.forEach((photo, index) => {
+          const photoKey = photo.key || photo.url;
+          if (photoKey && !localPhotoKeys.has(photoKey)) {
+            userPhotos.push({
+              id: `aws_photo_${index}_${Date.now() + index}`,
               url: photo.url || null,
               key: photo.key || null,
               data: photo.base64 || null,
-              createdAt: new Date().toISOString(),
+              createdAt: photo.createdAt || new Date().toISOString(),
               isVerificationPhoto: true,
-              watermarked: false
+              watermarked: photo.watermarked || false
             });
           }
         });
-        userPhotos = uniquePhotos;
         localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
       }
+    } catch (e) { /* ignore sync error */ }
+
+    // Si aún no hay fotos, cargar desde currentUser
+    if (userPhotos.length === 0 && currentUser.profilePhotosData?.length > 0) {
+      const uniquePhotos = [];
+      const seen = new Set();
+      currentUser.profilePhotosData.forEach((photo, index) => {
+        const src = photo.url || photo.base64;
+        const photoKey = photo.key || photo.url || `photo_${index}_${photo.base64?.substring(0, 50)}`;
+        if (src && !seen.has(photoKey)) {
+          seen.add(photoKey);
+          uniquePhotos.push({
+            id: `verification_photo_${index}_${Date.now() + index}`,
+            url: photo.url || null,
+            key: photo.key || null,
+            data: photo.base64 || null,
+            createdAt: new Date().toISOString(),
+            isVerificationPhoto: true,
+            watermarked: false
+          });
+        }
+      });
+      userPhotos = uniquePhotos;
+      localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
     }
 
     // Aplicar marca de agua a fotos de verificación que no la tienen
@@ -1594,7 +1604,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           ctx.shadowBlur = 2;
           ctx.translate(w / 2, h / 2);
           ctx.rotate(-Math.PI / 6);
-          const spacing = Math.max(120, Math.round(w / 4));
+          const spacing = Math.max(180, Math.round(w / 3));
           for (let y = -h; y < h * 2; y += spacing) {
             for (let x = -w; x < w * 2; x += spacing * 1.8) {
               ctx.fillText('SalaOscura', x, y);
@@ -1641,7 +1651,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         ctx.shadowBlur = 2;
         ctx.translate(w / 2, h / 2);
         ctx.rotate(-Math.PI / 6);
-        const spacing = Math.max(120, Math.round(w / 4));
+        const spacing = Math.max(180, Math.round(w / 3));
         for (let y = -h; y < h * 2; y += spacing) {
           for (let x = -w; x < w * 2; x += spacing * 1.8) {
             ctx.fillText('SalaOscura', x, y);
@@ -1845,8 +1855,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     
-    editorCtx = editorCanvas.getContext('2d');
-    
+    editorCtx = editorCanvas.getContext('2d', { willReadFrequently: true });
+
     // Agregar event listeners de canvas para blur drawing
     const handleMouseDown = (e) => {
       if (!isBlurToolActive) return;
@@ -2007,7 +2017,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = areaWidth;
     tempCanvas.height = areaHeight;
-    const tempCtx = tempCanvas.getContext('2d');
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
     
     // Copiar el área al canvas temporal
     tempCtx.drawImage(editorCanvas, startX, startY, areaWidth, areaHeight, 0, 0, areaWidth, areaHeight);
@@ -2071,7 +2081,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     editorCtx.rotate(-Math.PI / 6);
 
     const text = 'SalaOscura';
-    const spacing = 120;
+    const spacing = 180;
 
     for (let y = -height; y < height * 2; y += spacing) {
       for (let x = -width; x < width * 2; x += spacing * 1.8) {
