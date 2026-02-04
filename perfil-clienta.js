@@ -1571,41 +1571,46 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Función compartida para aplicar marca de agua a una imagen antes de subir
   function applyWatermarkToFile(file) {
     return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
 
-        const w = canvas.width;
-        const h = canvas.height;
+          const w = canvas.width;
+          const h = canvas.height;
 
-        // Marca de agua diagonal repetitiva (sutil)
-        ctx.save();
-        ctx.globalAlpha = 0.07;
-        ctx.font = `bold ${Math.max(18, Math.round(w / 28))}px "Playfair Display", serif`;
-        ctx.fillStyle = '#FFFFFF';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.translate(w / 2, h / 2);
-        ctx.rotate(-Math.PI / 6);
-        const spacing = Math.max(140, Math.round(w / 3.5));
-        for (let y = -h; y < h * 2; y += spacing) {
-          for (let x = -w; x < w * 2; x += spacing * 2) {
-            ctx.fillText('SalaOscura', x, y);
+          // Marca de agua diagonal repetitiva (sutil)
+          ctx.save();
+          ctx.globalAlpha = 0.07;
+          ctx.font = `bold ${Math.max(18, Math.round(w / 28))}px "Playfair Display", serif`;
+          ctx.fillStyle = '#FFFFFF';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.translate(w / 2, h / 2);
+          ctx.rotate(-Math.PI / 6);
+          const spacing = Math.max(140, Math.round(w / 3.5));
+          for (let y = -h; y < h * 2; y += spacing) {
+            for (let x = -w; x < w * 2; x += spacing * 2) {
+              ctx.fillText('SalaOscura', x, y);
+            }
           }
-        }
-        ctx.restore();
+          ctx.restore();
 
-        canvas.toBlob(blob => {
-          if (blob) resolve(blob);
-          else reject(new Error('Error generando imagen con marca de agua'));
-        }, 'image/jpeg', 0.92);
+          canvas.toBlob(blob => {
+            if (blob) resolve(blob);
+            else reject(new Error('Error generando imagen con marca de agua'));
+          }, 'image/jpeg', 0.92);
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
       };
-      img.onerror = reject;
-      img.src = URL.createObjectURL(file);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
     });
   }
 
@@ -1935,7 +1940,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   blurToolBtn?.addEventListener('click', () => {
     isBlurToolActive = !isBlurToolActive;
     blurToolBtn.classList.toggle('active', isBlurToolActive);
-    editorCanvas.style.cursor = isBlurToolActive ? 'crosshair' : 'default';
+    if (editorCanvas) {
+      editorCanvas.style.cursor = isBlurToolActive ? 'crosshair' : 'default';
+    }
   });
 
   blurSizeInput?.addEventListener('input', () => {
