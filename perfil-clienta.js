@@ -1414,10 +1414,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // Deshabilitar botones si se alcanzó el límite (usa contador 24h)
+    // 0 significa ilimitado, no "no permitido"
     const photosAtLimit = restrictions.photos !== 0 && userPhotos.length >= restrictions.photos;
-    const videosAtLimit = restrictions.videos === 0 || userVideos.length >= restrictions.videos;
-    const instantesAtLimit = restrictions.instantes === 0 || instantesCounter.count >= restrictions.instantes;
-    const estadosAtLimit = estadosCounterData.count >= restrictions.estados;
+    const videosAtLimit = restrictions.videos !== 0 && userVideos.length >= restrictions.videos;
+    const instantesAtLimit = restrictions.instantes !== 0 && instantesCounter.count >= restrictions.instantes;
+    const estadosAtLimit = restrictions.estados !== 0 && estadosCounterData.count >= restrictions.estados;
     
     if (addPhotoBtn) {
       addPhotoBtn.classList.toggle('disabled', photosAtLimit);
@@ -1427,11 +1428,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     if (addVideoBtn) {
       addVideoBtn.classList.toggle('disabled', videosAtLimit);
-      if (videosAtLimit) {
-        addVideoBtn.title = restrictions.videos === 0 ? 
-          'Tu plan no permite videos. Mejora tu plan.' : 
-          'Límite de videos alcanzado. Mejora tu plan para más videos.';
-      }
+      addVideoBtn.title = videosAtLimit ?
+        'Límite de videos alcanzado. Mejora tu plan para más videos.' :
+        'Agregar video';
     }
     
     // Deshabilitar botones de instantes y estados
@@ -1668,16 +1667,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   addVideoBtn?.addEventListener('click', async () => {
-    console.log('Click en agregar video');
     const restrictions = await getPlanRestrictions();
     const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
-    
-    if (restrictions.videos === 0) {
-      showToast(`Tu plan ${restrictions.planName} no permite videos. Mejora tu plan.`);
-      return;
-    }
-    
-    if (userVideos.length >= restrictions.videos) {
+
+    // 0 significa ilimitado
+    if (restrictions.videos !== 0 && userVideos.length >= restrictions.videos) {
       showToast(`Límite de ${restrictions.videos} videos alcanzado. Mejora tu plan.`);
       return;
     }
@@ -1913,7 +1907,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast('Error al cargar la imagen');
       modalEditor.style.display = 'none';
     };
-    
+
+    // Necesario para evitar "tainted canvas" con imágenes de S3
+    img.crossOrigin = 'anonymous';
     img.src = imageData;
   }
 

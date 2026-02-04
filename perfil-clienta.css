@@ -2054,9 +2054,11 @@
 /* Opciones de duración para upgrade/renovar */
 .duration-option {
   display: flex;
+  flex-direction: row-reverse;
   align-items: center;
   justify-content: center;
-  padding: 12px 8px;
+  gap: 8px;
+  padding: 12px 10px;
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
@@ -2069,6 +2071,7 @@
 .duration-option span {
   font-size: 13px;
   color: var(--text, #fff);
+  font-weight: 500;
 }
 
 .duration-option:hover {
@@ -2084,6 +2087,8 @@
 .duration-option input[type="radio"] {
   accent-color: var(--gold);
   flex-shrink: 0;
+  width: 18px;
+  height: 18px;
 }
 
 .duration-options {
