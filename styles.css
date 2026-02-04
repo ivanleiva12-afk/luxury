@@ -3672,71 +3672,93 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
 }
 
 @media (max-width: 768px) {
-  .vip-modal-container {
-    grid-template-columns: 1fr;
-    width: 96vw;
-    max-width: 500px;
-    height: auto;
-    max-height: none;
-    padding: 0;
-    overflow: visible;
-    background: #0a0a0a;
-    border: 1px solid rgba(212, 175, 55, 0.3);
-    border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
-    animation: none;
-    transform: none;
-  }
-
+  /* ===== MODAL VIP - MÓVIL COMPLETO ===== */
   .vip-modal-overlay {
-    padding: 10px;
-    align-items: flex-start;
-    padding-top: 15px;
-    overflow-y: auto;
+    padding: 0 !important;
+    align-items: flex-start !important;
+    overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
   }
 
+  .vip-modal-container {
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 100vh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    background: #0a0a0a !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .modal-close-button {
+    position: fixed !important;
+    top: 10px !important;
+    right: 10px !important;
+    z-index: 10001 !important;
+  }
+
+  .vip-modal-inner {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
   .modal-gallery-section {
-    width: 100%;
-    height: 65vh;
-    min-height: 350px;
-    max-height: 550px;
-    border-radius: 16px 16px 0 0;
-    overflow: hidden;
-    position: relative;
-    background: #000;
+    width: 100% !important;
+    height: 55vh !important;
+    min-height: 300px !important;
+    max-height: 450px !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
+    position: relative !important;
+    background: #000 !important;
+    flex-shrink: 0 !important;
   }
 
   .modal-main-image {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: center;
-    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    display: block !important;
   }
 
   .modal-main-video {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
   }
 
   .modal-thumbnails {
     gap: 6px;
-    padding: 8px;
+    padding: 8px 12px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.95), transparent) !important;
   }
 
   .modal-thumbnail {
     width: 50px;
     height: 50px;
+    min-width: 50px;
   }
-  
+
   .modal-info-section {
-    max-height: none;
-    padding: 16px;
-    overflow-y: visible;
+    width: 100% !important;
+    max-height: none !important;
+    padding: 16px !important;
+    overflow-y: visible !important;
+    background: #0a0a0a !important;
   }
-  
+
   .modal-profile-header {
     flex-direction: column;
     align-items: center;
@@ -3744,7 +3766,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
     gap: 8px;
     margin-bottom: 12px;
   }
-  
+
   .modal-profile-name {
     font-size: 20px;
   }
@@ -4568,45 +4590,12 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
 @media (max-width: 768px) {
   .modal-gallery-image {
     cursor: zoom-in;
-    position: relative;
   }
-  
-  .modal-gallery-image::after {
-    content: '🔍';
-    position: absolute;
-    bottom: 8px;
-    right: 8px;
-    background: rgba(0,0,0,0.6);
-    padding: 5px 8px;
-    border-radius: 4px;
-    font-size: 14px;
-    opacity: 0.8;
-  }
-  
+
   /* Imagen principal del modal expandible */
   .modal-main-image,
   #modal-main-img {
-    cursor: zoom-in !important;
-    position: relative;
-  }
-  
-  .modal-gallery-section {
-    position: relative;
-  }
-  
-  .modal-gallery-section::after {
-    content: 'Toca para ampliar 🔍';
-    position: absolute;
-    bottom: 60px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0,0,0,0.7);
-    color: #fff;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 12px;
-    pointer-events: none;
-    z-index: 20;
+    cursor: zoom-in;
   }
 }
 

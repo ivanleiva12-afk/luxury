@@ -1626,47 +1626,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Aplicar marca de agua a una imagen desde URL (para fotos de verificación existentes)
+  // NOTA: Sin CORS en S3, no podemos procesar imágenes de S3 con canvas
+  // Las fotos nuevas se procesan localmente antes de subir
   function applyWatermarkToUrl(imageUrl) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-
-        const w = canvas.width;
-        const h = canvas.height;
-
-        // Marca de agua diagonal repetitiva (dorada sutil)
-        ctx.save();
-        ctx.globalAlpha = 0.15;
-        ctx.font = `bold ${Math.max(20, Math.round(w / 25))}px "Playfair Display", serif`;
-        ctx.fillStyle = '#D4AF37';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        ctx.shadowBlur = 2;
-        ctx.translate(w / 2, h / 2);
-        ctx.rotate(-Math.PI / 6);
-        const spacing = Math.max(180, Math.round(w / 3));
-        for (let y = -h; y < h * 2; y += spacing) {
-          for (let x = -w; x < w * 2; x += spacing * 1.8) {
-            ctx.fillText('SalaOscura', x, y);
-          }
-        }
-        ctx.restore();
-
-        canvas.toBlob(blob => {
-          if (blob) resolve(blob);
-          else reject(new Error('Error generando imagen con marca de agua'));
-        }, 'image/jpeg', 0.92);
-      };
-      img.onerror = () => resolve(null); // No fallar si la imagen no carga
-      img.src = imageUrl;
-    });
+    // Si la imagen ya tiene marca de agua (_wm en el nombre), devolver null para usar URL original
+    if (imageUrl && (imageUrl.includes('_wm.') || imageUrl.includes('_wm_'))) {
+      return Promise.resolve(null);
+    }
+    // Para URLs de S3 sin CORS, no podemos aplicar watermark - devolver null
+    if (imageUrl && imageUrl.includes('s3.') && imageUrl.includes('amazonaws.com')) {
+      return Promise.resolve(null);
+    }
+    // Solo procesar data URLs o URLs locales
+    return Promise.resolve(null);
   }
 
   addPhotoBtn?.addEventListener('click', async () => {
@@ -1904,28 +1876,45 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       editorCanvas.width = width;
       editorCanvas.height = height;
-      
+
       // Dibujar imagen
       editorCtx.drawImage(img, 0, 0, width, height);
-      originalImageData = editorCtx.getImageData(0, 0, width, height);
-      
+
+      // Intentar obtener datos de imagen (puede fallar por CORS en imágenes de S3)
+      try {
+        originalImageData = editorCtx.getImageData(0, 0, width, height);
+        // Habilitar herramienta de difuminado
+        if (blurToolBtn) {
+          blurToolBtn.disabled = false;
+          blurToolBtn.style.opacity = '1';
+          blurToolBtn.title = 'Difuminar';
+        }
+      } catch (e) {
+        console.warn('No se puede acceder a datos de imagen (CORS). Difuminado deshabilitado.');
+        originalImageData = null;
+        // Deshabilitar herramienta de difuminado
+        if (blurToolBtn) {
+          blurToolBtn.disabled = true;
+          blurToolBtn.style.opacity = '0.5';
+          blurToolBtn.title = 'Difuminado no disponible para imágenes de servidor';
+        }
+      }
+
       // Aplicar marca de agua si está activada
       const previewWatermarkCheckbox = document.getElementById('preview-watermark');
       if (previewWatermarkCheckbox?.checked) {
         drawWatermark();
       }
     };
-    
+
     img.onerror = () => {
       console.error('Error al cargar la imagen en el editor');
       showToast('Error al cargar la imagen');
       modalEditor.style.display = 'none';
     };
 
-    // Solo usar crossOrigin para URLs externas, no para data URLs
-    if (imageData && !imageData.startsWith('data:')) {
-      img.crossOrigin = 'anonymous';
-    }
+    // NO usar crossOrigin para S3 ya que no tiene CORS configurado
+    // Esto permite cargar la imagen pero sin acceso a datos de pixeles
     img.src = imageData;
   }
 
@@ -1950,6 +1939,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   blurToolBtn?.addEventListener('click', () => {
+    // Verificar si hay datos de imagen disponibles
+    if (!originalImageData) {
+      showToast('Difuminado no disponible para esta imagen');
+      return;
+    }
     isBlurToolActive = !isBlurToolActive;
     blurToolBtn.classList.toggle('active', isBlurToolActive);
     if (editorCanvas) {
