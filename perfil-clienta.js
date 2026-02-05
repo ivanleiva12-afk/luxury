@@ -1485,23 +1485,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const profileData = await DataService.getProfileById(`profile-${currentUser.id}`);
 
+      // Obtener cantidad de fotos de verificación (las primeras 2 por defecto)
+      const verificationCount = profileData?.verificationPhotosCount ||
+                                currentUser?.verificationPhotosCount || 2;
+
       // Cargar fotos desde AWS (sin duplicados)
       if (profileData?.profilePhotosData?.length > 0) {
         const seen = new Set();
-        profileData.profilePhotosData.forEach((photo, index) => {
+        let photoIndex = 0;
+        profileData.profilePhotosData.forEach((photo) => {
           const photoKey = photo.key || photo.url;
           if (photoKey && !seen.has(photoKey)) {
             seen.add(photoKey);
-            const extractedId = photo.name?.replace('photo_', '') || `aws_${index}`;
+            const extractedId = photo.name?.replace('photo_', '') || `aws_${photoIndex}`;
+            // Las primeras N fotos son de verificación (no se pueden eliminar)
+            const isVerification = photoIndex < verificationCount;
             userPhotos.push({
               id: extractedId,
               url: photo.url || null,
               key: photo.key || null,
               data: null,
               createdAt: photo.createdAt || new Date().toISOString(),
-              isVerificationPhoto: false,
+              isVerificationPhoto: isVerification,
               watermarked: true
             });
+            photoIndex++;
           }
         });
       }

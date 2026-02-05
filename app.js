@@ -1411,7 +1411,10 @@ window.refreshCarouselsWithFilter = function(filters) {
             <!-- Galería Izquierda -->
             <div class="modal-gallery-section">
               <img class="modal-main-image" src="${profile.profilePhotosData && profile.profilePhotosData.length > 0 ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) : (profile.profilePhoto || profile.avatar || '')}" alt="${profile.displayName}" id="modal-main-img" />
-              <video class="modal-main-video" id="modal-main-video" controls playsinline style="display:none; width:100%; height:100%; object-fit:contain; background:#000;"></video>
+              <div class="modal-video-container" id="modal-video-container" style="display:none; position:relative; width:100%; height:100%;">
+                <video class="modal-main-video" id="modal-main-video" controls playsinline style="width:100%; height:100%; object-fit:contain; background:#000;"></video>
+                <div class="video-watermark" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); pointer-events:none; z-index:10; font-family:'Playfair Display',serif; font-size:28px; font-weight:bold; color:rgba(212,175,55,0.4); text-shadow:2px 2px 4px rgba(0,0,0,0.5); white-space:nowrap;">SALA NEGRA</div>
+              </div>
 
               <div class="modal-media-counter">
                 <span id="modal-counter">1</span> / ${(profile.profilePhotosData?.length || 0) + (profile.profileVideosData?.length || 0) || profile.photos || 1}
@@ -1798,18 +1801,19 @@ window.refreshCarouselsWithFilter = function(filters) {
     });
 
     // Navegación de galería con soporte para fotos y videos
+    const videoContainer = document.getElementById('modal-video-container');
     const updateGallery = (index) => {
       currentIndex = (index + totalMedia) % totalMedia;
       const media = allMedia[currentIndex];
 
       if (media.type === 'video') {
         mainImg.style.display = 'none';
-        mainVideo.style.display = 'block';
+        if (videoContainer) videoContainer.style.display = 'block';
         mainVideo.src = media.src;
         mainVideo.load();
       } else {
         mainVideo.pause();
-        mainVideo.style.display = 'none';
+        if (videoContainer) videoContainer.style.display = 'none';
         mainImg.style.display = 'block';
         mainImg.src = media.src;
       }
