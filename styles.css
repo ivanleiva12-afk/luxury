@@ -4582,10 +4582,10 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
 
   .creator-card,
   .premium-select-card {
-    aspect-ratio: 3/4 !important;
+    aspect-ratio: 2/3 !important; /* Más alto (20% más vertical) */
     height: auto !important;
-    min-height: 280px !important;
-    max-height: 400px !important;
+    min-height: 336px !important; /* 20% más alto */
+    max-height: 480px !important; /* 20% más alto */
     border-radius: 16px !important;
     overflow: hidden !important;
     position: relative !important;
@@ -4657,12 +4657,10 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
     margin-bottom: 4px !important;
   }
   
-  /* Título/descripción */
+  /* Ocultar título/descripción (Premium Select, VIP, etc) - info redundante */
   .creator-title,
   .premium-select-title-desc {
-    font-size: 12px !important;
-    color: rgba(255,255,255,0.8) !important;
-    margin-bottom: 8px !important;
+    display: none !important;
   }
   
   /* Stats */
@@ -4707,10 +4705,10 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   }
 
   .featured-card {
-    aspect-ratio: 3/4 !important;
+    aspect-ratio: 2/3 !important; /* Más alto (20% más vertical) */
     height: auto !important;
-    min-height: 280px !important;
-    max-height: 400px !important;
+    min-height: 336px !important; /* 20% más alto */
+    max-height: 480px !important; /* 20% más alto */
     border-radius: 16px !important;
     overflow: hidden !important;
     position: relative !important;
@@ -4736,6 +4734,12 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
     width: 100% !important;
     background: linear-gradient(to bottom, transparent 20%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.9) 100%) !important;
     z-index: 5 !important;
+  }
+
+  /* Ocultar título tipo perfil (Luxury, VIP, etc) - info redundante */
+  .featured-card-title,
+  .featured-card-subtitle {
+    display: none !important;
   }
 
   /* Ocultar navegación en móvil */
