@@ -1354,8 +1354,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Cargar fotos/videos existentes y límites
   let mediaAlreadyLoaded = false;
-  await loadMediaLimits();
-  loadSavedMedia();
+  await loadSavedMedia(); // Primero cargar fotos/videos (modifica localStorage)
+  await loadMediaLimits(); // Luego actualizar contadores (lee de localStorage)
   await updateDurationOptions(); // Actualizar opciones de duración según el plan
   await updatePlanInfoTexts(); // Actualizar info de plan en instantes y estados
   
@@ -1478,89 +1478,65 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    let userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
-    const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
+    // AWS es la fuente de verdad - siempre cargar desde la nube
+    let userPhotos = [];
+    let userVideos = [];
 
-    // Siempre intentar sincronizar desde AWS para obtener fotos actualizadas
     try {
       const profileData = await DataService.getProfileById(`profile-${currentUser.id}`);
-      if (profileData?.profilePhotosData?.length > 0) {
-        const awsPhotos = profileData.profilePhotosData;
-        const localPhotoKeys = new Set(userPhotos.map(p => p.key || p.url).filter(Boolean));
 
-        // Agregar fotos de AWS que no están en localStorage
-        awsPhotos.forEach((photo, index) => {
+      // Cargar fotos desde AWS (sin duplicados)
+      if (profileData?.profilePhotosData?.length > 0) {
+        const seen = new Set();
+        profileData.profilePhotosData.forEach((photo, index) => {
           const photoKey = photo.key || photo.url;
-          if (photoKey && !localPhotoKeys.has(photoKey)) {
+          if (photoKey && !seen.has(photoKey)) {
+            seen.add(photoKey);
+            const extractedId = photo.name?.replace('photo_', '') || `aws_${index}`;
             userPhotos.push({
-              id: `aws_photo_${index}_${Date.now() + index}`,
+              id: extractedId,
               url: photo.url || null,
               key: photo.key || null,
-              data: photo.base64 || null,
+              data: null,
               createdAt: photo.createdAt || new Date().toISOString(),
-              isVerificationPhoto: true,
-              watermarked: photo.watermarked || false
+              isVerificationPhoto: false,
+              watermarked: true
             });
           }
         });
-        localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
       }
-    } catch (e) { /* ignore sync error */ }
 
-    // Si aún no hay fotos, cargar desde currentUser
-    if (userPhotos.length === 0 && currentUser.profilePhotosData?.length > 0) {
-      const uniquePhotos = [];
-      const seen = new Set();
-      currentUser.profilePhotosData.forEach((photo, index) => {
-        const src = photo.url || photo.base64;
-        const photoKey = photo.key || photo.url || `photo_${index}_${photo.base64?.substring(0, 50)}`;
-        if (src && !seen.has(photoKey)) {
-          seen.add(photoKey);
-          uniquePhotos.push({
-            id: `verification_photo_${index}_${Date.now() + index}`,
-            url: photo.url || null,
-            key: photo.key || null,
-            data: photo.base64 || null,
-            createdAt: new Date().toISOString(),
-            isVerificationPhoto: true,
-            watermarked: false
-          });
-        }
-      });
-      userPhotos = uniquePhotos;
-      localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
-    }
-
-    // Aplicar marca de agua a fotos de verificación que no la tienen
-    let photosUpdated = false;
-    for (let i = 0; i < userPhotos.length; i++) {
-      const photo = userPhotos[i];
-      if (photo.isVerificationPhoto && !photo.watermarked) {
-        try {
-          const imgSrc = photo.url || photo.data;
-          if (!imgSrc) continue;
-          const watermarkedBlob = await applyWatermarkToUrl(imgSrc);
-          if (watermarkedBlob) {
-            const photoId = photo.id || Date.now().toString() + Math.random().toString(36).slice(2, 6);
-            const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
-              currentUser.id, `${photoId}_wm.jpg`, 'image/jpeg'
-            );
-            await DataService.uploadFileToS3(uploadUrl, watermarkedBlob, 'image/jpeg');
-            userPhotos[i] = { ...photo, url: publicUrl, key: key, watermarked: true };
-            photosUpdated = true;
+      // Cargar videos desde AWS (sin duplicados)
+      if (profileData?.profileVideosData?.length > 0) {
+        const seen = new Set();
+        profileData.profileVideosData.forEach((video, index) => {
+          const videoKey = video.key || video.url;
+          if (videoKey && !seen.has(videoKey)) {
+            seen.add(videoKey);
+            const extractedId = video.name?.replace('video_', '') || `aws_vid_${index}`;
+            userVideos.push({
+              id: extractedId,
+              url: video.url || null,
+              key: video.key || null,
+              data: null,
+              createdAt: video.createdAt || new Date().toISOString()
+            });
           }
-        } catch (e) {
-          console.warn('Error aplicando marca de agua a foto de verificación:', e);
-        }
+        });
       }
-    }
-    if (photosUpdated) {
+
+      // Actualizar localStorage como cache
       localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
-      // Sincronizar URLs actualizadas al perfil público
-      syncPhotoToProfiles().catch(() => {});
+      localStorage.setItem(`videos_${currentUser.id}`, JSON.stringify(userVideos));
+
+    } catch (e) {
+      console.warn('Error cargando desde AWS, usando cache local:', e);
+      // Fallback a localStorage solo si AWS falla
+      userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
+      userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
     }
 
-    // Cargar fotos (usar URL de S3 si existe, sino base64 legacy)
+    // Cargar fotos en el grid
     for (const photo of userPhotos) {
       const src = photo.url || photo.data;
       if (src) {
@@ -2289,19 +2265,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Construir array de fotos con URLs de S3 (no base64)
     const photosData = userPhotos.slice(0, 15).map(photo => ({
-      url: photo.url || photo.data, // URL de S3 o base64 legacy
+      url: photo.url || photo.data,
       key: photo.key || null,
-      name: `photo_${photo.id}`
+      name: `photo_${photo.id}`,
+      createdAt: photo.createdAt || new Date().toISOString()
     }));
 
     // Construir array de videos con URLs de S3
     const videosData = userVideos.slice(0, 10).map(video => ({
       url: video.url || video.data,
       key: video.key || null,
-      name: `video_${video.id}`
+      name: `video_${video.id}`,
+      createdAt: video.createdAt || new Date().toISOString()
     }));
 
-    // Actualizar SOLO el perfil del carrusel
+    // Actualizar perfil del carrusel Y también el avatar principal
     try {
       const profileId = `profile-${currentUser.id}`;
       const existingProfile = await DataService.getProfileById(profileId);
@@ -2310,10 +2288,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         existingProfile.photos = userPhotos.length;
         existingProfile.profileVideosData = videosData;
         existingProfile.videos = userVideos.length;
+        // También actualizar avatar para que las tarjetas usen la foto con marca de agua
+        if (photosData.length > 0 && photosData[0].url) {
+          existingProfile.avatar = photosData[0].url;
+          existingProfile.profilePhoto = photosData[0].url;
+        }
         await DataService.updateProfile(profileId, existingProfile);
+        console.log('✅ Perfil sincronizado con', photosData.length, 'fotos y', videosData.length, 'videos');
+      } else {
+        console.warn('⚠️ No se encontró perfil para sincronizar:', profileId);
       }
     } catch (err) {
-      console.error('Error sincronizando media:', err.message);
+      console.error('❌ Error sincronizando media:', err.message);
+      showToast('Error sincronizando fotos. Intenta de nuevo.');
     }
   }
 

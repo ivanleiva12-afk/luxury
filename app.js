@@ -4154,74 +4154,30 @@ window.addEventListener('DOMContentLoaded', () => {
 })();
 
 // ========================================
-// ESTILOS MÓVILES - Aplicar después de cargar
+// ESTILOS MÓVILES - Solo ocultar elementos innecesarios
+// (Los estilos de tamaño y posición están en CSS)
 // ========================================
 (function() {
   function applyMobileStyles() {
     if (window.innerWidth > 768) return;
-    
-    // Aplicar estilos a VIP Black (creators-grid)
-    const creatorsGrid = document.querySelector('.creators-grid');
-    if (creatorsGrid) {
-      creatorsGrid.style.cssText = 'display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; padding: 4px !important; width: 100% !important;';
-    }
-    
-    // Aplicar estilos a Premium Select
-    const premiumGrid = document.querySelector('.premium-select-grid');
-    if (premiumGrid) {
-      premiumGrid.style.cssText = 'display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; padding: 4px !important; width: 100% !important;';
-    }
-    
-    // Aplicar estilos a Luxury & Exclusive
-    const featuredCarousel = document.querySelector('.featured-carousel');
-    if (featuredCarousel) {
-      featuredCarousel.style.cssText = 'display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; padding: 4px !important; width: 100% !important; overflow: visible !important;';
-    }
-    
-    // Tarjetas VIP Black y Premium Select - misma proporción que Luxury
-    document.querySelectorAll('.creator-card, .premium-select-card').forEach(card => {
-      card.style.cssText = 'width: 100% !important; aspect-ratio: 3/4 !important; height: auto !important; min-height: 0 !important; min-width: 0 !important; max-width: none !important; border-radius: 10px !important; overflow: hidden !important; position: relative !important;';
-    });
 
-    // Tarjetas Luxury - misma proporción
-    document.querySelectorAll('.featured-card').forEach(card => {
-      card.style.cssText = 'width: 100% !important; aspect-ratio: 3/4 !important; height: auto !important; min-height: 0 !important; min-width: 0 !important; max-width: none !important; border-radius: 10px !important; overflow: hidden !important; position: relative !important;';
-    });
-
-    // Imágenes - cubrir 100% sin cortes
-    document.querySelectorAll('.creator-cover-image, .premium-select-cover-image, .featured-card-img, .vip-card-image').forEach(img => {
-      img.style.cssText = 'width: 100% !important; height: 100% !important; object-fit: cover !important; position: absolute !important; top: 0 !important; left: 0 !important; display: block !important;';
-    });
-    
-    // Ocultar stats
+    // Solo ocultar elementos que no se necesitan en móvil
     document.querySelectorAll('.creator-stats, .premium-select-stats, .creator-title, .premium-select-title-desc').forEach(el => {
       el.style.display = 'none';
     });
-    
-    // Contenido/overlay
-    document.querySelectorAll('.creator-content, .premium-select-content').forEach(el => {
-      el.style.cssText = 'position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; padding: 8px !important; background: linear-gradient(transparent, rgba(0,0,0,0.9)) !important; z-index: 10 !important;';
-    });
-    
-    // Ocultar navegación
+
+    // Ocultar navegación del carrusel
     document.querySelectorAll('.featured-nav, .featured-dots, .carousel-nav').forEach(el => {
       el.style.display = 'none';
     });
   }
-  
+
   // Aplicar al cargar y al redimensionar
-  window.addEventListener('load', () => {
-    setTimeout(applyMobileStyles, 500);
-    setTimeout(applyMobileStyles, 1500);
-  });
-  
+  window.addEventListener('load', () => setTimeout(applyMobileStyles, 500));
   window.addEventListener('resize', applyMobileStyles);
-  
-  // También cuando el DOM esté listo
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(applyMobileStyles, 1000));
-  } else {
-    setTimeout(applyMobileStyles, 1000);
+
+  if (document.readyState !== 'loading') {
+    setTimeout(applyMobileStyles, 500);
   }
 })();
 
