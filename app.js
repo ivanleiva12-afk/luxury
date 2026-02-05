@@ -1412,8 +1412,8 @@ window.refreshCarouselsWithFilter = function(filters) {
             <div class="modal-gallery-section">
               <img class="modal-main-image" src="${profile.profilePhotosData && profile.profilePhotosData.length > 0 ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) : (profile.profilePhoto || profile.avatar || '')}" alt="${profile.displayName}" id="modal-main-img" />
               <div class="modal-video-container" id="modal-video-container" style="display:none; position:relative; width:100%; height:100%;">
-                <video class="modal-main-video" id="modal-main-video" controls playsinline style="width:100%; height:100%; object-fit:contain; background:#000;"></video>
-                <div class="video-watermark" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); pointer-events:none; z-index:10; font-family:'Playfair Display',serif; font-size:28px; font-weight:bold; color:rgba(212,175,55,0.4); text-shadow:2px 2px 4px rgba(0,0,0,0.5); white-space:nowrap;">SALA NEGRA</div>
+                <video class="modal-main-video" id="modal-main-video" controls playsinline style="width:100%; height:100%; object-fit:contain; background:#000; position:relative; z-index:1;"></video>
+                <div class="video-watermark" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); pointer-events:none; z-index:100; font-family:'Playfair Display',serif; font-size:32px; font-weight:bold; color:rgba(212,175,55,0.6); text-shadow:2px 2px 8px rgba(0,0,0,0.8), -1px -1px 4px rgba(0,0,0,0.5); white-space:nowrap; letter-spacing:4px;">SALA NEGRA</div>
               </div>
 
               <div class="modal-media-counter">
@@ -1811,6 +1811,8 @@ window.refreshCarouselsWithFilter = function(filters) {
         if (videoContainer) videoContainer.style.display = 'block';
         mainVideo.src = media.src;
         mainVideo.load();
+        // Auto-reproducir el video al navegar hacia él
+        mainVideo.play().catch(e => console.log('Auto-play bloqueado:', e));
       } else {
         mainVideo.pause();
         if (videoContainer) videoContainer.style.display = 'none';
@@ -2519,11 +2521,18 @@ function createSkeletonCard() {
             avatarSrc = userProfile.profilePhotosData?.[0]?.url || userProfile.profilePhoto || userProfile.avatar || null;
           }
         }
+        // Obtener WhatsApp actualizado del perfil aprobado (no del instante guardado)
+        let currentWhatsapp = instante.whatsapp || '';
+        const userProfile = approvedProfiles.find(p => p.id === `profile-${instante.userId}` || p.odooId === instante.userId);
+        if (userProfile && userProfile.whatsapp) {
+          currentWhatsapp = userProfile.whatsapp;
+        }
+
         userInstantesMap[instante.userId] = {
           id: `clienta-${instante.userId}`,
           name: instante.userName,
           avatar: avatarSrc,
-          whatsapp: instante.whatsapp || '',
+          whatsapp: currentWhatsapp,
           badge: instante.userBadge || 'premium',
           stories: [],
           latestStoryTime: instante.createdAt
