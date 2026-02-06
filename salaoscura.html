@@ -3032,6 +3032,36 @@
       initMentionSystem('post-content', 'post-autocomplete');
       initMentionSystem('reply-content', 'reply-autocomplete');
     });
+
+    // ========================================
+    // FUNCIÓN ADMIN TEMPORAL - ELIMINAR DESPUÉS DE USAR
+    // Ejecutar en consola: clearAllForumPosts()
+    // ========================================
+    window.clearAllForumPosts = async function() {
+      if (!confirm('⚠️ ¿Estás seguro de eliminar TODAS las publicaciones del foro?\n\nEsta acción no se puede deshacer.')) {
+        return 'Cancelado';
+      }
+
+      try {
+        // Limpiar hilos/posts
+        await DataService.saveSalaOscuraThreads([]);
+
+        // Limpiar menciones también
+        await DataService.saveForumMentions({});
+
+        console.log('✅ Todos los posts y menciones han sido eliminados');
+        alert('✅ Todos los posts han sido eliminados.\n\nRecarga la página para ver los cambios.');
+
+        // Recargar la lista
+        loadPosts();
+        updateCategoryCounts();
+
+        return 'Posts eliminados exitosamente';
+      } catch (error) {
+        console.error('Error eliminando posts:', error);
+        return 'Error: ' + error.message;
+      }
+    };
   </script>
   <script src="config.js"></script>
   <script src="api.js"></script>

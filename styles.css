@@ -146,6 +146,7 @@ h1, h2, h3 { font-family: "Playfair Display", serif; }
 }
 
 .filter-panel {
+  display: none; /* Oculto por defecto, JS lo muestra */
   margin-top: 16px;
   padding: 20px;
   background: rgba(20, 20, 20, 0.95);
@@ -258,8 +259,8 @@ h1, h2, h3 { font-family: "Playfair Display", serif; }
 }
 
 .active-filters {
+  display: none; /* Oculto por defecto, JS lo muestra con display: flex */
   margin-top: 12px;
-  display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
@@ -769,6 +770,29 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
 
 .experiencias-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.85) 60%); z-index: 1; }
 .experiencias-badge { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); padding: 8px 12px; border-radius: 20px; border: 1px solid rgba(212,175,55,0.3); color: white; font-size: 13px; font-weight: 600; z-index: 2; }
+
+.experiencias-status-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: linear-gradient(135deg, #D4AF37, #F4D03F);
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #0A0A0A;
+  z-index: 2;
+}
+
+.experiencias-badges-container {
+  position: absolute;
+  top: 40px;
+  left: 12px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 
 .experiencias-info { position: absolute; bottom: 0; left: 0; right: 0; padding: 16px; }
 .experiencias-price { font-family: Montserrat, sans-serif; font-size: 24px; font-weight: 700; color: var(--gold); text-shadow: 0 2px 8px rgba(0,0,0,0.5); margin-bottom: 8px; }
@@ -1879,6 +1903,34 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   text-transform: uppercase;
   letter-spacing: 0.5px;
   backdrop-filter: blur(4px);
+  color: #FFFFFF;
+}
+
+/* Badge type colors for creator cards */
+.creator-profile-badge.luxuryexclusive-badge,
+.premium-select-profile-badge.luxuryexclusive-badge {
+  background: linear-gradient(135deg, #8B7355, #C19A6B);
+}
+
+.creator-profile-badge.vip-badge,
+.premium-select-profile-badge.vip-badge {
+  background: linear-gradient(135deg, #D4AF37, #F4D03F);
+  color: #0A0A0A;
+}
+
+.creator-profile-badge.enpromocion-badge,
+.premium-select-profile-badge.enpromocion-badge {
+  background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
+}
+
+.creator-profile-badge.premium-badge,
+.premium-select-profile-badge.premium-badge {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.creator-profile-badge.nuevo-badge,
+.premium-select-profile-badge.nuevo-badge {
+  background: linear-gradient(135deg, #11998e, #38ef7d);
 }
 
 .creator-name {
@@ -2377,6 +2429,43 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   object-fit: cover;
 }
 
+/* Video thumbnail */
+.modal-thumbnail-video {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+
+.modal-thumbnail-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modal-thumbnail-video-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.3);
+}
+
+.modal-thumbnail-video-play {
+  width: 24px;
+  height: 24px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  padding-left: 2px;
+}
+
 /* Contador de media */
 .modal-media-counter {
   position: absolute;
@@ -2472,10 +2561,23 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
 .modal-creator-details {
   flex: 1;
   min-width: 0;
+  width: 100%;
+}
+
+/* Contenedor para nombre y badges en fila */
+.modal-name-badges-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 8px;
 }
 
 .modal-badges-container {
-  margin-top: 2px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .modal-creator-name {
@@ -2483,8 +2585,10 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   font-size: 28px;
   font-weight: bold;
   color: #FFFFFF;
-  margin-bottom: 8px;
+  margin-bottom: 0;
   line-height: 1.2;
+  flex: 1;
+  min-width: 0;
 }
 
 .modal-creator-username {
@@ -3176,6 +3280,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
 .modal-stat-item.experiences-stat {
   background: rgba(102, 126, 234, 0.1);
   border-color: rgba(102, 126, 234, 0.3);
+  cursor: pointer;
 }
 
 .modal-stat-item.experiences-stat:hover {

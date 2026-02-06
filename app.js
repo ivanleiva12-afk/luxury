@@ -1411,9 +1411,9 @@ window.refreshCarouselsWithFilter = function(filters) {
             <!-- Galería Izquierda -->
             <div class="modal-gallery-section">
               <img class="modal-main-image" src="${profile.profilePhotosData && profile.profilePhotosData.length > 0 ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) : (profile.profilePhoto || profile.avatar || '')}" alt="${profile.displayName}" id="modal-main-img" />
-              <div class="modal-video-container" id="modal-video-container" style="display:none; position:relative; width:100%; height:100%;">
-                <video class="modal-main-video" id="modal-main-video" controls playsinline style="width:100%; height:100%; object-fit:contain; background:#000; position:relative; z-index:1;"></video>
-                <div class="video-watermark" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); pointer-events:none; z-index:100; font-family:'Playfair Display',serif; font-size:32px; font-weight:bold; color:rgba(212,175,55,0.6); text-shadow:2px 2px 8px rgba(0,0,0,0.8), -1px -1px 4px rgba(0,0,0,0.5); white-space:nowrap; letter-spacing:4px;">SALA NEGRA</div>
+              <div class="modal-video-container" id="modal-video-container" style="display:none;">
+                <video class="modal-main-video" id="modal-main-video" controls playsinline></video>
+                <div class="video-watermark">SALA NEGRA</div>
               </div>
 
               <div class="modal-media-counter">
@@ -1441,12 +1441,10 @@ window.refreshCarouselsWithFilter = function(filters) {
                 ${profile.profileVideosData && profile.profileVideosData.length > 0
                   ? profile.profileVideosData.map((video, i) => `
                     <div class="modal-thumbnail" data-index="${(profile.profilePhotosData?.length || 0) + i}" data-type="video">
-                      <div style="position:relative;width:100%;height:100%;border-radius:8px;overflow:hidden;background:#000;">
-                        <video src="${video.url || video.data}" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;" onloadeddata="this.currentTime=0.5"></video>
-                        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);">
-                          <div style="width:24px;height:24px;background:rgba(255,255,255,0.9);border-radius:50%;display:flex;align-items:center;justify-content:center;">
-                            <span style="font-size:12px;margin-left:2px;">▶</span>
-                          </div>
+                      <div class="modal-thumbnail-video">
+                        <video src="${video.url || video.data}" muted preload="metadata" onloadeddata="this.currentTime=0.5"></video>
+                        <div class="modal-thumbnail-video-overlay">
+                          <div class="modal-thumbnail-video-play">▶</div>
                         </div>
                       </div>
                     </div>
@@ -1459,12 +1457,10 @@ window.refreshCarouselsWithFilter = function(filters) {
             <!-- Información Derecha -->
             <div class="modal-info-section">
               <div class="modal-creator-header">
-                <div class="modal-creator-details" style="width: 100%;">
-                  <div style="display: flex; align-items: flex-start; gap: 16px; margin-bottom: 8px;">
-                    <h2 class="modal-creator-name" style="margin-bottom: 0; flex: 1; min-width: 0;">
-                      ${profile.displayName}
-                    </h2>
-                    <div class="modal-badges-container" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; flex-shrink: 0;">
+                <div class="modal-creator-details">
+                  <div class="modal-name-badges-row">
+                    <h2 class="modal-creator-name">${profile.displayName}</h2>
+                    <div class="modal-badges-container">
                       ${validProfileTypes.map(type => {
                         const badge = getProfileTypeBadge(type);
                         const className = type.replace('-', '');
@@ -1491,7 +1487,7 @@ window.refreshCarouselsWithFilter = function(filters) {
                   <span class="stat-value">${profile.stats.views >= 1000 ? (profile.stats.views / 1000).toFixed(1) + 'K' : profile.stats.views}</span>
                   <span class="stat-label">Vistas</span>
                 </div>
-                <div class="modal-stat-item experiences-stat" onclick="openMentionedThreads('${profile.displayName}', '${profile.email}')" style="cursor: pointer;" title="Ver experiencias en Sala Oscura">
+                <div class="modal-stat-item experiences-stat" onclick="openMentionedThreads('${profile.displayName}', '${profile.email}')" title="Ver experiencias en Sala Oscura">
                   <span class="stat-icon">✨</span>
                   <span class="stat-value experiences-count">${getMentionCount(profile.displayName, profile.email).count}</span>
                   <span class="stat-label">Experiencias</span>
@@ -2265,11 +2261,10 @@ window.refreshCarouselsWithFilter = function(filters) {
     const badgeEl = document.createElement('div');
     badgeEl.className = 'experiencias-status-badge';
     badgeEl.textContent = '✓ Verificado';
-    badgeEl.style.background = 'linear-gradient(135deg, #D4AF37, #F4D03F)';
 
     // Badge de tipo de perfil (VIP o Luxury & Exclusive)
     const profileTypes = car.profileTypes || [car.profileType] || ['vip'];
-    
+
     // Filtrar "nuevo" si han pasado más de 7 días
     const validTypes = profileTypes.filter(type => {
       if (type === 'nuevo' && car.createdAt) {
@@ -2281,68 +2276,27 @@ window.refreshCarouselsWithFilter = function(filters) {
 
     // Crear contenedor para múltiples badges
     const badgesContainer = document.createElement('div');
-    badgesContainer.style.cssText = `
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    `;
-    
+    badgesContainer.className = 'experiencias-badges-container';
+
+    const badgeConfig = {
+      'vip': { icon: '👑', text: 'VIP' },
+      'luxury-exclusive': { icon: '💎', text: 'Luxury & Exclusive' },
+      'premium': { icon: '⭐', text: 'Premium' },
+      'nuevo': { icon: '✨', text: 'Nuevo' },
+      'en-promocion': { icon: '🏷️', text: 'En Promoción' }
+    };
+
     validTypes.forEach(type => {
       const profileTypeBadge = document.createElement('div');
-      profileTypeBadge.className = `vip-badge ${type.toLowerCase()}-badge`;
-      profileTypeBadge.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 14px;
-        border-radius: 16px;
-        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(212, 175, 55, 0.4);
-        animation: badgePulse 3s ease-in-out infinite;
-        ${type === 'luxury-exclusive' 
-          ? 'background: linear-gradient(135deg, #8B7355, #C19A6B);' 
-          : type === 'premium'
-          ? 'background: linear-gradient(135deg, #667eea, #764ba2);'
-          : type === 'nuevo'
-          ? 'background: linear-gradient(135deg, #11998e, #38ef7d);'
-          : type === 'en-promocion'
-          ? 'background: linear-gradient(135deg, #FF6B6B, #FF8E8E);'
-          : 'background: linear-gradient(135deg, #D4AF37, #F4D03F);'}
+      // Usar clase CSS que ya tiene los estilos de colores definidos
+      profileTypeBadge.className = `vip-badge ${type.replace('-', '')}-badge`;
+
+      const badge = badgeConfig[type] || badgeConfig['vip'];
+      profileTypeBadge.innerHTML = `
+        <span class="vip-badge-icon">${badge.icon}</span>
+        <span class="vip-badge-text">${badge.text}</span>
       `;
-      
-      const badgeIcon = document.createElement('span');
-      badgeIcon.className = 'vip-badge-icon';
-      badgeIcon.style.fontSize = '14px';
-      
-      const badgeText = document.createElement('span');
-      badgeText.className = 'vip-badge-text';
-      badgeText.style.cssText = `
-        font-family: 'Montserrat', sans-serif;
-        font-size: 10px;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: ${type === 'vip' ? '#0A0A0A' : '#FFFFFF'};
-        white-space: nowrap;
-      `;
-      
-      const badges = {
-        'vip': { icon: '👑', text: 'VIP' },
-        'luxury-exclusive': { icon: '💎', text: 'Luxury & Exclusive' },
-        'premium': { icon: '⭐', text: 'Premium' },
-        'nuevo': { icon: '✨', text: 'Nuevo' },
-        'en-promocion': { icon: '🏷️', text: 'En Promoción' }
-      };
-      
-      const badge = badges[type] || badges['vip'];
-      badgeIcon.textContent = badge.icon;
-      badgeText.textContent = badge.text;
-      
-      profileTypeBadge.appendChild(badgeIcon);
-      profileTypeBadge.appendChild(badgeText);
+
       badgesContainer.appendChild(profileTypeBadge);
     });
 
@@ -3107,21 +3061,6 @@ function createSkeletonCard() {
         <span>${badge.icon}</span>
         <span>${badge.text}</span>
       `;
-      
-      // Aplicar estilos según el tipo
-      if (type === 'luxury-exclusive') {
-        badgeEl.style.background = 'linear-gradient(135deg, #8B7355, #C19A6B)';
-      } else if (type === 'vip') {
-        badgeEl.style.background = 'linear-gradient(135deg, #D4AF37, #F4D03F)';
-        badgeEl.style.color = '#0A0A0A';
-      } else if (type === 'en-promocion') {
-        badgeEl.style.background = 'linear-gradient(135deg, #FF6B6B, #FF8E8E)';
-      } else if (type === 'premium') {
-        badgeEl.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
-      } else if (type === 'nuevo') {
-        badgeEl.style.background = 'linear-gradient(135deg, #11998e, #38ef7d)';
-      }
-      
       badgesContainer.appendChild(badgeEl);
     });
 
@@ -3405,21 +3344,6 @@ function createSkeletonCard() {
         <span>${badge.icon}</span>
         <span>${badge.text}</span>
       `;
-      
-      // Aplicar estilos según el tipo
-      if (type === 'luxury-exclusive') {
-        badgeEl.style.background = 'linear-gradient(135deg, #8B7355, #C19A6B)';
-      } else if (type === 'vip') {
-        badgeEl.style.background = 'linear-gradient(135deg, #D4AF37, #F4D03F)';
-        badgeEl.style.color = '#0A0A0A';
-      } else if (type === 'en-promocion') {
-        badgeEl.style.background = 'linear-gradient(135deg, #FF6B6B, #FF8E8E)';
-      } else if (type === 'premium') {
-        badgeEl.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
-      } else if (type === 'nuevo') {
-        badgeEl.style.background = 'linear-gradient(135deg, #11998e, #38ef7d)';
-      }
-      
       badgesContainer.appendChild(badgeEl);
     });
 
@@ -4177,31 +4101,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // ========================================
 // ESTILOS MÓVILES - Solo ocultar elementos innecesarios
-// (Los estilos de tamaño y posición están en CSS)
 // ========================================
-(function() {
-  function applyMobileStyles() {
-    if (window.innerWidth > 768) return;
-
-    // Solo ocultar elementos que no se necesitan en móvil
-    document.querySelectorAll('.creator-stats, .premium-select-stats, .creator-title, .premium-select-title-desc').forEach(el => {
-      el.style.display = 'none';
-    });
-
-    // Ocultar navegación del carrusel
-    document.querySelectorAll('.featured-nav, .featured-dots, .carousel-nav').forEach(el => {
-      el.style.display = 'none';
-    });
-  }
-
-  // Aplicar al cargar y al redimensionar
-  window.addEventListener('load', () => setTimeout(applyMobileStyles, 500));
-  window.addEventListener('resize', applyMobileStyles);
-
-  if (document.readyState !== 'loading') {
-    setTimeout(applyMobileStyles, 500);
-  }
-})();
+// NOTA: Los estilos móviles se manejan 100% en CSS (styles.css)
+// con @media (max-width: 768px) y reglas !important
+// No se necesita JavaScript para ocultar/mostrar elementos
+// ========================================
 
 // ===========================================
 // SISTEMA DE FOTOS EXPANDIBLES PARA MÓVIL
