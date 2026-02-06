@@ -1807,16 +1807,25 @@ window.refreshCarouselsWithFilter = function(filters) {
       const media = allMedia[currentIndex];
 
       if (media.type === 'video') {
-        mainImg.style.display = 'none';
-        if (videoContainer) videoContainer.style.display = 'block';
+        // Usar setProperty con priority para sobrescribir CSS !important
+        mainImg.style.setProperty('display', 'none', 'important');
+        if (videoContainer) {
+          videoContainer.style.setProperty('display', 'block', 'important');
+          videoContainer.style.setProperty('position', 'absolute', 'important');
+          videoContainer.style.setProperty('top', '0', 'important');
+          videoContainer.style.setProperty('left', '0', 'important');
+          videoContainer.style.setProperty('width', '100%', 'important');
+          videoContainer.style.setProperty('height', '100%', 'important');
+          videoContainer.style.setProperty('z-index', '5', 'important');
+        }
         mainVideo.src = media.src;
         mainVideo.load();
         // Auto-reproducir el video al navegar hacia él
         mainVideo.play().catch(e => console.log('Auto-play bloqueado:', e));
       } else {
         mainVideo.pause();
-        if (videoContainer) videoContainer.style.display = 'none';
-        mainImg.style.display = 'block';
+        if (videoContainer) videoContainer.style.setProperty('display', 'none', 'important');
+        mainImg.style.setProperty('display', 'block', 'important');
         mainImg.src = media.src;
       }
 
