@@ -2990,8 +2990,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const mencionesList = document.getElementById('menciones-list');
     if (!mencionesList) return;
 
-    // Obtener menciones del localStorage (integración con foro Sala Oscura)
-    const allMentions = await DataService.getConfig('salaOscuraMentions') || {};
+    // Obtener menciones desde AWS (integración con foro Sala Oscura)
+    const allMentions = await DataService.getForumMentions() || {};
     
     // Buscar menciones para el usuario actual por email
     const userEmail = currentUser.email || '';
@@ -3048,10 +3048,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Marcar mención como leída
   window.markMentionAsRead = async function(email, index) {
-    const allMentions = await DataService.getConfig('salaOscuraMentions') || {};
+    const allMentions = await DataService.getForumMentions() || {};
     if (allMentions[email] && allMentions[email][index]) {
       allMentions[email][index].read = true;
-      await DataService.setConfig('salaOscuraMentions', allMentions);
+      await DataService.saveForumMentions(allMentions);
     }
   };
 

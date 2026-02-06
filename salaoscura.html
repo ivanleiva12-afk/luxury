@@ -970,36 +970,52 @@
         padding: 14px;
         margin-bottom: 12px;
       }
-      
+
       .foro-post-compact {
-        padding: 12px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
       }
-      
+
+      .foro-post-compact .foro-post-header {
+        flex-direction: row;
+        gap: 0;
+        align-items: center;
+      }
+
       .foro-post-header {
         flex-direction: column;
         gap: 10px;
         align-items: flex-start;
       }
-      
+
       .foro-post-avatar {
         width: 32px;
         height: 32px;
         font-size: 12px;
       }
-      
+
       .foro-post-author-name {
         font-size: 13px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
       }
-      
+
       .foro-post-date {
         font-size: 10px;
       }
-      
+
       .foro-post-category {
         font-size: 10px;
-        padding: 3px 8px;
+        padding: 2px 6px;
       }
-      
+
+      .foro-post-compact .foro-post-title {
+        font-size: 13px;
+        margin: 6px 0 4px 0;
+      }
+
       .foro-post-title {
         font-size: 15px;
         margin: 10px 0;
@@ -1009,20 +1025,36 @@
         font-size: 13px;
         line-height: 1.5;
       }
-      
+
+      .foro-post-compact .foro-post-footer {
+        flex-direction: row;
+        gap: 0;
+        padding-top: 4px;
+        border-top: none;
+        margin-top: 4px;
+      }
+
       .foro-post-footer {
         flex-direction: column;
         gap: 10px;
         align-items: stretch;
         padding-top: 12px;
       }
-      
+
       .foro-post-stats {
         justify-content: flex-start;
       }
-      
+
+      .foro-post-compact .foro-post-stats {
+        gap: 10px;
+      }
+
       .foro-post-stat {
         font-size: 12px;
+      }
+
+      .foro-post-compact .foro-post-stat {
+        font-size: 11px;
       }
       
       .foro-post-actions {
@@ -1203,7 +1235,29 @@
     /* Pantallas muy pequeñas */
     @media (max-width: 480px) {
       .foro-categories {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+
+      .foro-category {
+        padding: 10px;
+      }
+
+      .foro-category-icon {
+        font-size: 20px;
+        margin-bottom: 6px;
+      }
+
+      .foro-category-title {
+        font-size: 11px;
+      }
+
+      .foro-category-desc {
+        display: none;
+      }
+
+      .foro-category-count {
+        font-size: 10px;
       }
       
       .foro-hero-title {
@@ -2244,28 +2298,27 @@
       if (!expanded) {
         return `
           <div class="foro-post foro-post-compact ${isEscort ? 'escort-post' : ''}" onclick="expandirPost(${post.id})" style="cursor: pointer;">
-            <div class="foro-post-header">
-              <div class="foro-post-author">
-                <div class="foro-post-avatar">${post.autorNombre.charAt(0).toUpperCase()}</div>
-                <div class="foro-post-author-info">
-                  <span class="foro-post-author-name">
+            <div class="foro-post-header" style="flex-wrap: wrap; gap: 6px;">
+              <div class="foro-post-author" style="flex: 1; min-width: 0;">
+                <div class="foro-post-avatar" style="width: 32px; height: 32px; font-size: 14px;">${post.autorNombre.charAt(0).toUpperCase()}</div>
+                <div class="foro-post-author-info" style="gap: 2px;">
+                  <span class="foro-post-author-name" style="font-size: 13px;">
                     ${escapeHtml(post.autorNombre)}
-                    ${isEscort ? '<span class="foro-user-badge">ESCORT</span>' : ''}
+                    ${isEscort ? '<span class="foro-user-badge" style="font-size: 9px; padding: 1px 4px;">ESCORT</span>' : ''}
+                    <span class="foro-post-category" style="margin-left: 6px; font-size: 11px; padding: 2px 6px;">${categoryLabels[post.categoria] || post.categoria}</span>
                   </span>
-                  <span class="foro-post-date">${fecha}</span>
+                  <span class="foro-post-date" style="font-size: 11px;">${fecha}</span>
                 </div>
               </div>
-              <span class="foro-post-category">${categoryLabels[post.categoria] || post.categoria}</span>
             </div>
-            
-            <h3 class="foro-post-title" style="margin-bottom: 8px;">${escapeHtml(post.titulo)}</h3>
-            
-            <div class="foro-post-footer" style="border-top: none; padding-top: 0;">
-              <div class="foro-post-stats">
-                <span class="foro-post-stat">💬 ${post.respuestas ? post.respuestas.length : 0}</span>
-                <span class="foro-post-stat">👍 ${post.likes || 0}</span>
+
+            <h3 class="foro-post-title" style="margin: 6px 0; font-size: 14px; line-height: 1.3;">${escapeHtml(post.titulo)}</h3>
+
+            <div class="foro-post-footer" style="border-top: none; padding-top: 0; margin-top: 4px;">
+              <div class="foro-post-stats" style="gap: 12px;">
+                <span class="foro-post-stat" style="font-size: 12px;">💬 ${post.respuestas ? post.respuestas.length : 0}</span>
+                <span class="foro-post-stat" style="font-size: 12px;">👍 ${post.likes || 0}</span>
               </div>
-              <span style="color: var(--gold); font-size: 12px;">Clic para ver más →</span>
             </div>
           </div>
         `;
