@@ -34,11 +34,35 @@ if (typeof CONFIG === 'undefined') {
   
   // 'development' o 'production'
   ENVIRONMENT: 'production',
-  
+
+  // ═══════════════════════════════════════════════════════════
+  // MODERADOR DEL FORO
+  // ═══════════════════════════════════════════════════════════
+
+  MODERATOR_EMAIL: 'moderador_salanegra@salaoscura.com',
+  // Hash SHA-256 de la contraseña del moderador
+  MODERATOR_PASSWORD_HASH: '26f625bef98de754c81d99214cbf9ade0195fef50b18eb5e9d04326f9d761876',
+
+  // Función para verificar credenciales del moderador
+  verifyModerator: async function(email, password) {
+    if (email.toLowerCase() !== this.MODERATOR_EMAIL.toLowerCase()) {
+      return false;
+    }
+
+    // Generar hash del password ingresado
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+    return hashHex === this.MODERATOR_PASSWORD_HASH;
+  },
+
   // ═══════════════════════════════════════════════════════════
   // FUNCIÓN HELPER PARA OBTENER LA URL CORRECTA
   // ═══════════════════════════════════════════════════════════
-  
+
   getApiUrl: function() {
     if (!this.USE_BACKEND) {
       return null; // Usa localStorage

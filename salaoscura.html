@@ -112,7 +112,114 @@
       font-size: 10px;
       font-weight: 700;
     }
-    
+
+    /* Badge Moderador */
+    .foro-mod-badge {
+      background: #dc3545 !important;
+      color: #fff !important;
+    }
+
+    /* Panel de Moderador */
+    .foro-moderator-panel {
+      background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);
+      border: 1px solid rgba(220, 53, 69, 0.3);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+    }
+
+    .foro-mod-panel-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .foro-mod-panel-icon {
+      font-size: 20px;
+    }
+
+    .foro-mod-panel-title {
+      color: #dc3545;
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .foro-mod-panel-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .foro-mod-clear-all-btn {
+      background: #dc3545;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .foro-mod-clear-all-btn:hover {
+      background: #c82333;
+      transform: translateY(-1px);
+    }
+
+    .foro-mod-panel-warning {
+      color: var(--muted);
+      font-size: 12px;
+      font-style: italic;
+    }
+
+    /* Botones de eliminar para moderador */
+    .foro-mod-delete-btn {
+      background: rgba(220, 53, 69, 0.1);
+      border: 1px solid rgba(220, 53, 69, 0.3);
+      color: #dc3545;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .foro-mod-delete-btn:hover {
+      background: #dc3545;
+      color: #fff;
+    }
+
+    .foro-mod-delete-post-btn {
+      background: rgba(220, 53, 69, 0.1) !important;
+      border-color: rgba(220, 53, 69, 0.3) !important;
+      color: #dc3545 !important;
+    }
+
+    .foro-mod-delete-post-btn:hover {
+      background: #dc3545 !important;
+      color: #fff !important;
+    }
+
+    .foro-mod-delete-reply-btn {
+      background: transparent;
+      border: none;
+      color: #dc3545;
+      padding: 2px 6px;
+      font-size: 11px;
+      cursor: pointer;
+      margin-left: auto;
+      opacity: 0.7;
+      transition: opacity 0.2s ease;
+    }
+
+    .foro-mod-delete-reply-btn:hover {
+      opacity: 1;
+    }
+
     /* Main Container */
     .foro-main {
       max-width: 1200px;
@@ -1329,6 +1436,20 @@
         <p class="foro-welcome-text">Participa en las discusiones, comparte tus experiencias y conecta con la comunidad.</p>
       </div>
 
+      <!-- Panel Moderador (Solo visible para moderadores) -->
+      <div class="foro-moderator-panel" id="moderator-panel" style="display: none;">
+        <div class="foro-mod-panel-header">
+          <span class="foro-mod-panel-icon">🛡️</span>
+          <h3 class="foro-mod-panel-title">Panel de Moderador</h3>
+        </div>
+        <div class="foro-mod-panel-actions">
+          <button class="foro-mod-clear-all-btn" onclick="clearAllPosts()">
+            🗑️ Eliminar todos los posts
+          </button>
+          <span class="foro-mod-panel-warning">Esta acción requiere doble confirmación</span>
+        </div>
+      </div>
+
       <!-- Categories -->
       <div class="foro-categories">
         <div class="foro-category" onclick="filterByCategory('general')">
@@ -2008,10 +2129,32 @@
             alert('No se encontró una cuenta de escort con ese correo. Asegúrate de usar el correo con el que te registraste.');
           }
         } else {
+          // Verificar si es el moderador
+          if (email === CONFIG.MODERATOR_EMAIL.toLowerCase()) {
+            const isValidModerator = await CONFIG.verifyModerator(email, password);
+            if (isValidModerator) {
+              currentUser = {
+                id: 'moderador_salanegra',
+                tipo: 'moderador',
+                nombre: 'Moderador',
+                email: CONFIG.MODERATOR_EMAIL
+              };
+              localStorage.setItem('salaOscuraCurrentUser', JSON.stringify(currentUser));
+              closeModal('login');
+              updateUI();
+              loadPosts();
+              alert('¡Bienvenido Moderador! Tienes acceso para gestionar el foro.');
+              return;
+            } else {
+              alert('Contraseña de moderador incorrecta.');
+              return;
+            }
+          }
+
           // Buscar en usuarios del foro (AWS)
           const usuarios = await DataService.getForumUsers();
           const usuario = usuarios.find(u => u.email.toLowerCase() === email && u.password === password);
-          
+
           if (usuario) {
             currentUser = {
               id: usuario.id,
@@ -2141,13 +2284,24 @@
         document.getElementById('user-display-name').textContent = currentUser.nombre;
         document.getElementById('welcome-name').textContent = currentUser.nombre;
 
-        // Mostrar badge si es escort
+        // Mostrar badge según tipo de usuario
         const badge = document.getElementById('user-badge');
         if (currentUser.tipo === 'escort') {
           badge.style.display = 'inline';
           badge.textContent = 'ESCORT';
+          badge.className = 'foro-user-badge';
+        } else if (currentUser.tipo === 'moderador') {
+          badge.style.display = 'inline';
+          badge.textContent = 'MOD';
+          badge.className = 'foro-user-badge foro-mod-badge';
         } else {
           badge.style.display = 'none';
+        }
+
+        // Mostrar/ocultar panel de moderador
+        const modPanel = document.getElementById('moderator-panel');
+        if (modPanel) {
+          modPanel.style.display = currentUser.tipo === 'moderador' ? 'block' : 'none';
         }
         
         // Controlar visibilidad de opción Zona Clientas en selector de categorías
@@ -2319,6 +2473,7 @@
                 <span class="foro-post-stat" style="font-size: 12px;">💬 ${post.respuestas ? post.respuestas.length : 0}</span>
                 <span class="foro-post-stat" style="font-size: 12px;">👍 ${post.likes || 0}</span>
               </div>
+              ${isModerator() ? `<button class="foro-mod-delete-btn" onclick="event.stopPropagation(); deletePost(${post.id})" title="Eliminar post">🗑️</button>` : ''}
             </div>
           </div>
         `;
@@ -2377,12 +2532,13 @@
         repliesHTML = `
           <div class="foro-replies">
             <h4 class="foro-replies-title">💬 ${post.respuestas.length} respuesta${post.respuestas.length > 1 ? 's' : ''}</h4>
-            ${post.respuestas.map(r => `
+            ${post.respuestas.map((r, index) => `
               <div class="foro-reply">
                 <div class="foro-reply-header">
                   <span class="foro-reply-author">${r.autorNombre}</span>
                   ${r.autorTipo === 'escort' ? '<span class="foro-user-badge">ESCORT</span>' : ''}
                   <span class="foro-reply-date">${new Date(r.fecha).toLocaleDateString('es-ES')}</span>
+                  ${isModerator() ? `<button class="foro-mod-delete-reply-btn" onclick="deleteReply(${post.id}, ${index})" title="Eliminar respuesta">🗑️</button>` : ''}
                 </div>
                 <p class="foro-reply-content">${processMentions(r.contenido)}</p>
               </div>
@@ -2422,6 +2578,7 @@
               <button class="foro-post-action ${hasLiked ? 'liked' : ''}" onclick="darLike(${post.id})" ${hasLiked ? 'style="background: rgba(212,175,55,0.2); color: var(--gold); border-color: var(--gold);"' : ''}>
                 ${hasLiked ? '✓ Te gusta' : '👍 Like'}
               </button>
+              ${isModerator() ? `<button class="foro-post-action foro-mod-delete-post-btn" onclick="deletePost(${post.id})">🗑️ Eliminar</button>` : ''}
             </div>
           </div>
           
@@ -3034,34 +3191,99 @@
     });
 
     // ========================================
-    // FUNCIÓN ADMIN TEMPORAL - ELIMINAR DESPUÉS DE USAR
-    // Ejecutar en consola: clearAllForumPosts()
+    // FUNCIONES DE MODERACIÓN (Solo accesibles internamente)
     // ========================================
-    window.clearAllForumPosts = async function() {
-      if (!confirm('⚠️ ¿Estás seguro de eliminar TODAS las publicaciones del foro?\n\nEsta acción no se puede deshacer.')) {
-        return 'Cancelado';
+
+    function isModerator() {
+      return currentUser && currentUser.tipo === 'moderador';
+    }
+
+    async function deletePost(postId) {
+      if (!isModerator()) {
+        alert('No tienes permisos para esta acción');
+        return;
+      }
+
+      if (!confirm('¿Estás seguro de eliminar este post y todas sus respuestas?')) {
+        return;
       }
 
       try {
-        // Limpiar hilos/posts
-        await DataService.saveSalaOscuraThreads([]);
+        const posts = await DataService.getSalaOscuraThreads();
+        const updatedPosts = posts.filter(p => p.id !== postId);
+        await DataService.saveSalaOscuraThreads(updatedPosts);
 
-        // Limpiar menciones también
+        // Limpiar menciones relacionadas
+        const mentions = await DataService.getForumMentions();
+        for (const key in mentions) {
+          if (mentions[key]) {
+            mentions[key] = mentions[key].filter(m => m.postId !== postId);
+          }
+        }
+        await DataService.saveForumMentions(mentions);
+
+        alert('Post eliminado correctamente');
+        volverALista();
+        updateCategoryCounts();
+      } catch (error) {
+        console.error('Error eliminando post:', error);
+        alert('Error al eliminar el post');
+      }
+    }
+
+    async function deleteReply(postId, replyIndex) {
+      if (!isModerator()) {
+        alert('No tienes permisos para esta acción');
+        return;
+      }
+
+      if (!confirm('¿Estás seguro de eliminar esta respuesta?')) {
+        return;
+      }
+
+      try {
+        const posts = await DataService.getSalaOscuraThreads();
+        const post = posts.find(p => p.id === postId);
+
+        if (post && post.respuestas && post.respuestas[replyIndex]) {
+          post.respuestas.splice(replyIndex, 1);
+          await DataService.saveSalaOscuraThreads(posts);
+
+          alert('Respuesta eliminada');
+          expandirPost(postId);
+        }
+      } catch (error) {
+        console.error('Error eliminando respuesta:', error);
+        alert('Error al eliminar la respuesta');
+      }
+    }
+
+    async function clearAllPosts() {
+      if (!isModerator()) {
+        alert('No tienes permisos para esta acción');
+        return;
+      }
+
+      if (!confirm('⚠️ ¿Estás seguro de eliminar TODAS las publicaciones?\n\nEsta acción no se puede deshacer.')) {
+        return;
+      }
+
+      if (!confirm('⚠️ ÚLTIMA ADVERTENCIA\n\nSe eliminarán TODOS los posts permanentemente.\n\n¿Continuar?')) {
+        return;
+      }
+
+      try {
+        await DataService.saveSalaOscuraThreads([]);
         await DataService.saveForumMentions({});
 
-        console.log('✅ Todos los posts y menciones han sido eliminados');
-        alert('✅ Todos los posts han sido eliminados.\n\nRecarga la página para ver los cambios.');
-
-        // Recargar la lista
+        alert('Todos los posts han sido eliminados');
         loadPosts();
         updateCategoryCounts();
-
-        return 'Posts eliminados exitosamente';
       } catch (error) {
         console.error('Error eliminando posts:', error);
-        return 'Error: ' + error.message;
+        alert('Error al eliminar los posts');
       }
-    };
+    }
   </script>
   <script src="config.js"></script>
   <script src="api.js"></script>

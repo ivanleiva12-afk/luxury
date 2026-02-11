@@ -886,7 +886,7 @@ window.shareProfile = async (profileId) => {
   const profileLink = `${window.location.origin}/index.html?profile=${profileId}`;
   
   // Mensaje descriptivo para compartir
-  const shareMessage = `🔥 ¡Mira este perfil increíble en Sala Oscura!
+  const shareMessage = `🔥 ¡Mira este perfil increíble en SalaNegra!
 
 ✨ ${profile.displayName || profile.title}
 📍 ${profile.commune || ''}, ${profile.city || ''}
@@ -995,7 +995,7 @@ window.shareViaWhatsApp = async (profileId) => {
   if (!profile) return;
   
   const profileLink = `${window.location.origin}/index.html?profile=${profileId}`;
-  const message = `🔥 ¡Mira este perfil increíble en Sala Oscura!\n\n✨ ${profile.displayName || profile.title}\n📍 ${profile.commune || ''}, ${profile.city || ''}\n💰 Desde $${(profile.prices?.hour?.CLP || 0).toLocaleString('es-CL')} CLP\n⭐ ${profile.stats?.likes || 0} Me Gusta | ${profile.stats?.experiences || 0} Experiencias\n\n👉 Ver perfil completo:\n${profileLink}`;
+  const message = `🔥 ¡Mira este perfil increíble en SalaNegra!\n\n✨ ${profile.displayName || profile.title}\n📍 ${profile.commune || ''}, ${profile.city || ''}\n💰 Desde $${(profile.prices?.hour?.CLP || 0).toLocaleString('es-CL')} CLP\n⭐ ${profile.stats?.likes || 0} Me Gusta | ${profile.stats?.experiences || 0} Experiencias\n\n👉 Ver perfil completo:\n${profileLink}`;
   
   window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
   incrementRecommendation(profileId);
@@ -1016,7 +1016,7 @@ window.shareViaTelegram = async (profileId) => {
   if (!profile) return;
   
   const profileLink = `${window.location.origin}/index.html?profile=${profileId}`;
-  const message = `🔥 ${profile.displayName || profile.title} - Sala Oscura\n📍 ${profile.commune || ''}\n💰 Desde $${(profile.prices?.hour?.CLP || 0).toLocaleString('es-CL')} CLP`;
+  const message = `🔥 ${profile.displayName || profile.title} - SalaNegra\n📍 ${profile.commune || ''}\n💰 Desde $${(profile.prices?.hour?.CLP || 0).toLocaleString('es-CL')} CLP`;
   
   window.open(`https://t.me/share/url?url=${encodeURIComponent(profileLink)}&text=${encodeURIComponent(message)}`, '_blank');
   incrementRecommendation(profileId);
@@ -1044,7 +1044,7 @@ window.shareViaTwitter = async (profileId) => {
   if (!profile) return;
   
   const profileLink = `${window.location.origin}/index.html?profile=${profileId}`;
-  const message = `🔥 Conoce a ${profile.displayName || profile.title} en Sala Oscura - ${profile.commune || ''}, ${profile.city || ''}`;
+  const message = `🔥 Conoce a ${profile.displayName || profile.title} en SalaNegra - ${profile.commune || ''}, ${profile.city || ''}`;
   
   window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(profileLink)}`, '_blank');
   incrementRecommendation(profileId);
@@ -1065,7 +1065,7 @@ window.shareViaEmail = async (profileId) => {
   if (!profile) return;
   
   const profileLink = `${window.location.origin}/index.html?profile=${profileId}`;
-  const subject = `Te recomiendo ver este perfil en Sala Oscura`;
+  const subject = `Te recomiendo ver este perfil en SalaNegra`;
   const body = `Hola,\n\nTe comparto este perfil que me pareció interesante:\n\n✨ ${profile.displayName || profile.title}\n📍 ${profile.commune || ''}, ${profile.city || ''}\n💰 Desde $${(profile.prices?.hour?.CLP || 0).toLocaleString('es-CL')} CLP\n⭐ ${profile.stats?.likes || 0} Me Gusta | ${profile.stats?.experiences || 0} Experiencias\n\nVer perfil completo: ${profileLink}\n\nSaludos!`;
   
   window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -1158,7 +1158,7 @@ window.openWhatsApp = async (profileId) => {
     return;
   }
   
-  const message = encodeURIComponent(`Hola ${profile.displayName}, vi tu perfil en Sala Oscura y me gustaría conocer más sobre tus servicios.`);
+  const message = encodeURIComponent(`Hola ${profile.displayName}, vi tu perfil en SalaNegra y me gustaría conocer más sobre tus servicios.`);
   const whatsappUrl = `https://wa.me/${profile.whatsapp.replace(/\D/g, '')}?text=${message}`;
 
   // En móvil, window.open puede ser bloqueado por popup blockers

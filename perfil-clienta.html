@@ -497,7 +497,7 @@
                 <span>CLP</span>
               </div>
             </div>
-            <button type="button" class="btn-secondary btn-save-tarifas" id="save-tarifas-btn" style="margin-top: 16px;">Guardar Tarifas</button>
+            <button type="button" class="btn-primary btn-save-tarifas" id="save-tarifas-btn" style="margin-top: 16px;">Guardar Tarifas</button>
           </div>
           
           <!-- Servicios Ofrecidos -->
@@ -505,6 +505,7 @@
             <h2 class="section-title-small">💋 Servicios Ofrecidos</h2>
             <p style="color: var(--muted); font-size: 13px; margin-bottom: 16px;">Selecciona los servicios que ofreces</p>
             <div class="services-grid" id="services-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px;">
+              <!-- Primeros 10 servicios visibles -->
               <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
                 <input type="checkbox" name="services" value="oral" style="accent-color: var(--gold);" />
                 <span style="color: var(--text); font-size: 13px;">Oral con preservativo</span>
@@ -545,6 +546,9 @@
                 <input type="checkbox" name="services" value="eyaculacion-facial" style="accent-color: var(--gold);" />
                 <span style="color: var(--text); font-size: 13px;">Eyaculación facial</span>
               </label>
+            </div>
+            <!-- Servicios adicionales ocultos -->
+            <div class="services-grid services-hidden" id="services-hidden" style="display: none; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-top: 10px;">
               <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
                 <input type="checkbox" name="services" value="eyaculacion-cuerpo" style="accent-color: var(--gold);" />
                 <span style="color: var(--text); font-size: 13px;">Eyaculación en cuerpo</span>
@@ -585,7 +589,6 @@
                 <input type="checkbox" name="services" value="sumision" style="accent-color: var(--gold);" />
                 <span style="color: var(--text); font-size: 13px;">Sumisión</span>
               </label>
-              <!-- Servicios adicionales -->
               <label class="service-checkbox" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 200ms;">
                 <input type="checkbox" name="services" value="oral-sin-condon" style="accent-color: var(--gold);" />
                 <span style="color: var(--text); font-size: 13px;">Oral sin condón 💰</span>
@@ -651,8 +654,10 @@
                 <span style="color: var(--text); font-size: 13px;">Otros servicios 😏</span>
               </label>
             </div>
+            <!-- Botón ver más servicios -->
+            <button type="button" class="btn-primary btn-show-more-services" id="btn-show-more-services" onclick="toggleServicesProfile()" style="margin-top: 12px; width: 100%;">Ver más servicios (27 más)</button>
             <p style="color: var(--muted); font-size: 12px; margin-top: 12px; font-style: italic;">💰 = Algunos servicios pueden tener costo extra. Consulta detalles específicos.</p>
-            <button type="button" class="btn-secondary btn-save-services" id="save-services-btn" style="margin-top: 16px;">Guardar Servicios</button>
+            <button type="button" class="btn-primary btn-save-services" id="save-services-btn" style="margin-top: 16px;">Guardar Servicios</button>
           </div>
           
           <!-- Disponibilidad -->
@@ -711,7 +716,7 @@
               </div>
               <small style="color: var(--muted); font-size: 11px; margin-top: 6px; display: block;">Este horario se mostrará en tu perfil público</small>
             </div>
-            <button type="button" class="btn-secondary btn-save-availability" id="save-availability-btn" style="margin-top: 16px;">Guardar Disponibilidad</button>
+            <button type="button" class="btn-primary btn-save-availability" id="save-availability-btn" style="margin-top: 16px;">Guardar Disponibilidad</button>
           </div>
         </div>
       </div>

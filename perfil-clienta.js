@@ -2,6 +2,20 @@
 // PERFIL CLIENTA - Panel de Control JS
 // ========================================
 
+// Función para mostrar/ocultar servicios adicionales
+function toggleServicesProfile() {
+  const hiddenServices = document.getElementById('services-hidden');
+  const btn = document.getElementById('btn-show-more-services');
+
+  if (hiddenServices.style.display === 'none') {
+    hiddenServices.style.display = 'grid';
+    btn.textContent = 'Ver menos servicios';
+  } else {
+    hiddenServices.style.display = 'none';
+    btn.textContent = 'Ver más servicios (27 más)';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   // Verificar autenticación
   let currentUser = await DataService.getCurrentUser();

@@ -1677,18 +1677,24 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
 
   .modal-creator-header {
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 12px;
+    align-items: flex-start;
+    text-align: left;
+    gap: 8px;
   }
 
   .modal-creator-details {
     width: 100%;
   }
 
+  .modal-name-badges-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
   .modal-badges-container {
-    justify-content: center !important;
-    margin-top: 8px;
+    justify-content: flex-start !important;
+    margin-top: 0;
   }
 
   .modal-profile-badge {
@@ -1697,8 +1703,12 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   }
 
   .modal-creator-name {
-    font-size: 24px !important;
-    text-align: center;
+    font-size: 22px !important;
+    text-align: left;
+  }
+
+  .modal-creator-username {
+    text-align: left;
   }
 }
 
@@ -3870,23 +3880,25 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
 
   .modal-profile-header {
     flex-direction: column;
-    align-items: center;
-    text-align: center;
+    align-items: flex-start;
+    text-align: left;
     gap: 8px;
     margin-bottom: 12px;
   }
 
   .modal-profile-name {
     font-size: 20px;
+    text-align: left;
   }
-  
+
   .modal-profile-username {
     font-size: 12px;
+    text-align: left;
   }
-  
+
   .modal-profile-badges {
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 4px;
   }
   
@@ -3914,8 +3926,20 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   }
   
   .info-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .info-item {
+    padding: 8px;
+  }
+
+  .info-label {
+    font-size: 10px;
+  }
+
+  .info-value {
+    font-size: 14px;
   }
   
   .pricing-grid {
