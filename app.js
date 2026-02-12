@@ -44,62 +44,78 @@ async function checkAndDeactivateExpiredProfiles() {
     let profilesDeactivated = 0;
     for (const profile of approvedProfiles) {
       const isCurrentlyActive = profile.isActive !== false;
+      let needsUpdate = false;
 
       // Buscar el usuario correspondiente para sincronizar datos
+      // Probar múltiples formas de match
       const matchingUser = approvedUsers.find(u =>
         u.id === profile.userId ||
         u.email === profile.email ||
-        `profile-${u.id}` === profile.id
+        `profile-${u.id}` === profile.id ||
+        profile.id === `profile-${u.id}` ||
+        (profile.email && u.email && profile.email.toLowerCase() === u.email.toLowerCase())
       );
 
-      // Si el perfil no tiene planExpiry pero el usuario sí, sincronizar
-      if (!profile.planExpiry && matchingUser?.planExpiry) {
-        console.log(`  📥 Sincronizando planExpiry del usuario al perfil: ${profile.displayName}`);
+      console.log(`  📋 Perfil: ${profile.displayName || profile.email} (ID: ${profile.id})`);
+      console.log(`     Usuario match: ${matchingUser ? (matchingUser.displayName || matchingUser.email) : 'NO ENCONTRADO'}`);
+
+      // SIEMPRE sincronizar planExpiry del usuario al perfil si el usuario tiene uno
+      if (matchingUser?.planExpiry && profile.planExpiry !== matchingUser.planExpiry) {
+        console.log(`     📥 Sincronizando planExpiry: ${matchingUser.planExpiry}`);
         profile.planExpiry = matchingUser.planExpiry;
+        needsUpdate = true;
       }
 
-      // Si el usuario está desactivado, el perfil también debe estarlo
+      // SIEMPRE sincronizar isActive del usuario al perfil
       if (matchingUser && matchingUser.isActive === false && isCurrentlyActive) {
-        console.log(`  🔄 Sincronizando estado desactivado del usuario al perfil: ${profile.displayName}`);
+        console.log(`     🔄 Sincronizando estado desactivado del usuario al perfil`);
         profile.isActive = false;
+        needsUpdate = true;
+      }
+
+      // Verificar expiración (ya sea del perfil o heredada del usuario)
+      const expiryDate = profile.planExpiry || matchingUser?.planExpiry;
+      if (expiryDate) {
+        const isExpired = expiryDate < todayStr;
+        console.log(`     📅 planExpiry=${expiryDate}, expired=${isExpired}, active=${isCurrentlyActive}`);
+
+        if (isExpired && isCurrentlyActive) {
+          console.log(`     ⏰ Desactivando perfil vencido`);
+          profile.isActive = false;
+          needsUpdate = true;
+        }
+      } else {
+        console.log(`     ⚠️ SIN planExpiry, active=${isCurrentlyActive}`);
+      }
+
+      // Actualizar perfil si hubo cambios
+      if (needsUpdate) {
         try {
           await DataService.updateProfile(profile.id, profile);
           profilesDeactivated++;
-          console.log(`    ✅ Perfil sincronizado correctamente`);
+          console.log(`     ✅ Perfil actualizado correctamente`);
         } catch (updateError) {
-          console.error(`    ❌ Error al sincronizar perfil:`, updateError);
+          console.error(`     ❌ Error al actualizar perfil:`, updateError);
         }
-        continue;
-      }
-
-      // Verificar expiración
-      if (profile.planExpiry) {
-        const isExpired = profile.planExpiry < todayStr;
-
-        console.log(`  - ${profile.displayName || profile.email}: planExpiry=${profile.planExpiry}, expired=${isExpired}, active=${isCurrentlyActive}`);
-
-        if (isExpired && isCurrentlyActive) {
-          console.log(`    ⏰ Desactivando perfil vencido: ${profile.displayName || profile.email}`);
-          profile.isActive = false;
-          try {
-            await DataService.updateProfile(profile.id, profile);
-            profilesDeactivated++;
-            console.log(`    ✅ Perfil desactivado correctamente`);
-          } catch (updateError) {
-            console.error(`    ❌ Error al desactivar perfil:`, updateError);
-          }
-        }
-      } else {
-        console.log(`  ⚠️ ${profile.displayName || profile.email}: SIN planExpiry, active=${isCurrentlyActive}`);
       }
     }
 
     console.log(`📊 Resumen: ${usersDeactivated} usuarios y ${profilesDeactivated} perfiles desactivados`);
 
-    // Si se desactivó algo, disparar evento para refrescar carruseles
+    // Si se desactivó algo, invalidar caché y refrescar carruseles
     if (usersDeactivated > 0 || profilesDeactivated > 0) {
-      console.log('🔄 Refrescando carruseles...');
+      console.log('🔄 Invalidando caché y refrescando carruseles...');
+      // Invalidar caché de perfiles para que los carruseles obtengan datos frescos
+      if (DataService.invalidateCache) {
+        DataService.invalidateCache('/profiles');
+        DataService.invalidateCache('/users');
+      }
+      // Disparar evento para refrescar carruseles
       window.dispatchEvent(new CustomEvent('profilesUpdated'));
+      // Forzar recarga de carruseles
+      document.dispatchEvent(new CustomEvent('refreshCreators'));
+      document.dispatchEvent(new CustomEvent('refreshPremiumSelect'));
+      document.dispatchEvent(new CustomEvent('refreshLuxury'));
     }
   } catch (error) {
     console.error('❌ Error verificando perfiles vencidos:', error);

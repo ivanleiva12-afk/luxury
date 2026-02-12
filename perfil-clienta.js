@@ -1463,11 +1463,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const restrictions = await getPlanRestrictions();
     const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
     const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
-    
+
+    // VERIFICAR SI EL PLAN ESTÁ ACTIVO
+    const approvedUsers = await DataService.getApprovedUsers() || [];
+    const latestUser = approvedUsers.find(u => u.id === currentUser.id || u.email === currentUser.email);
+    const isPlanInactive = latestUser && latestUser.isActive === false;
+    const today = new Date().toISOString().split('T')[0];
+    const isPlanExpired = latestUser?.planExpiry && latestUser.planExpiry < today;
+    const isPlanDisabled = isPlanInactive || isPlanExpired;
+
     // Usar contadores diarios que persisten aunque se eliminen
     const instantesCounter = getDailyCounter('instantes');
     const estadosCounterData = getDailyCounter('estados');
-    
+
     // Actualizar contadores de fotos/videos
     document.getElementById('photos-count').textContent = userPhotos.length;
     document.getElementById('photos-max').textContent = restrictions.photos === 0 ? '∞' : restrictions.photos;
@@ -1502,56 +1510,110 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
     }
     
-    // Deshabilitar botones si se alcanzó el límite (usa contador 24h)
-    // 0 significa ilimitado, no "no permitido"
-    const photosAtLimit = restrictions.photos !== 0 && userPhotos.length >= restrictions.photos;
-    const videosAtLimit = restrictions.videos !== 0 && userVideos.length >= restrictions.videos;
-    const instantesAtLimit = restrictions.instantes !== 0 && instantesCounter.count >= restrictions.instantes;
-    const estadosAtLimit = restrictions.estados !== 0 && estadosCounterData.count >= restrictions.estados;
-    
+    // Mensaje para plan desactivado/vencido
+    const disabledTitle = isPlanInactive ? '⚠️ Plan desactivado' : '⚠️ Plan vencido';
+
+    // Deshabilitar botones si se alcanzó el límite O si el plan está desactivado
+    const photosAtLimit = isPlanDisabled || (restrictions.photos !== 0 && userPhotos.length >= restrictions.photos);
+    const videosAtLimit = isPlanDisabled || (restrictions.videos !== 0 && userVideos.length >= restrictions.videos);
+    const instantesAtLimit = isPlanDisabled || (restrictions.instantes !== 0 && instantesCounter.count >= restrictions.instantes);
+    const estadosAtLimit = isPlanDisabled || (restrictions.estados !== 0 && estadosCounterData.count >= restrictions.estados);
+
     if (addPhotoBtn) {
       addPhotoBtn.classList.toggle('disabled', photosAtLimit);
-      if (photosAtLimit) {
+      addPhotoBtn.disabled = photosAtLimit;
+      if (isPlanDisabled) {
+        addPhotoBtn.title = disabledTitle;
+        addPhotoBtn.style.opacity = '0.5';
+        addPhotoBtn.style.cursor = 'not-allowed';
+      } else if (photosAtLimit) {
         addPhotoBtn.title = 'Límite de fotos alcanzado. Mejora tu plan para más fotos.';
+      } else {
+        addPhotoBtn.style.opacity = '1';
+        addPhotoBtn.style.cursor = 'pointer';
+        addPhotoBtn.title = '';
       }
     }
     if (addVideoBtn) {
       addVideoBtn.classList.toggle('disabled', videosAtLimit);
-      addVideoBtn.title = videosAtLimit ?
-        'Límite de videos alcanzado. Mejora tu plan para más videos.' :
-        'Agregar video';
+      addVideoBtn.disabled = videosAtLimit;
+      if (isPlanDisabled) {
+        addVideoBtn.title = disabledTitle;
+        addVideoBtn.style.opacity = '0.5';
+        addVideoBtn.style.cursor = 'not-allowed';
+      } else {
+        addVideoBtn.title = videosAtLimit ?
+          'Límite de videos alcanzado. Mejora tu plan para más videos.' :
+          'Agregar video';
+        addVideoBtn.style.opacity = videosAtLimit ? '0.5' : '1';
+        addVideoBtn.style.cursor = videosAtLimit ? 'not-allowed' : 'pointer';
+      }
     }
-    
+
     // Deshabilitar botones de instantes y estados
     const addInstanteBtn = document.querySelector('[onclick="showModal(\'modal-instante\')"]');
     if (addInstanteBtn) {
       addInstanteBtn.classList.toggle('disabled', instantesAtLimit);
-      addInstanteBtn.title = instantesAtLimit ? 
-        (restrictions.instantes === 0 ? 'Tu plan no permite instantes' : 'Límite diario de instantes alcanzado') : 
-        'Agregar instante';
+      if (isPlanDisabled) {
+        addInstanteBtn.title = disabledTitle;
+        addInstanteBtn.style.opacity = '0.5';
+        addInstanteBtn.style.cursor = 'not-allowed';
+      } else {
+        addInstanteBtn.title = instantesAtLimit ?
+          (restrictions.instantes === 0 ? 'Tu plan no permite instantes' : 'Límite diario de instantes alcanzado') :
+          'Agregar instante';
+        addInstanteBtn.style.opacity = instantesAtLimit ? '0.5' : '1';
+        addInstanteBtn.style.cursor = instantesAtLimit ? 'not-allowed' : 'pointer';
+      }
     }
-    
+
     // También el botón principal de nuevo instante
     const btnNuevoInstanteMain = document.getElementById('btn-nuevo-instante');
     if (btnNuevoInstanteMain) {
       btnNuevoInstanteMain.classList.toggle('disabled', instantesAtLimit);
-      btnNuevoInstanteMain.title = instantesAtLimit ? 
-        (restrictions.instantes === 0 ? 'Tu plan no permite instantes' : `Límite diario alcanzado. Se reinicia a medianoche.`) : 
-        '';
+      btnNuevoInstanteMain.disabled = instantesAtLimit;
+      if (isPlanDisabled) {
+        btnNuevoInstanteMain.title = disabledTitle;
+        btnNuevoInstanteMain.style.opacity = '0.5';
+        btnNuevoInstanteMain.style.cursor = 'not-allowed';
+      } else {
+        btnNuevoInstanteMain.title = instantesAtLimit ?
+          (restrictions.instantes === 0 ? 'Tu plan no permite instantes' : `Límite diario alcanzado. Se reinicia a medianoche.`) :
+          '';
+        btnNuevoInstanteMain.style.opacity = instantesAtLimit ? '0.5' : '1';
+        btnNuevoInstanteMain.style.cursor = instantesAtLimit ? 'not-allowed' : 'pointer';
+      }
     }
-    
+
     const addEstadoBtn = document.querySelector('[onclick="showModal(\'modal-estado\')"]');
     if (addEstadoBtn) {
       addEstadoBtn.classList.toggle('disabled', estadosAtLimit);
-      addEstadoBtn.title = estadosAtLimit ? 'Límite diario de estados alcanzado' : 'Agregar estado';
+      if (isPlanDisabled) {
+        addEstadoBtn.title = disabledTitle;
+        addEstadoBtn.style.opacity = '0.5';
+        addEstadoBtn.style.cursor = 'not-allowed';
+      } else {
+        addEstadoBtn.title = estadosAtLimit ? 'Límite diario de estados alcanzado' : 'Agregar estado';
+        addEstadoBtn.style.opacity = estadosAtLimit ? '0.5' : '1';
+        addEstadoBtn.style.cursor = estadosAtLimit ? 'not-allowed' : 'pointer';
+      }
     }
-    
+
     // También el botón principal de nuevo estado
     const btnNuevoEstadoMain = document.getElementById('btn-nuevo-estado');
     if (btnNuevoEstadoMain) {
       btnNuevoEstadoMain.classList.toggle('disabled', estadosAtLimit);
-      btnNuevoEstadoMain.title = estadosAtLimit ? 
-        `Límite diario alcanzado. Se reinicia a medianoche.` : '';
+      btnNuevoEstadoMain.disabled = estadosAtLimit;
+      if (isPlanDisabled) {
+        btnNuevoEstadoMain.title = disabledTitle;
+        btnNuevoEstadoMain.style.opacity = '0.5';
+        btnNuevoEstadoMain.style.cursor = 'not-allowed';
+      } else {
+        btnNuevoEstadoMain.title = estadosAtLimit ?
+          `Límite diario alcanzado. Se reinicia a medianoche.` : '';
+        btnNuevoEstadoMain.style.opacity = estadosAtLimit ? '0.5' : '1';
+        btnNuevoEstadoMain.style.cursor = estadosAtLimit ? 'not-allowed' : 'pointer';
+      }
     }
   }
 
@@ -1715,9 +1777,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   addPhotoBtn?.addEventListener('click', async () => {
+    // VERIFICAR SI EL PLAN ESTÁ ACTIVO
+    const approvedUsers = await DataService.getApprovedUsers() || [];
+    const latestUser = approvedUsers.find(u => u.id === currentUser.id || u.email === currentUser.email);
+    const today = new Date().toISOString().split('T')[0];
+
+    if (latestUser && latestUser.isActive === false) {
+      showToast('⚠️ Tu plan está desactivado. No puedes subir fotos.');
+      return;
+    }
+    if (latestUser?.planExpiry && latestUser.planExpiry < today) {
+      showToast('⚠️ Tu plan ha vencido. Renueva para subir fotos.');
+      return;
+    }
+
     const restrictions = await getPlanRestrictions();
     const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
-    
+
     if (restrictions.photos !== 0 && userPhotos.length >= restrictions.photos) {
       showToast(`Límite de ${restrictions.photos} fotos alcanzado. Mejora tu plan.`);
       return;
@@ -1726,6 +1802,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   addVideoBtn?.addEventListener('click', async () => {
+    // VERIFICAR SI EL PLAN ESTÁ ACTIVO
+    const approvedUsers = await DataService.getApprovedUsers() || [];
+    const latestUser = approvedUsers.find(u => u.id === currentUser.id || u.email === currentUser.email);
+    const today = new Date().toISOString().split('T')[0];
+
+    if (latestUser && latestUser.isActive === false) {
+      showToast('⚠️ Tu plan está desactivado. No puedes subir videos.');
+      return;
+    }
+    if (latestUser?.planExpiry && latestUser.planExpiry < today) {
+      showToast('⚠️ Tu plan ha vencido. Renueva para subir videos.');
+      return;
+    }
+
     const restrictions = await getPlanRestrictions();
     const userVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');
 
