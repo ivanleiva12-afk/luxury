@@ -3,21 +3,36 @@
 // ========================================
 async function checkAndDeactivateExpiredProfiles() {
   try {
-    const approvedProfiles = await DataService.getApprovedUsers() || [];
+    // Verificar approvedUsers (datos de usuario)
+    const approvedUsers = await DataService.getApprovedUsers() || [];
     const today = new Date().toISOString().split('T')[0];
-    let updated = false;
+    let usersUpdated = false;
 
-    for (const profile of approvedProfiles) {
-      // Si el perfil tiene fecha de vencimiento y ya venció
-      if (profile.planExpiry && profile.planExpiry < today && profile.isActive !== false) {
-        console.log(`⏰ Perfil vencido detectado: ${profile.displayName || profile.email} - Desactivando...`);
-        profile.isActive = false;
-        updated = true;
+    for (const user of approvedUsers) {
+      if (user.planExpiry && user.planExpiry < today && user.isActive !== false) {
+        console.log(`⏰ Usuario vencido: ${user.displayName || user.email} - Desactivando...`);
+        user.isActive = false;
+        usersUpdated = true;
+        // Actualizar este usuario específico
+        await DataService.updateUser(user.id, user);
       }
     }
 
-    if (updated) {
-      await DataService.saveApprovedUsers(approvedProfiles);
+    // Verificar approvedProfiles (perfiles del carrusel)
+    const approvedProfiles = await DataService.getApprovedProfiles() || [];
+    let profilesUpdated = false;
+
+    for (const profile of approvedProfiles) {
+      if (profile.planExpiry && profile.planExpiry < today && profile.isActive !== false) {
+        console.log(`⏰ Perfil vencido: ${profile.displayName || profile.email} - Desactivando del carrusel...`);
+        profile.isActive = false;
+        profilesUpdated = true;
+        // Actualizar este perfil específico
+        await DataService.updateProfile(profile.id, profile);
+      }
+    }
+
+    if (usersUpdated || profilesUpdated) {
       console.log('✅ Perfiles vencidos desactivados correctamente');
     }
   } catch (error) {
@@ -27,8 +42,8 @@ async function checkAndDeactivateExpiredProfiles() {
 
 // Ejecutar verificación al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
-  // Pequeño delay para asegurar que DataService esté listo
-  setTimeout(checkAndDeactivateExpiredProfiles, 1000);
+  // Delay para asegurar que DataService esté listo
+  setTimeout(checkAndDeactivateExpiredProfiles, 2000);
 });
 
 // Navegación móvil

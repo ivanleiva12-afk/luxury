@@ -784,6 +784,24 @@ Verificación prioritaria</textarea>
       <div class="admin-section">
         <h2>✅ Registros Aprobados</h2>
         <p style="color: var(--muted); margin-bottom: 20px;">Historial de perfiles aprobados con datos de verificación archivados.</p>
+
+        <!-- Filtros -->
+        <div class="admin-filters" style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <label for="filter-status" style="color: var(--muted); font-size: 0.9rem;">Estado:</label>
+            <select id="filter-status" onchange="applyAprobadosFilters()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text); font-size: 0.9rem;">
+              <option value="todos">Todos</option>
+              <option value="activos">Activos</option>
+              <option value="desactivos">Desactivos</option>
+            </select>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 200px;">
+            <label for="filter-email" style="color: var(--muted); font-size: 0.9rem;">Correo:</label>
+            <input type="text" id="filter-email" placeholder="Buscar por correo..." oninput="applyAprobadosFilters()" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text); font-size: 0.9rem; flex: 1;">
+          </div>
+          <button onclick="clearAprobadosFilters()" style="padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 0.9rem;">Limpiar</button>
+        </div>
+
         <div id="registros-aprobados-list" class="admin-list">
           <!-- Los registros aprobados se cargarán aquí -->
         </div>

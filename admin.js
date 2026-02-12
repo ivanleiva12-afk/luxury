@@ -1655,39 +1655,70 @@ function updateRechazadosBadge() {
 }
 
 // ============================================
-// RENDERIZAR REGISTROS APROBADOS
+// FILTROS PARA REGISTROS APROBADOS
 // ============================================
-async function renderRegistrosAprobados() {
+let allAprobadosData = { registros: [], profiles: [] };
+
+function applyAprobadosFilters() {
+  const statusFilter = document.getElementById('filter-status')?.value || 'todos';
+  const emailFilter = document.getElementById('filter-email')?.value?.toLowerCase().trim() || '';
+
+  renderRegistrosAprobadosFiltered(statusFilter, emailFilter);
+}
+
+function clearAprobadosFilters() {
+  const statusSelect = document.getElementById('filter-status');
+  const emailInput = document.getElementById('filter-email');
+
+  if (statusSelect) statusSelect.value = 'todos';
+  if (emailInput) emailInput.value = '';
+
+  renderRegistrosAprobadosFiltered('todos', '');
+}
+
+function renderRegistrosAprobadosFiltered(statusFilter, emailFilter) {
   const list = document.getElementById('registros-aprobados-list');
   const empty = document.getElementById('registros-aprobados-empty');
-  
+
   if (!list || !empty) return;
-  
-  const approvedProfiles = await DataService.getApprovedProfiles() || [];
-  const aprobados = registros.filter(r => r.status === 'aprobado');
-  
-  if (aprobados.length === 0) {
+
+  const { registros: aprobados, profiles: approvedProfiles } = allAprobadosData;
+
+  // Aplicar filtros
+  let filtered = aprobados.filter(reg => {
+    // Verificar estado del perfil
+    const profile = approvedProfiles.find(p => p.id === `profile-${reg.id}` || p.userId === reg.id);
+    const isActive = profile ? (profile.isActive !== false) : true;
+
+    // Filtro por estado
+    if (statusFilter === 'activos' && !isActive) return false;
+    if (statusFilter === 'desactivos' && isActive) return false;
+
+    // Filtro por correo
+    if (emailFilter && !reg.email?.toLowerCase().includes(emailFilter)) return false;
+
+    return true;
+  });
+
+  if (filtered.length === 0) {
     list.innerHTML = '';
     list.style.display = 'none';
     empty.style.display = 'block';
     return;
   }
-  
+
   list.style.display = 'grid';
   empty.style.display = 'none';
-  
-  list.innerHTML = aprobados.map(reg => {
-    // Verificar estado del perfil en approvedProfiles
+
+  list.innerHTML = filtered.map(reg => {
     const profile = approvedProfiles.find(p => p.id === `profile-${reg.id}` || p.userId === reg.id);
-    const isActive = profile ? (profile.isActive !== false) : true; // Por defecto activo
-    const statusClass = isActive ? 'active' : 'inactive';
+    const isActive = profile ? (profile.isActive !== false) : true;
     const statusText = isActive ? '🟢 Activo' : '🔴 Desactivado';
     const toggleBtnText = isActive ? 'Desactivar' : 'Activar';
     const toggleBtnColor = isActive ? '#F59E0B' : '#10B981';
-    
+
     return `
     <div class="admin-item collapsible-profile" style="flex-direction: column; gap: 0; border-left: 4px solid ${isActive ? '#10B981' : '#6B7280'};">
-      <!-- Header colapsable - siempre visible -->
       <div class="profile-header" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 12px 0; cursor: pointer;" onclick="toggleProfileDetails('${reg.id}')">
         <div style="display: flex; align-items: center; gap: 12px;">
           <span class="expand-icon" id="expand-icon-${reg.id}" style="color: var(--gold); font-size: 14px; transition: transform 0.3s;">▶</span>
@@ -1704,8 +1735,7 @@ async function renderRegistrosAprobados() {
           <button onclick="deleteApprovedProfile('${reg.id}')" style="background: #DC2626; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer;">Eliminar</button>
         </div>
       </div>
-      
-      <!-- Detalles colapsables - ocultos por defecto -->
+
       <div class="profile-details" id="profile-details-${reg.id}" style="display: none; width: 100%; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
         <div style="width: 100%; display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
           <div>
@@ -1716,8 +1746,7 @@ async function renderRegistrosAprobados() {
             <div style="color: var(--muted); font-size: 11px; margin-top: 4px;">Aprobado: ${reg.approvedAt ? new Date(reg.approvedAt).toLocaleDateString('es-CL') : 'N/A'}</div>
           </div>
         </div>
-        
-        <!-- Datos de verificación archivados -->
+
         <div style="width: 100%; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
           <div style="color: var(--gold); font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">📂 Datos de Verificación Archivados</div>
           <div style="display: flex; flex-wrap: wrap; gap: 12px;">
@@ -1726,8 +1755,7 @@ async function renderRegistrosAprobados() {
             <span class="verification-item ${reg.profilePhotosData?.length > 0 ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.profilePhotosData?.length > 0 ? 'pointer' : 'default'}; color: ${reg.hasProfilePhotos ? '#10B981' : 'var(--muted)'};" onclick="${reg.profilePhotosData?.length > 0 ? `viewArchivedFile(${reg.id}, 'photos')` : ''}">${reg.hasProfilePhotos ? '✓' : '○'} Fotos (${reg.profilePhotosData?.length || 0}) ${reg.profilePhotosData?.length > 0 ? '👁️' : ''}</span>
           </div>
         </div>
-        
-        <!-- Info del plan -->
+
         ${reg.planInfo ? `
         <div style="width: 100%; background: rgba(212,175,55,0.1); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
           <div style="color: var(--gold); font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">📋 Información del Plan</div>
@@ -1738,8 +1766,7 @@ async function renderRegistrosAprobados() {
           </div>
         </div>
         ` : ''}
-        
-        <!-- Info mínima -->
+
         <div style="width: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; font-size: 12px; color: var(--muted);">
           <span>📍 ${reg.city || 'N/A'}</span>
           <span>📞 ${reg.whatsapp || 'N/A'}</span>
@@ -1749,6 +1776,21 @@ async function renderRegistrosAprobados() {
     </div>
   `;
   }).join('');
+}
+
+// ============================================
+// RENDERIZAR REGISTROS APROBADOS (carga datos y aplica filtros)
+// ============================================
+async function renderRegistrosAprobados() {
+  // Cargar datos
+  const approvedProfiles = await DataService.getApprovedProfiles() || [];
+  const aprobados = registros.filter(r => r.status === 'aprobado');
+
+  // Guardar en variable global para filtrado
+  allAprobadosData = { registros: aprobados, profiles: approvedProfiles };
+
+  // Aplicar filtros actuales
+  applyAprobadosFilters();
 }
 
 // ============================================
@@ -1913,6 +1955,10 @@ window.toggleProfileDetails = (regId) => {
     icon.style.transform = 'rotate(0deg)';
   }
 };
+
+// Exponer funciones de filtrado al window
+window.applyAprobadosFilters = applyAprobadosFilters;
+window.clearAprobadosFilters = clearAprobadosFilters;
 
 // Activar/Desactivar perfil
 window.toggleProfileStatus = async (regId) => {
@@ -2547,91 +2593,88 @@ async function savePlansFromForm() {
     const premiumTarifaMaxEl = document.getElementById('plan-premium-tarifa-max');
     const luxuryDescEl = document.getElementById('plan-luxury-description');
     const luxuryCuposEl = document.getElementById('plan-luxury-cupos');
-  
-  const plans = {
-    vip: {
-      name: 'VIP Black',
-      description: vipDescEl ? vipDescEl.value : 'Visibilidad premium para destacar',
-      prices: {
-        7: parseInt(document.getElementById('plan-vip-price-7').value) || 19990,
-        15: parseInt(document.getElementById('plan-vip-price-15').value) || 34990,
-        30: parseInt(document.getElementById('plan-vip-price-30').value) || 49990
+
+    const plans = {
+      vip: {
+        name: 'VIP Black',
+        description: vipDescEl ? vipDescEl.value : 'Visibilidad premium para destacar',
+        prices: {
+          7: parseInt(document.getElementById('plan-vip-price-7')?.value) || 19990,
+          15: parseInt(document.getElementById('plan-vip-price-15')?.value) || 34990,
+          30: parseInt(document.getElementById('plan-vip-price-30')?.value) || 49990
+        },
+        price: parseInt(document.getElementById('plan-vip-price-30')?.value) || 49990,
+        tarifaMin: vipTarifaMinEl ? parseInt(vipTarifaMinEl.value) || 100000 : 100000,
+        tarifaMax: vipTarifaMaxEl ? parseInt(vipTarifaMaxEl.value) || 199999 : 199999,
+        photos: parseInt(document.getElementById('plan-vip-photos')?.value) || 10,
+        videos: parseInt(document.getElementById('plan-vip-videos')?.value) || 2,
+        instantes: parseInt(document.getElementById('plan-vip-instantes')?.value) ?? 3,
+        instantesDuracion: parseInt(document.getElementById('plan-vip-instantes-duracion')?.value) ?? 12,
+        estados: parseInt(document.getElementById('plan-vip-estados')?.value) ?? 2,
+        estadosDuracion: parseInt(document.getElementById('plan-vip-estados-duracion')?.value) ?? 6,
+        features: document.getElementById('plan-vip-features')?.value?.split('\n').filter(f => f.trim()) || [],
+        active: document.getElementById('plan-vip-active')?.checked ?? true
       },
-      price: parseInt(document.getElementById('plan-vip-price-30').value) || 49990,
-      tarifaMin: vipTarifaMinEl ? parseInt(vipTarifaMinEl.value) || 100000 : 100000,
-      tarifaMax: vipTarifaMaxEl ? parseInt(vipTarifaMaxEl.value) || 199999 : 199999,
-      photos: parseInt(document.getElementById('plan-vip-photos').value) || 10,
-      videos: parseInt(document.getElementById('plan-vip-videos').value) || 2,
-      instantes: parseInt(document.getElementById('plan-vip-instantes')?.value) ?? 3,
-      instantesDuracion: parseInt(document.getElementById('plan-vip-instantes-duracion')?.value) ?? 12,
-      estados: parseInt(document.getElementById('plan-vip-estados')?.value) ?? 2,
-      estadosDuracion: parseInt(document.getElementById('plan-vip-estados-duracion')?.value) ?? 6,
-      features: document.getElementById('plan-vip-features').value.split('\n').filter(f => f.trim()),
-      active: document.getElementById('plan-vip-active').checked
-    },
-    premium: {
-      name: 'Premium Select',
-      description: premiumDescEl ? premiumDescEl.value : 'La mejor relación calidad-precio',
-      prices: {
-        7: parseInt(document.getElementById('plan-premium-price-7').value) || 29990,
-        15: parseInt(document.getElementById('plan-premium-price-15').value) || 54990,
-        30: parseInt(document.getElementById('plan-premium-price-30').value) || 79990
+      premium: {
+        name: 'Premium Select',
+        description: premiumDescEl ? premiumDescEl.value : 'La mejor relación calidad-precio',
+        prices: {
+          7: parseInt(document.getElementById('plan-premium-price-7')?.value) || 29990,
+          15: parseInt(document.getElementById('plan-premium-price-15')?.value) || 54990,
+          30: parseInt(document.getElementById('plan-premium-price-30')?.value) || 79990
+        },
+        price: parseInt(document.getElementById('plan-premium-price-30')?.value) || 79990,
+        tarifaMin: premiumTarifaMinEl ? parseInt(premiumTarifaMinEl.value) || 200000 : 200000,
+        tarifaMax: premiumTarifaMaxEl ? parseInt(premiumTarifaMaxEl.value) || 999999999 : 999999999,
+        photos: parseInt(document.getElementById('plan-premium-photos')?.value) || 15,
+        videos: parseInt(document.getElementById('plan-premium-videos')?.value) || 4,
+        instantes: parseInt(document.getElementById('plan-premium-instantes')?.value) ?? 5,
+        instantesDuracion: parseInt(document.getElementById('plan-premium-instantes-duracion')?.value) ?? 24,
+        estados: parseInt(document.getElementById('plan-premium-estados')?.value) ?? 5,
+        estadosDuracion: parseInt(document.getElementById('plan-premium-estados-duracion')?.value) ?? 12,
+        features: document.getElementById('plan-premium-features')?.value?.split('\n').filter(f => f.trim()) || [],
+        active: document.getElementById('plan-premium-active')?.checked ?? true,
+        featured: document.getElementById('plan-premium-featured')?.checked ?? true
       },
-      price: parseInt(document.getElementById('plan-premium-price-30').value) || 79990,
-      tarifaMin: premiumTarifaMinEl ? parseInt(premiumTarifaMinEl.value) || 200000 : 200000,
-      tarifaMax: premiumTarifaMaxEl ? parseInt(premiumTarifaMaxEl.value) || 999999999 : 999999999,
-      photos: parseInt(document.getElementById('plan-premium-photos').value) || 15,
-      videos: parseInt(document.getElementById('plan-premium-videos').value) || 4,
-      instantes: parseInt(document.getElementById('plan-premium-instantes')?.value) ?? 5,
-      instantesDuracion: parseInt(document.getElementById('plan-premium-instantes-duracion')?.value) ?? 24,
-      estados: parseInt(document.getElementById('plan-premium-estados')?.value) ?? 5,
-      estadosDuracion: parseInt(document.getElementById('plan-premium-estados-duracion')?.value) ?? 12,
-      features: document.getElementById('plan-premium-features').value.split('\n').filter(f => f.trim()),
-      active: document.getElementById('plan-premium-active').checked,
-      featured: document.getElementById('plan-premium-featured').checked
-    },
-    luxury: {
-      name: 'Luxury & Exclusive',
-      description: luxuryDescEl ? luxuryDescEl.value : 'Exclusividad total, sin límites',
-      prices: {
-        7: parseInt(document.getElementById('plan-luxury-price-7').value) || 59990,
-        15: parseInt(document.getElementById('plan-luxury-price-15').value) || 99990,
-        30: parseInt(document.getElementById('plan-luxury-price-30').value) || 149990
-      },
-      price: parseInt(document.getElementById('plan-luxury-price-30').value) || 149990,
-      tarifaMin: 100000, // Luxury disponible para todas las tarifas
-      tarifaMax: 999999999,
-      cupos: luxuryCuposEl ? parseInt(luxuryCuposEl.value) || 50 : 50,
-      photos: parseInt(document.getElementById('plan-luxury-photos').value) || 0,
-      videos: parseInt(document.getElementById('plan-luxury-videos').value) || 0,
-      instantes: parseInt(document.getElementById('plan-luxury-instantes')?.value) ?? 0,
-      instantesDuracion: parseInt(document.getElementById('plan-luxury-instantes-duracion')?.value) ?? 48,
-      estados: parseInt(document.getElementById('plan-luxury-estados')?.value) ?? 0,
-      estadosDuracion: parseInt(document.getElementById('plan-luxury-estados-duracion')?.value) ?? 24,
-      features: document.getElementById('plan-luxury-features').value.split('\n').filter(f => f.trim()),
-      active: document.getElementById('plan-luxury-active').checked,
-      limited: document.getElementById('plan-luxury-limited').checked
+      luxury: {
+        name: 'Luxury & Exclusive',
+        description: luxuryDescEl ? luxuryDescEl.value : 'Exclusividad total, sin límites',
+        prices: {
+          7: parseInt(document.getElementById('plan-luxury-price-7')?.value) || 59990,
+          15: parseInt(document.getElementById('plan-luxury-price-15')?.value) || 99990,
+          30: parseInt(document.getElementById('plan-luxury-price-30')?.value) || 149990
+        },
+        price: parseInt(document.getElementById('plan-luxury-price-30')?.value) || 149990,
+        tarifaMin: 100000,
+        tarifaMax: 999999999,
+        cupos: luxuryCuposEl ? parseInt(luxuryCuposEl.value) || 50 : 50,
+        photos: parseInt(document.getElementById('plan-luxury-photos')?.value) || 0,
+        videos: parseInt(document.getElementById('plan-luxury-videos')?.value) || 0,
+        instantes: parseInt(document.getElementById('plan-luxury-instantes')?.value) ?? 0,
+        instantesDuracion: parseInt(document.getElementById('plan-luxury-instantes-duracion')?.value) ?? 48,
+        estados: parseInt(document.getElementById('plan-luxury-estados')?.value) ?? 0,
+        estadosDuracion: parseInt(document.getElementById('plan-luxury-estados-duracion')?.value) ?? 24,
+        features: document.getElementById('plan-luxury-features')?.value?.split('\n').filter(f => f.trim()) || [],
+        active: document.getElementById('plan-luxury-active')?.checked ?? true,
+        limited: document.getElementById('plan-luxury-limited')?.checked ?? false
+      }
+    };
+
+    await savePlans(plans);
+
+    console.log('✅ Planes guardados en AWS:', plans);
+    showPlansMessage('✓ Planes guardados correctamente. Los cambios se reflejarán en el formulario de registro.', 'success');
+
+    const saveBtn = document.getElementById('save-plans-btn');
+    if (saveBtn) {
+      const originalText = saveBtn.textContent;
+      saveBtn.textContent = '✓ Guardado!';
+      saveBtn.style.background = '#10B981';
+      setTimeout(() => {
+        saveBtn.textContent = originalText;
+        saveBtn.style.background = '';
+      }, 2000);
     }
-  };
-  
-  await savePlans(plans);
-  
-  // Feedback visual más claro
-  console.log('✅ Planes guardados en AWS:', plans);
-  
-  showPlansMessage('✓ Planes guardados correctamente. Los cambios se reflejarán en el formulario de registro.', 'success');
-  
-  // Cambiar temporalmente el texto del botón para confirmar
-  const saveBtn = document.getElementById('save-plans-btn');
-  if (saveBtn) {
-    const originalText = saveBtn.textContent;
-    saveBtn.textContent = '✓ Guardado!';
-    saveBtn.style.background = '#10B981';
-    setTimeout(() => {
-      saveBtn.textContent = originalText;
-      saveBtn.style.background = '';
-    }, 2000);
-  }
   } catch (error) {
     console.error('Error guardando planes:', error);
     showPlansMessage('❌ Error al guardar los planes. Por favor intenta de nuevo.', 'error');
