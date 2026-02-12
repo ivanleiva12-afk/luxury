@@ -2104,6 +2104,15 @@
   gap: 8px !important;
 }
 
+/* Servicios ocultos por defecto */
+.services-grid.services-hidden {
+  display: none !important;
+}
+
+.services-grid.services-hidden.expanded {
+  display: grid !important;
+}
+
 .service-checkbox {
   display: flex !important;
   align-items: center !important;

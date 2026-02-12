@@ -1687,14 +1687,16 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   }
 
   .modal-name-badges-row {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
   }
 
   .modal-badges-container {
     justify-content: flex-start !important;
     margin-top: 0;
+    flex-shrink: 0;
   }
 
   .modal-profile-badge {

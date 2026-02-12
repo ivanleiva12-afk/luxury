@@ -233,7 +233,7 @@ adminTabs.forEach(tab => {
     } else if (tabName === 'registros-rechazados') {
       renderRegistrosRechazados();
     } else if (tabName === 'mensajes') {
-      renderMensajes(true); // Auto-marcar como leídos
+      renderMensajes(false); // NO auto-marcar como leídos
     } else if (tabName === 'servicios-nosotros') {
       loadServiciosToForm();
       loadNosotrosToForm();
@@ -1481,7 +1481,9 @@ window.approvePlanRequest = async function(requestId) {
   if (userIndex !== -1) {
     // Actualizar fecha de vencimiento
     approvedUsers[userIndex].planExpiry = request.newExpiry;
-    
+    // ACTIVAR el perfil automáticamente al aprobar renovación/upgrade
+    approvedUsers[userIndex].isActive = true;
+
     if (isUpgrade) {
       // Actualizar plan para upgrade
       approvedUsers[userIndex].selectedPlan = request.newPlan;
@@ -1492,7 +1494,7 @@ window.approvePlanRequest = async function(requestId) {
       approvedUsers[userIndex].lastRenewalDate = new Date().toISOString();
       approvedUsers[userIndex].lastRenewalDuration = request.duration;
     }
-    
+
     await DataService.updateUser(approvedUsers[userIndex].id, approvedUsers[userIndex]);
   }
   
@@ -1522,12 +1524,16 @@ window.approvePlanRequest = async function(requestId) {
     await DataService.setCurrentUser(currentUser);
   }
   
-  // Actualizar AWS approvedProfiles para que el perfil aparezca en el carrusel correcto
-  if (isUpgrade) {
-    const approvedProfiles = await DataService.getApprovedProfiles() || [];
-    const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${request.userId}`);
-    
-    if (profileIndex !== -1) {
+  // Actualizar AWS approvedProfiles
+  const approvedProfiles = await DataService.getApprovedProfiles() || [];
+  const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${request.userId}`);
+
+  if (profileIndex !== -1) {
+    // Actualizar fecha de vencimiento y ACTIVAR el perfil
+    approvedProfiles[profileIndex].planExpiry = request.newExpiry;
+    approvedProfiles[profileIndex].isActive = true;
+
+    if (isUpgrade) {
       // Mapear plan a tipo de carrusel
       const planToCarousel = {
         'luxury': 'luxury',
@@ -1535,7 +1541,7 @@ window.approvePlanRequest = async function(requestId) {
         'vip': 'vip-black',
         'premium': 'premium-select'
       };
-      
+
       // Mapear plan a tipos de perfil permitidos
       const planToProfileTypes = {
         'luxury': ['luxury-exclusive', 'premium', 'vip'],
@@ -1543,16 +1549,14 @@ window.approvePlanRequest = async function(requestId) {
         'vip': ['vip', 'premium'],
         'premium': ['premium']
       };
-      
+
       approvedProfiles[profileIndex].carouselType = planToCarousel[request.newPlan] || 'premium-select';
       approvedProfiles[profileIndex].selectedPlan = request.newPlan;
       approvedProfiles[profileIndex].profileTypes = planToProfileTypes[request.newPlan] || ['premium'];
-      approvedProfiles[profileIndex].planExpiry = request.newExpiry;
-      
-      await DataService.updateProfile(approvedProfiles[profileIndex].id, approvedProfiles[profileIndex]);
-      
-      console.log('✅ Perfil actualizado en carrusel:', approvedProfiles[profileIndex].carouselType);
     }
+
+    await DataService.updateProfile(approvedProfiles[profileIndex].id, approvedProfiles[profileIndex]);
+    console.log('✅ Perfil activado y actualizado:', approvedProfiles[profileIndex].displayName || request.displayName);
   }
   
   // Marcar solicitud como aprobada
@@ -2534,14 +2538,15 @@ async function loadPlansToForm() {
 }
 
 async function savePlansFromForm() {
-  const vipDescEl = document.getElementById('plan-vip-description');
-  const vipTarifaMinEl = document.getElementById('plan-vip-tarifa-min');
-  const vipTarifaMaxEl = document.getElementById('plan-vip-tarifa-max');
-  const premiumDescEl = document.getElementById('plan-premium-description');
-  const premiumTarifaMinEl = document.getElementById('plan-premium-tarifa-min');
-  const premiumTarifaMaxEl = document.getElementById('plan-premium-tarifa-max');
-  const luxuryDescEl = document.getElementById('plan-luxury-description');
-  const luxuryCuposEl = document.getElementById('plan-luxury-cupos');
+  try {
+    const vipDescEl = document.getElementById('plan-vip-description');
+    const vipTarifaMinEl = document.getElementById('plan-vip-tarifa-min');
+    const vipTarifaMaxEl = document.getElementById('plan-vip-tarifa-max');
+    const premiumDescEl = document.getElementById('plan-premium-description');
+    const premiumTarifaMinEl = document.getElementById('plan-premium-tarifa-min');
+    const premiumTarifaMaxEl = document.getElementById('plan-premium-tarifa-max');
+    const luxuryDescEl = document.getElementById('plan-luxury-description');
+    const luxuryCuposEl = document.getElementById('plan-luxury-cupos');
   
   const plans = {
     vip: {
@@ -2626,6 +2631,10 @@ async function savePlansFromForm() {
       saveBtn.textContent = originalText;
       saveBtn.style.background = '';
     }, 2000);
+  }
+  } catch (error) {
+    console.error('Error guardando planes:', error);
+    showPlansMessage('❌ Error al guardar los planes. Por favor intenta de nuevo.', 'error');
   }
 }
 

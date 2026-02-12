@@ -3223,8 +3223,12 @@
         await DataService.saveForumMentions(mentions);
 
         alert('Post eliminado correctamente');
-        volverALista();
-        updateCategoryCounts();
+
+        // Volver a la lista y recargar
+        window.history.replaceState({}, document.title, window.location.pathname);
+        document.getElementById('section-title').textContent = 'Publicaciones Recientes';
+        await loadPosts(currentFilter === 'hilo' ? 'todos' : currentFilter);
+        await updateCategoryCounts();
       } catch (error) {
         console.error('Error eliminando post:', error);
         alert('Error al eliminar el post');

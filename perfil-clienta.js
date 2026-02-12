@@ -7,12 +7,12 @@ function toggleServicesProfile() {
   const hiddenServices = document.getElementById('services-hidden');
   const btn = document.getElementById('btn-show-more-services');
 
-  if (hiddenServices.style.display === 'none') {
-    hiddenServices.style.display = 'grid';
-    btn.textContent = 'Ver menos servicios';
-  } else {
-    hiddenServices.style.display = 'none';
+  if (hiddenServices.classList.contains('expanded')) {
+    hiddenServices.classList.remove('expanded');
     btn.textContent = 'Ver más servicios (27 más)';
+  } else {
+    hiddenServices.classList.add('expanded');
+    btn.textContent = 'Ver menos servicios';
   }
 }
 

@@ -1,3 +1,36 @@
+// ========================================
+// VERIFICAR Y DESACTIVAR PERFILES VENCIDOS
+// ========================================
+async function checkAndDeactivateExpiredProfiles() {
+  try {
+    const approvedProfiles = await DataService.getApprovedUsers() || [];
+    const today = new Date().toISOString().split('T')[0];
+    let updated = false;
+
+    for (const profile of approvedProfiles) {
+      // Si el perfil tiene fecha de vencimiento y ya venció
+      if (profile.planExpiry && profile.planExpiry < today && profile.isActive !== false) {
+        console.log(`⏰ Perfil vencido detectado: ${profile.displayName || profile.email} - Desactivando...`);
+        profile.isActive = false;
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      await DataService.saveApprovedUsers(approvedProfiles);
+      console.log('✅ Perfiles vencidos desactivados correctamente');
+    }
+  } catch (error) {
+    console.error('Error verificando perfiles vencidos:', error);
+  }
+}
+
+// Ejecutar verificación al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+  // Pequeño delay para asegurar que DataService esté listo
+  setTimeout(checkAndDeactivateExpiredProfiles, 1000);
+});
+
 // Navegación móvil
 const navToggle = document.querySelector('.nav-toggle');
 const siteNav = document.querySelector('.site-nav');

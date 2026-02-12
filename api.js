@@ -310,21 +310,30 @@ if (typeof DataService === 'undefined') {
         method: 'POST',
         body: JSON.stringify(message)
       });
+      // Invalidar cache de mensajes
+      delete _apiCache['/messages'];
+      delete _apiCache['/config/contactMessages'];
       return result;
     } catch (error) {
       console.error('Error enviando mensaje, usando fallback:', error);
       // Fallback: usar configuración genérica
       const messages = await this.getConfig('contactMessages') || [];
       messages.unshift(message);
-      return await this.setConfig('contactMessages', messages);
+      const result = await this.setConfig('contactMessages', messages);
+      delete _apiCache['/messages'];
+      return result;
     }
   },
   
   async deleteMessage(messageId) {
     try {
-      return await this.fetchApi(`/messages/${messageId}`, {
+      const result = await this.fetchApi(`/messages/${messageId}`, {
         method: 'DELETE'
       });
+      // Invalidar cache de mensajes
+      delete _apiCache['/messages'];
+      delete _apiCache['/config/contactMessages'];
+      return result;
     } catch (error) {
       console.error('Error eliminando mensaje:', error);
       throw error;
@@ -357,10 +366,13 @@ if (typeof DataService === 'undefined') {
   
   async setConfig(key, value) {
     try {
-      return await this.fetchApi(`/config/${key}`, {
+      const result = await this.fetchApi(`/config/${key}`, {
         method: 'PUT',
         body: JSON.stringify({ key, value })
       });
+      // Invalidar cache de esta configuración
+      delete _apiCache[`/config/${key}`];
+      return result;
     } catch (error) {
       console.error('Error guardando config:', error);
       throw error;
