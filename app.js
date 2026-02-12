@@ -2,41 +2,76 @@
 // VERIFICAR Y DESACTIVAR PERFILES VENCIDOS
 // ========================================
 async function checkAndDeactivateExpiredProfiles() {
+  console.log('🔍 Iniciando verificación de perfiles vencidos...');
+
   try {
+    // Obtener fecha de hoy en formato YYYY-MM-DD
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    console.log(`📅 Fecha actual: ${todayStr}`);
+
     // Verificar approvedUsers (datos de usuario)
     const approvedUsers = await DataService.getApprovedUsers() || [];
-    const today = new Date().toISOString().split('T')[0];
-    let usersUpdated = false;
+    console.log(`👥 Usuarios aprobados encontrados: ${approvedUsers.length}`);
 
+    let usersDeactivated = 0;
     for (const user of approvedUsers) {
-      if (user.planExpiry && user.planExpiry < today && user.isActive !== false) {
-        console.log(`⏰ Usuario vencido: ${user.displayName || user.email} - Desactivando...`);
-        user.isActive = false;
-        usersUpdated = true;
-        // Actualizar este usuario específico
-        await DataService.updateUser(user.id, user);
+      // Verificar si tiene fecha de expiración y está vencido
+      if (user.planExpiry) {
+        const isExpired = user.planExpiry < todayStr;
+        const isCurrentlyActive = user.isActive !== false;
+
+        console.log(`  - ${user.displayName || user.email}: planExpiry=${user.planExpiry}, expired=${isExpired}, active=${isCurrentlyActive}`);
+
+        if (isExpired && isCurrentlyActive) {
+          console.log(`    ⏰ Desactivando usuario vencido: ${user.displayName || user.email}`);
+          user.isActive = false;
+          try {
+            await DataService.updateUser(user.id, user);
+            usersDeactivated++;
+            console.log(`    ✅ Usuario desactivado correctamente`);
+          } catch (updateError) {
+            console.error(`    ❌ Error al desactivar usuario:`, updateError);
+          }
+        }
       }
     }
 
     // Verificar approvedProfiles (perfiles del carrusel)
     const approvedProfiles = await DataService.getApprovedProfiles() || [];
-    let profilesUpdated = false;
+    console.log(`📋 Perfiles aprobados encontrados: ${approvedProfiles.length}`);
 
+    let profilesDeactivated = 0;
     for (const profile of approvedProfiles) {
-      if (profile.planExpiry && profile.planExpiry < today && profile.isActive !== false) {
-        console.log(`⏰ Perfil vencido: ${profile.displayName || profile.email} - Desactivando del carrusel...`);
-        profile.isActive = false;
-        profilesUpdated = true;
-        // Actualizar este perfil específico
-        await DataService.updateProfile(profile.id, profile);
+      if (profile.planExpiry) {
+        const isExpired = profile.planExpiry < todayStr;
+        const isCurrentlyActive = profile.isActive !== false;
+
+        console.log(`  - ${profile.displayName || profile.email}: planExpiry=${profile.planExpiry}, expired=${isExpired}, active=${isCurrentlyActive}`);
+
+        if (isExpired && isCurrentlyActive) {
+          console.log(`    ⏰ Desactivando perfil vencido: ${profile.displayName || profile.email}`);
+          profile.isActive = false;
+          try {
+            await DataService.updateProfile(profile.id, profile);
+            profilesDeactivated++;
+            console.log(`    ✅ Perfil desactivado correctamente`);
+          } catch (updateError) {
+            console.error(`    ❌ Error al desactivar perfil:`, updateError);
+          }
+        }
       }
     }
 
-    if (usersUpdated || profilesUpdated) {
-      console.log('✅ Perfiles vencidos desactivados correctamente');
+    console.log(`📊 Resumen: ${usersDeactivated} usuarios y ${profilesDeactivated} perfiles desactivados`);
+
+    // Si se desactivó algo, disparar evento para refrescar carruseles
+    if (usersDeactivated > 0 || profilesDeactivated > 0) {
+      console.log('🔄 Refrescando carruseles...');
+      window.dispatchEvent(new CustomEvent('profilesUpdated'));
     }
   } catch (error) {
-    console.error('Error verificando perfiles vencidos:', error);
+    console.error('❌ Error verificando perfiles vencidos:', error);
   }
 }
 
@@ -1281,7 +1316,7 @@ window.refreshCarouselsWithFilter = function(filters) {
       const isVisible = profile.profileVisible === true;
       const isActive = profile.isActive !== false;
       const isLuxury = profile.carouselType === 'luxury';
-      const planNotExpired = !profile.planExpiry || profile.planExpiry >= today;
+      const planNotExpired = !profile.planExpiry || profile.planExpiry > today;
 
       // Aplicar filtros globales
       const passesFilter = window.profilePassesFilter ? window.profilePassesFilter(profile, window.currentGlobalFilters) : true;
@@ -3027,7 +3062,7 @@ function createSkeletonCard() {
       const isActive = profile.isActive !== false; // Por defecto activo si no existe la propiedad
       const isVipBlack = profile.carouselType === 'vip-black';
       const today = new Date().toISOString().split('T')[0];
-      const planNotExpired = !profile.planExpiry || profile.planExpiry >= today;
+      const planNotExpired = !profile.planExpiry || profile.planExpiry > today;
       
       // Aplicar filtros globales
       const passesFilter = window.profilePassesFilter ? window.profilePassesFilter(profile, window.currentGlobalFilters) : true;
@@ -3311,7 +3346,7 @@ function createSkeletonCard() {
       const isActive = profile.isActive !== false; // Por defecto activo si no existe la propiedad
       const isPremiumSelect = profile.carouselType === 'premium-select';
       const today = new Date().toISOString().split('T')[0];
-      const planNotExpired = !profile.planExpiry || profile.planExpiry >= today;
+      const planNotExpired = !profile.planExpiry || profile.planExpiry > today;
       
       // Aplicar filtros globales
       const passesFilter = window.profilePassesFilter ? window.profilePassesFilter(profile, window.currentGlobalFilters) : true;

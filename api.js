@@ -327,6 +327,7 @@ if (typeof DataService === 'undefined') {
   
   async deleteMessage(messageId) {
     try {
+      // Intentar eliminar vía endpoint directo
       const result = await this.fetchApi(`/messages/${messageId}`, {
         method: 'DELETE'
       });
@@ -335,8 +336,22 @@ if (typeof DataService === 'undefined') {
       delete _apiCache['/config/contactMessages'];
       return result;
     } catch (error) {
-      console.error('Error eliminando mensaje:', error);
-      throw error;
+      console.error('Error eliminando mensaje vía endpoint, usando fallback:', error);
+      // Fallback: eliminar de config/contactMessages
+      try {
+        const messages = await this.getConfig('contactMessages') || [];
+        const filteredMessages = messages.filter(m => m.id !== messageId);
+        if (filteredMessages.length !== messages.length) {
+          await this.setConfig('contactMessages', filteredMessages);
+          delete _apiCache['/messages'];
+          delete _apiCache['/config/contactMessages'];
+          return { success: true };
+        }
+        throw new Error('Mensaje no encontrado');
+      } catch (fallbackError) {
+        console.error('Error en fallback de eliminación:', fallbackError);
+        throw fallbackError;
+      }
     }
   },
   

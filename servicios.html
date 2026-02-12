@@ -229,7 +229,7 @@
       if (!servicios || !servicios.servicios) return;
       
       // Cargar servicios
-      const serviciosContainer = document.getElementById('servicios-list');
+      const serviciosContainer = document.getElementById('servicios-grid');
       if (serviciosContainer) {
         serviciosContainer.innerHTML = servicios.servicios.map(s => `
           <div class="servicio-card">
