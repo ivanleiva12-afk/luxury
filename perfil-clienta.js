@@ -309,15 +309,42 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function canPublish(type) {
+    // VERIFICAR SI EL PLAN ESTÁ ACTIVO
+    const approvedUsers = await DataService.getApprovedUsers() || [];
+    const latestUser = approvedUsers.find(u => u.id === currentUser.id || u.email === currentUser.email);
+
+    // Verificar si está desactivado
+    if (latestUser && latestUser.isActive === false) {
+      return {
+        allowed: false,
+        reason: '⚠️ Tu plan está desactivado. No puedes publicar instantes ni estados hasta que se reactive.',
+        remaining: 0,
+        planInactive: true
+      };
+    }
+
+    // Verificar si el plan venció
+    if (latestUser?.planExpiry) {
+      const today = new Date().toISOString().split('T')[0];
+      if (latestUser.planExpiry < today) {
+        return {
+          allowed: false,
+          reason: '⚠️ Tu plan ha vencido. Renueva tu suscripción para publicar instantes y estados.',
+          remaining: 0,
+          planExpired: true
+        };
+      }
+    }
+
     const restrictions = await getPlanRestrictions();
     const counter = getDailyCounter(type);
     const maxAllowed = type === 'instantes' ? restrictions.instantes : restrictions.estados;
-    
+
     // Si el plan no permite este tipo
     if (maxAllowed === 0) {
       return { allowed: false, reason: `Tu plan ${restrictions.planName} no permite publicar ${type}.`, remaining: 0 };
     }
-    
+
     // Verificar si se alcanzó el límite diario
     if (counter.count >= maxAllowed) {
       const now = new Date();
@@ -325,15 +352,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(0, 0, 0, 0);
       const hoursRemaining = Math.ceil((tomorrow - now) / (1000 * 60 * 60));
-      
-      return { 
-        allowed: false, 
+
+      return {
+        allowed: false,
         reason: `Has alcanzado tu límite de ${maxAllowed} ${type}/día. Se reinicia en ~${hoursRemaining}h.`,
         remaining: 0,
         hoursUntilReset: hoursRemaining
       };
     }
-    
+
     return { allowed: true, remaining: maxAllowed - counter.count };
   }
 
@@ -341,10 +368,58 @@ document.addEventListener('DOMContentLoaded', async () => {
     const restrictions = await getPlanRestrictions();
     const instantesInfo = document.getElementById('instantes-plan-info');
     const estadosInfo = document.getElementById('estados-plan-info');
-    
+    const btnNuevoInstante = document.getElementById('btn-nuevo-instante');
+    const btnNuevoEstado = document.getElementById('btn-nuevo-estado');
+
+    // VERIFICAR SI EL PLAN ESTÁ ACTIVO
+    const approvedUsers = await DataService.getApprovedUsers() || [];
+    const latestUser = approvedUsers.find(u => u.id === currentUser.id || u.email === currentUser.email);
+    const isPlanInactive = latestUser && latestUser.isActive === false;
+    const today = new Date().toISOString().split('T')[0];
+    const isPlanExpired = latestUser?.planExpiry && latestUser.planExpiry < today;
+
+    // Si el plan está desactivado o vencido, mostrar mensaje y deshabilitar botones
+    if (isPlanInactive || isPlanExpired) {
+      const message = isPlanInactive
+        ? '<strong style="color:#DC2626;">⚠️ Plan desactivado - No puedes publicar</strong>'
+        : '<strong style="color:#DC2626;">⚠️ Plan vencido - Renueva para publicar</strong>';
+
+      if (instantesInfo) instantesInfo.innerHTML = message;
+      if (estadosInfo) estadosInfo.innerHTML = message;
+
+      // Deshabilitar botones visualmente
+      if (btnNuevoInstante) {
+        btnNuevoInstante.disabled = true;
+        btnNuevoInstante.style.opacity = '0.5';
+        btnNuevoInstante.style.cursor = 'not-allowed';
+        btnNuevoInstante.title = isPlanInactive ? 'Plan desactivado' : 'Plan vencido';
+      }
+      if (btnNuevoEstado) {
+        btnNuevoEstado.disabled = true;
+        btnNuevoEstado.style.opacity = '0.5';
+        btnNuevoEstado.style.cursor = 'not-allowed';
+        btnNuevoEstado.title = isPlanInactive ? 'Plan desactivado' : 'Plan vencido';
+      }
+      return;
+    }
+
+    // Restaurar botones si el plan está activo
+    if (btnNuevoInstante) {
+      btnNuevoInstante.disabled = false;
+      btnNuevoInstante.style.opacity = '1';
+      btnNuevoInstante.style.cursor = 'pointer';
+      btnNuevoInstante.title = '';
+    }
+    if (btnNuevoEstado) {
+      btnNuevoEstado.disabled = false;
+      btnNuevoEstado.style.opacity = '1';
+      btnNuevoEstado.style.cursor = 'pointer';
+      btnNuevoEstado.title = '';
+    }
+
     const instantesCounter = getDailyCounter('instantes');
     const estadosCounter = getDailyCounter('estados');
-    
+
     if (instantesInfo) {
       if (restrictions.instantes === 0) {
         instantesInfo.innerHTML = '<strong style="color:#D4AF37;">Tu plan no permite instantes.</strong>';
@@ -353,7 +428,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         instantesInfo.innerHTML = `<strong>Duración: ${restrictions.instantesDuracion}h</strong> • Límite: <strong>${instantesCounter.count}/${restrictions.instantes}</strong> por día • Restantes: <strong>${instantesRemaining}</strong>`;
       }
     }
-    
+
     if (estadosInfo) {
       if (restrictions.estados === 0) {
         estadosInfo.innerHTML = '<strong style="color:#D4AF37;">Tu plan no permite estados.</strong>';

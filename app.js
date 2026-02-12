@@ -43,9 +43,38 @@ async function checkAndDeactivateExpiredProfiles() {
 
     let profilesDeactivated = 0;
     for (const profile of approvedProfiles) {
+      const isCurrentlyActive = profile.isActive !== false;
+
+      // Buscar el usuario correspondiente para sincronizar datos
+      const matchingUser = approvedUsers.find(u =>
+        u.id === profile.userId ||
+        u.email === profile.email ||
+        `profile-${u.id}` === profile.id
+      );
+
+      // Si el perfil no tiene planExpiry pero el usuario sí, sincronizar
+      if (!profile.planExpiry && matchingUser?.planExpiry) {
+        console.log(`  📥 Sincronizando planExpiry del usuario al perfil: ${profile.displayName}`);
+        profile.planExpiry = matchingUser.planExpiry;
+      }
+
+      // Si el usuario está desactivado, el perfil también debe estarlo
+      if (matchingUser && matchingUser.isActive === false && isCurrentlyActive) {
+        console.log(`  🔄 Sincronizando estado desactivado del usuario al perfil: ${profile.displayName}`);
+        profile.isActive = false;
+        try {
+          await DataService.updateProfile(profile.id, profile);
+          profilesDeactivated++;
+          console.log(`    ✅ Perfil sincronizado correctamente`);
+        } catch (updateError) {
+          console.error(`    ❌ Error al sincronizar perfil:`, updateError);
+        }
+        continue;
+      }
+
+      // Verificar expiración
       if (profile.planExpiry) {
         const isExpired = profile.planExpiry < todayStr;
-        const isCurrentlyActive = profile.isActive !== false;
 
         console.log(`  - ${profile.displayName || profile.email}: planExpiry=${profile.planExpiry}, expired=${isExpired}, active=${isCurrentlyActive}`);
 
@@ -60,6 +89,8 @@ async function checkAndDeactivateExpiredProfiles() {
             console.error(`    ❌ Error al desactivar perfil:`, updateError);
           }
         }
+      } else {
+        console.log(`  ⚠️ ${profile.displayName || profile.email}: SIN planExpiry, active=${isCurrentlyActive}`);
       }
     }
 

@@ -303,27 +303,33 @@ if (typeof DataService === 'undefined') {
   async addContactMessage(message) {
     // Usar SOLO la configuración genérica para consistencia
     try {
-      const messages = await this.getConfig('contactMessages') || [];
+      // Invalidar cache primero para obtener datos frescos
+      delete _apiCache['/config/contactMessages'];
+      const cachedMessages = await this.getConfig('contactMessages') || [];
+      // CLONAR el array para no mutar el caché
+      const messages = JSON.parse(JSON.stringify(cachedMessages));
       messages.unshift(message);
       const result = await this.setConfig('contactMessages', messages);
-      delete _apiCache['/config/contactMessages'];
       return result;
     } catch (error) {
       console.error('Error enviando mensaje:', error);
       throw error;
     }
   },
-  
+
   async updateContactMessage(messageId, updatedMessage) {
     // Actualizar un mensaje existente en el array
     try {
-      const messages = await this.getConfig('contactMessages') || [];
+      // Invalidar cache primero para obtener datos frescos
+      delete _apiCache['/config/contactMessages'];
+      const cachedMessages = await this.getConfig('contactMessages') || [];
+      // CLONAR el array para no mutar el caché
+      const messages = JSON.parse(JSON.stringify(cachedMessages));
       const index = messages.findIndex(m => m.id === messageId);
 
       if (index !== -1) {
         messages[index] = { ...messages[index], ...updatedMessage };
         await this.setConfig('contactMessages', messages);
-        delete _apiCache['/config/contactMessages'];
         return { success: true };
       }
 
@@ -337,7 +343,11 @@ if (typeof DataService === 'undefined') {
   async deleteMessage(messageId) {
     // Usar SOLO la configuración genérica para consistencia
     try {
-      const messages = await this.getConfig('contactMessages') || [];
+      // Invalidar cache primero para obtener datos frescos
+      delete _apiCache['/config/contactMessages'];
+      const cachedMessages = await this.getConfig('contactMessages') || [];
+      // CLONAR el array para no mutar el caché
+      const messages = JSON.parse(JSON.stringify(cachedMessages));
       const originalLength = messages.length;
       const filteredMessages = messages.filter(m => m.id !== messageId);
 
