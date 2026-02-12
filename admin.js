@@ -1579,6 +1579,8 @@ window.approvePlanRequest = async function(requestId) {
   
   renderRenovaciones();
   updateRenovacionesBadge();
+  // Actualizar lista de aprobados para mostrar el perfil como activo
+  renderRegistrosAprobados();
 };
 
 // Rechazar solicitud de plan
@@ -2287,13 +2289,12 @@ window.enviarRespuesta = async () => {
 };
 
 window.marcarLeido = async (id) => {
-  const mensajes = await DataService.getContactMessages() || [];
-  const mensaje = mensajes.find(m => m.id == id);
-  if (mensaje) {
-    mensaje.leido = true;
-    await DataService.addContactMessage(mensaje);
+  try {
+    await DataService.updateContactMessage(id, { leido: true });
     renderMensajes();
     updateMensajesBadge();
+  } catch (error) {
+    console.error('Error marcando mensaje como leído:', error);
   }
 };
 
@@ -3586,23 +3587,68 @@ window.mostrarRegistrosParaLimpiar = async () => {
   }
 };
 
+// ========================================
+// VERIFICAR Y DESACTIVAR PERFILES VENCIDOS (Admin)
+// ========================================
+async function checkAndDeactivateExpiredProfilesAdmin() {
+  console.log('🔍 Admin: Verificando perfiles vencidos...');
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  let deactivated = 0;
+
+  try {
+    // Desactivar en approvedUsers
+    const approvedUsers = await DataService.getApprovedUsers() || [];
+    for (const user of approvedUsers) {
+      if (user.planExpiry && user.planExpiry < todayStr && user.isActive !== false) {
+        console.log(`⏰ Desactivando usuario vencido: ${user.displayName || user.email} (vencido: ${user.planExpiry})`);
+        user.isActive = false;
+        await DataService.updateUser(user.id, user);
+        deactivated++;
+      }
+    }
+
+    // Desactivar en approvedProfiles
+    const approvedProfiles = await DataService.getApprovedProfiles() || [];
+    for (const profile of approvedProfiles) {
+      if (profile.planExpiry && profile.planExpiry < todayStr && profile.isActive !== false) {
+        console.log(`⏰ Desactivando perfil vencido: ${profile.displayName || profile.email} (vencido: ${profile.planExpiry})`);
+        profile.isActive = false;
+        await DataService.updateProfile(profile.id, profile);
+        deactivated++;
+      }
+    }
+
+    if (deactivated > 0) {
+      console.log(`✅ Admin: ${deactivated} perfiles/usuarios desactivados por vencimiento`);
+    } else {
+      console.log('✅ Admin: No hay perfiles vencidos para desactivar');
+    }
+  } catch (error) {
+    console.error('❌ Error verificando perfiles vencidos:', error);
+  }
+}
+
 // Cargar configuración de correo al cargar la página
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('Admin panel inicializando...');
-  
+
   // Cargar configuración de correo
   loadCorreoConfig();
-  
+
   // Cargar clave de admin desde AWS
   await loadAdminPassword();
   console.log('Clave admin cargada:', ADMIN_PASSWORD ? 'Sí' : 'No');
-  
+
   // Cargar registros desde AWS
   await loadRegistrosFromAPI();
-  
+
   // Inicializar datos por defecto si no existen
   await initializeDefaultData();
-  
+
+  // VERIFICAR Y DESACTIVAR PERFILES VENCIDOS
+  await checkAndDeactivateExpiredProfilesAdmin();
+
   // Los planes se inicializan automáticamente en loadPlans() si no existen
   console.log('✅ Admin panel inicializado completamente');
 });

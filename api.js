@@ -288,70 +288,78 @@ if (typeof DataService === 'undefined') {
   // ═══════════════════════════════════════════════════════════
   
   async getContactMessages() {
+    // Usar SOLO la configuración genérica para consistencia
+    // El endpoint /messages puede no estar sincronizado con las eliminaciones
     try {
-      // Intentar primero el endpoint específico
-      const result = await this.fetchApi('/messages');
-      if (result && Array.isArray(result)) {
-        return result;
-      }
-      // Si falla, usar configuración genérica
+      // Invalidar cache para obtener datos frescos
+      delete _apiCache['/config/contactMessages'];
       return await this.getConfig('contactMessages') || [];
     } catch (error) {
       console.error('Error obteniendo mensajes:', error);
-      // Fallback a configuración genérica
-      return await this.getConfig('contactMessages') || [];
+      return [];
     }
   },
   
   async addContactMessage(message) {
+    // Usar SOLO la configuración genérica para consistencia
     try {
-      // Intentar primero el endpoint específico
-      const result = await this.fetchApi('/messages', {
-        method: 'POST',
-        body: JSON.stringify(message)
-      });
-      // Invalidar cache de mensajes
-      delete _apiCache['/messages'];
-      delete _apiCache['/config/contactMessages'];
-      return result;
-    } catch (error) {
-      console.error('Error enviando mensaje, usando fallback:', error);
-      // Fallback: usar configuración genérica
       const messages = await this.getConfig('contactMessages') || [];
       messages.unshift(message);
       const result = await this.setConfig('contactMessages', messages);
-      delete _apiCache['/messages'];
-      return result;
-    }
-  },
-  
-  async deleteMessage(messageId) {
-    try {
-      // Intentar eliminar vía endpoint directo
-      const result = await this.fetchApi(`/messages/${messageId}`, {
-        method: 'DELETE'
-      });
-      // Invalidar cache de mensajes
-      delete _apiCache['/messages'];
       delete _apiCache['/config/contactMessages'];
       return result;
     } catch (error) {
-      console.error('Error eliminando mensaje vía endpoint, usando fallback:', error);
-      // Fallback: eliminar de config/contactMessages
-      try {
-        const messages = await this.getConfig('contactMessages') || [];
-        const filteredMessages = messages.filter(m => m.id !== messageId);
-        if (filteredMessages.length !== messages.length) {
-          await this.setConfig('contactMessages', filteredMessages);
-          delete _apiCache['/messages'];
+      console.error('Error enviando mensaje:', error);
+      throw error;
+    }
+  },
+  
+  async updateContactMessage(messageId, updatedMessage) {
+    // Actualizar un mensaje existente en el array
+    try {
+      const messages = await this.getConfig('contactMessages') || [];
+      const index = messages.findIndex(m => m.id === messageId);
+
+      if (index !== -1) {
+        messages[index] = { ...messages[index], ...updatedMessage };
+        await this.setConfig('contactMessages', messages);
+        delete _apiCache['/config/contactMessages'];
+        return { success: true };
+      }
+
+      throw new Error('Mensaje no encontrado');
+    } catch (error) {
+      console.error('Error actualizando mensaje:', error);
+      throw error;
+    }
+  },
+
+  async deleteMessage(messageId) {
+    // Usar SOLO la configuración genérica para consistencia
+    try {
+      const messages = await this.getConfig('contactMessages') || [];
+      const originalLength = messages.length;
+      const filteredMessages = messages.filter(m => m.id !== messageId);
+
+      if (filteredMessages.length === originalLength) {
+        console.warn('Mensaje no encontrado con ID:', messageId);
+        // Intentar buscar por otros campos
+        const filteredByDate = messages.filter(m => m.date !== messageId && m.timestamp !== messageId);
+        if (filteredByDate.length < originalLength) {
+          await this.setConfig('contactMessages', filteredByDate);
           delete _apiCache['/config/contactMessages'];
           return { success: true };
         }
-        throw new Error('Mensaje no encontrado');
-      } catch (fallbackError) {
-        console.error('Error en fallback de eliminación:', fallbackError);
-        throw fallbackError;
+      } else {
+        await this.setConfig('contactMessages', filteredMessages);
+        delete _apiCache['/config/contactMessages'];
+        return { success: true };
       }
+
+      throw new Error('Mensaje no encontrado');
+    } catch (error) {
+      console.error('Error eliminando mensaje:', error);
+      throw error;
     }
   },
   
