@@ -352,9 +352,9 @@ const renderRegistros = () => {
       <!-- Verification Status -->
       <div style="width: 100%; display: flex; flex-wrap: wrap; gap: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
         <span class="verification-item ${reg.profilePhotosData?.length > 0 ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.profilePhotosData?.length > 0 ? 'pointer' : 'default'}; ${reg.hasProfilePhotos ? 'color: #10B981;' : 'color: var(--muted);'}" ${reg.profilePhotosData?.length > 0 ? `onclick="viewVerificationFiles('${reg.id}', 'photos')"` : ''}>${reg.hasProfilePhotos ? '✓' : '○'} Fotos ${reg.profilePhotosData?.length > 0 ? '👁️' : ''}</span>
-        <span class="verification-item ${reg.verificationSelfieData ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.verificationSelfieData ? 'pointer' : 'default'}; ${reg.hasVerificationSelfie ? 'color: #10B981;' : 'color: var(--muted);'}" ${reg.verificationSelfieData ? `onclick="viewVerificationFiles('${reg.id}', 'selfie')"` : ''}>${reg.hasVerificationSelfie ? '✓' : '○'} Selfie verificación ${reg.verificationSelfieData ? '👁️' : ''}</span>
-        <span class="verification-item ${reg.idDocumentData ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.idDocumentData ? 'pointer' : 'default'}; ${reg.hasIdDocument ? 'color: #10B981;' : 'color: var(--muted);'}" ${reg.idDocumentData ? `onclick="viewVerificationFiles('${reg.id}', 'document')"` : ''}>${reg.hasIdDocument ? '✓' : '○'} Documento ID ${reg.idDocumentData ? '👁️' : ''}</span>
-        <span class="verification-item ${reg.transferReceiptData ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.transferReceiptData ? 'pointer' : 'default'}; ${reg.hasTransferReceipt ? 'color: #10B981;' : 'color: var(--muted);'}" ${reg.transferReceiptData ? `onclick="viewVerificationFiles('${reg.id}', 'receipt')"` : ''}>${reg.hasTransferReceipt ? '✓' : '○'} Comprobante pago ${reg.transferReceiptData ? '👁️' : ''}</span>
+        <span class="verification-item ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? 'pointer' : 'default'}; ${reg.hasVerificationSelfie ? 'color: #10B981;' : 'color: var(--muted);'}" ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? `onclick="viewVerificationFiles('${reg.id}', 'selfie')"` : ''}>${reg.hasVerificationSelfie ? '✓' : '○'} Selfie verificación ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? '👁️' : ''}</span>
+        <span class="verification-item ${(reg.idDocumentUrl || reg.idDocumentData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.idDocumentUrl || reg.idDocumentData) ? 'pointer' : 'default'}; ${reg.hasIdDocument ? 'color: #10B981;' : 'color: var(--muted);'}" ${(reg.idDocumentUrl || reg.idDocumentData) ? `onclick="viewVerificationFiles('${reg.id}', 'document')"` : ''}>${reg.hasIdDocument ? '✓' : '○'} Documento ID ${(reg.idDocumentUrl || reg.idDocumentData) ? '👁️' : ''}</span>
+        <span class="verification-item ${(reg.transferReceiptUrl || reg.transferReceiptData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.transferReceiptUrl || reg.transferReceiptData) ? 'pointer' : 'default'}; ${reg.hasTransferReceipt ? 'color: #10B981;' : 'color: var(--muted);'}" ${(reg.transferReceiptUrl || reg.transferReceiptData) ? `onclick="viewVerificationFiles('${reg.id}', 'receipt')"` : ''}>${reg.hasTransferReceipt ? '✓' : '○'} Comprobante pago ${(reg.transferReceiptUrl || reg.transferReceiptData) ? '👁️' : ''}</span>
         <span style="font-size: 12px; ${reg.ageConfirm ? 'color: #10B981;' : 'color: #DC2626;'}">${reg.ageConfirm ? '✓' : '✗'} Mayor de edad</span>
         <span style="font-size: 12px; ${reg.termsAccept ? 'color: #10B981;' : 'color: #DC2626;'}">${reg.termsAccept ? '✓' : '✗'} Términos</span>
       </div>
@@ -384,38 +384,43 @@ window.viewVerificationFiles = (regId, type) => {
     title = 'Fotos de Perfil';
     content = `
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-        ${reg.profilePhotosData.map((photo, i) => `
+        ${reg.profilePhotosData.map((photo, i) => {
+          const imgSrc = photo.url || photo.base64;
+          return `
           <div style="position: relative;">
-            <img src="${photo.base64}" alt="Foto ${i+1}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; cursor: pointer;" onclick="openFullImage('${photo.base64}')" />
+            <img src="${imgSrc}" alt="Foto ${i+1}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; cursor: pointer;" onclick="openFullImage('${imgSrc}')" />
             <span style="position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${i+1}/${reg.profilePhotosData.length}</span>
           </div>
-        `).join('')}
+        `}).join('')}
       </div>
     `;
-  } else if (type === 'selfie' && reg.verificationSelfieData) {
+  } else if (type === 'selfie' && (reg.verificationSelfieUrl || reg.verificationSelfieData)) {
+    const selfieSrc = reg.verificationSelfieUrl || reg.verificationSelfieData;
     title = 'Selfie de Verificación';
     content = `
       <div style="text-align: center;">
-        <img src="${reg.verificationSelfieData}" alt="Selfie" style="max-width: 100%; max-height: 70vh; border-radius: 12px; cursor: pointer;" onclick="openFullImage('${reg.verificationSelfieData}')" />
+        <img src="${selfieSrc}" alt="Selfie" style="max-width: 100%; max-height: 70vh; border-radius: 12px; cursor: pointer;" onclick="openFullImage('${selfieSrc}')" />
         <p style="color: var(--muted); font-size: 13px; margin-top: 12px;">📷 ${reg.verificationSelfieName || 'selfie.jpg'}</p>
       </div>
     `;
-  } else if (type === 'document' && reg.idDocumentData) {
+  } else if (type === 'document' && (reg.idDocumentUrl || reg.idDocumentData)) {
+    const docSrc = reg.idDocumentUrl || reg.idDocumentData;
     title = 'Documento de Identidad';
     content = `
       <div style="text-align: center;">
-        <img src="${reg.idDocumentData}" alt="Documento ID" style="max-width: 100%; max-height: 70vh; border-radius: 12px; cursor: pointer;" onclick="openFullImage('${reg.idDocumentData}')" />
+        <img src="${docSrc}" alt="Documento ID" style="max-width: 100%; max-height: 70vh; border-radius: 12px; cursor: pointer;" onclick="openFullImage('${docSrc}')" />
         <p style="color: var(--muted); font-size: 13px; margin-top: 12px;">🪪 ${reg.idDocumentName || 'documento.jpg'}</p>
         <div style="background: rgba(220,38,38,0.1); border: 1px solid rgba(220,38,38,0.3); padding: 12px; border-radius: 8px; margin-top: 16px;">
           <p style="color: #DC2626; font-size: 12px; margin: 0;">⚠️ Documento confidencial - Solo para verificación interna</p>
         </div>
       </div>
     `;
-  } else if (type === 'receipt' && reg.transferReceiptData) {
+  } else if (type === 'receipt' && (reg.transferReceiptUrl || reg.transferReceiptData)) {
+    const receiptSrc = reg.transferReceiptUrl || reg.transferReceiptData;
     title = 'Comprobante de Pago';
     content = `
       <div style="text-align: center;">
-        <img src="${reg.transferReceiptData}" alt="Comprobante de Pago" style="max-width: 100%; max-height: 70vh; border-radius: 12px; cursor: pointer;" onclick="openFullImage('${reg.transferReceiptData}')" />
+        <img src="${receiptSrc}" alt="Comprobante de Pago" style="max-width: 100%; max-height: 70vh; border-radius: 12px; cursor: pointer;" onclick="openFullImage('${receiptSrc}')" />
         <p style="color: var(--muted); font-size: 13px; margin-top: 12px;">💳 ${reg.transferReceiptName || 'comprobante.jpg'}</p>
         <div style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); padding: 12px; border-radius: 8px; margin-top: 16px;">
           <p style="color: #10B981; font-size: 12px; margin: 0;">💰 Plan: ${reg.selectedPlan?.toUpperCase() || 'N/A'} - Precio: $${parseInt(reg.finalPrice || 0).toLocaleString('es-CL')}</p>
@@ -1752,8 +1757,8 @@ function renderRegistrosAprobadosFiltered(statusFilter, emailFilter) {
         <div style="width: 100%; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
           <div style="color: var(--gold); font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">📂 Datos de Verificación Archivados</div>
           <div style="display: flex; flex-wrap: wrap; gap: 12px;">
-            <span class="verification-item ${reg.verificationSelfieData ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.verificationSelfieData ? 'pointer' : 'default'}; color: ${reg.hasVerificationSelfie ? '#10B981' : 'var(--muted)'};" onclick="${reg.verificationSelfieData ? `viewArchivedFile(${reg.id}, 'selfie')` : ''}">${reg.hasVerificationSelfie ? '✓' : '○'} Selfie ${reg.verificationSelfieData ? '👁️' : ''}</span>
-            <span class="verification-item ${reg.idDocumentData ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.idDocumentData ? 'pointer' : 'default'}; color: ${reg.hasIdDocument ? '#10B981' : 'var(--muted)'};" onclick="${reg.idDocumentData ? `viewArchivedFile(${reg.id}, 'document')` : ''}">${reg.hasIdDocument ? '✓' : '○'} Documento ID ${reg.idDocumentData ? '👁️' : ''}</span>
+            <span class="verification-item ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? 'pointer' : 'default'}; color: ${reg.hasVerificationSelfie ? '#10B981' : 'var(--muted)'};" onclick="${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? `viewArchivedFile(${reg.id}, 'selfie')` : ''}">${reg.hasVerificationSelfie ? '✓' : '○'} Selfie ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? '👁️' : ''}</span>
+            <span class="verification-item ${(reg.idDocumentUrl || reg.idDocumentData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.idDocumentUrl || reg.idDocumentData) ? 'pointer' : 'default'}; color: ${reg.hasIdDocument ? '#10B981' : 'var(--muted)'};" onclick="${(reg.idDocumentUrl || reg.idDocumentData) ? `viewArchivedFile(${reg.id}, 'document')` : ''}">${reg.hasIdDocument ? '✓' : '○'} Documento ID ${(reg.idDocumentUrl || reg.idDocumentData) ? '👁️' : ''}</span>
             <span class="verification-item ${reg.profilePhotosData?.length > 0 ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.profilePhotosData?.length > 0 ? 'pointer' : 'default'}; color: ${reg.hasProfilePhotos ? '#10B981' : 'var(--muted)'};" onclick="${reg.profilePhotosData?.length > 0 ? `viewArchivedFile(${reg.id}, 'photos')` : ''}">${reg.hasProfilePhotos ? '✓' : '○'} Fotos (${reg.profilePhotosData?.length || 0}) ${reg.profilePhotosData?.length > 0 ? '👁️' : ''}</span>
           </div>
         </div>
@@ -1853,8 +1858,8 @@ function renderRegistrosRechazados() {
         <div style="width: 100%; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
           <div style="color: var(--gold); font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">📂 Datos de Verificación Archivados (Legal)</div>
           <div style="display: flex; flex-wrap: wrap; gap: 12px;">
-            <span class="verification-item ${reg.verificationSelfieData ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.verificationSelfieData ? 'pointer' : 'default'}; color: ${reg.hasVerificationSelfie ? '#10B981' : 'var(--muted)'};" onclick="${reg.verificationSelfieData ? `viewArchivedFile(${reg.id}, 'selfie')` : ''}">${reg.hasVerificationSelfie ? '✓' : '○'} Selfie ${reg.verificationSelfieData ? '👁️' : ''}</span>
-            <span class="verification-item ${reg.idDocumentData ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.idDocumentData ? 'pointer' : 'default'}; color: ${reg.hasIdDocument ? '#10B981' : 'var(--muted)'};" onclick="${reg.idDocumentData ? `viewArchivedFile(${reg.id}, 'document')` : ''}">${reg.hasIdDocument ? '✓' : '○'} Documento ID ${reg.idDocumentData ? '👁️' : ''}</span>
+            <span class="verification-item ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? 'pointer' : 'default'}; color: ${reg.hasVerificationSelfie ? '#10B981' : 'var(--muted)'};" onclick="${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? `viewArchivedFile(${reg.id}, 'selfie')` : ''}">${reg.hasVerificationSelfie ? '✓' : '○'} Selfie ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? '👁️' : ''}</span>
+            <span class="verification-item ${(reg.idDocumentUrl || reg.idDocumentData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.idDocumentUrl || reg.idDocumentData) ? 'pointer' : 'default'}; color: ${reg.hasIdDocument ? '#10B981' : 'var(--muted)'};" onclick="${(reg.idDocumentUrl || reg.idDocumentData) ? `viewArchivedFile(${reg.id}, 'document')` : ''}">${reg.hasIdDocument ? '✓' : '○'} Documento ID ${(reg.idDocumentUrl || reg.idDocumentData) ? '👁️' : ''}</span>
             <span class="verification-item ${reg.profilePhotosData?.length > 0 ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.profilePhotosData?.length > 0 ? 'pointer' : 'default'}; color: ${reg.hasProfilePhotos ? '#10B981' : 'var(--muted)'};" onclick="${reg.profilePhotosData?.length > 0 ? `viewArchivedFile(${reg.id}, 'photos')` : ''}">${reg.hasProfilePhotos ? '✓' : '○'} Fotos (${reg.profilePhotosData?.length || 0}) ${reg.profilePhotosData?.length > 0 ? '👁️' : ''}</span>
           </div>
         </div>

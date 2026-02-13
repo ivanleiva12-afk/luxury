@@ -325,140 +325,153 @@ document.addEventListener('DOMContentLoaded', async () => {
       contentResponsibility: data.contentResponsibility === 'on'
     };
     
-    // Convertir archivos a base64 para almacenamiento
-    const filesPromises = [];
-    
-    
-    // Documento ID
-    const docInput = document.getElementById('docUpload');
-    if (docInput?.files?.[0]) {
-      filesPromises.push(
-        fileToBase64(docInput.files[0])
-          .then(base64 => {
-            registro.idDocumentData = base64;
-            registro.idDocumentName = docInput.files[0].name;
-            registro.hasIdDocument = true;
-          })
-          .catch(error => {
-            console.error('❌ Error procesando documento ID:', error);
-            throw new Error('Error al procesar documento de identidad');
-          })
-      );
-    }
-    
-    // Selfie de verificación
-    const selfieInput = document.getElementById('selfieUpload');
-    if (selfieInput?.files?.[0]) {
-      filesPromises.push(
-        fileToBase64(selfieInput.files[0], 400, 400, 0.8) // Selfie: max 400x400px, calidad 80%
-          .then(base64 => {
-            registro.verificationSelfieData = base64;
-            registro.verificationSelfieName = selfieInput.files[0].name;
-            registro.hasVerificationSelfie = true;
-          })
-          .catch(error => {
-            console.error('❌ Error procesando selfie:', error);
-            throw new Error('Error al procesar selfie de verificación');
-          })
-      );
-    }
-    
-    // Fotos de perfil (hasta 5) - usar archivos acumulados
-    const photosFiles = accumulatedFiles['photosUpload'] || [];
-    
-    if (photosFiles.length > 0) {
-      const photosArray = photosFiles.slice(0, 5);
-      
-      const photoPromises = photosArray.map((file, index) => 
-        fileToBase64(file, 600, 600, 0.7) // Comprimir fotos: max 600x600px, calidad 70%
-          .then(base64 => {
-            return { index, base64, name: file.name };
-          })
-          .catch(error => {
-            console.error(`❌ Error procesando foto ${index + 1}:`, error);
-            throw new Error(`Error al procesar foto ${index + 1}`);
-          })
-      );
-      
-      filesPromises.push(
-        Promise.all(photoPromises)
-          .then(photos => {
-            registro.profilePhotosData = photos.sort((a, b) => a.index - b.index).map(p => ({ base64: p.base64, name: p.name }));
-            registro.hasProfilePhotos = true;
-          })
-          .catch(error => {
-            console.error('❌ Error procesando conjunto de fotos:', error);
-            throw new Error('Error al procesar fotos de perfil');
-          })
-      );
-    }
-    
-    // Comprobante de pago
-    const receiptInput = document.getElementById('transferReceipt');
-    if (receiptInput?.files?.[0]) {
-      filesPromises.push(
-        fileToBase64(receiptInput.files[0])
-          .then(base64 => {
-            registro.transferReceiptData = base64;
-            registro.transferReceiptName = receiptInput.files[0].name;
-            registro.hasTransferReceipt = true;
-          })
-          .catch(error => {
-            console.error('❌ Error procesando comprobante:', error);
-            throw new Error('Error al procesar comprobante de pago');
-          })
-      );
-    }
-    
-    
-    // Esperar a que todos los archivos se conviertan
-    if (filesPromises.length === 0) {
-      // No hay archivos que procesar, guardar directamente
-      saveRegistration(registro);
-    } else {
-      Promise.all(filesPromises)
-        .then(() => {
-          saveRegistration(registro);
-        })
-        .catch(error => {
-          console.error('❌ Error final al procesar archivos:', error);
-          alert(`Hubo un error al procesar los archivos: ${error.message}\n\nPor favor, verifica que todos los archivos sean válidos e intenta de nuevo.`);
-        });
+    // Subir archivos a S3 en lugar de convertirlos a base64
+    // Esto evita el límite de 400KB de DynamoDB
+    try {
+      // Mostrar mensaje de progreso
+      const submitBtnText = submitBtn.textContent;
+      submitBtn.textContent = 'Subiendo archivos...';
+      submitBtn.disabled = true;
+
+      // Documento ID - subir a S3
+      const docInput = document.getElementById('docUpload');
+      if (docInput?.files?.[0]) {
+        const file = docInput.files[0];
+        const ext = file.name.split('.').pop() || 'jpg';
+        const fileName = `doc_${registroId}.${ext}`;
+
+        try {
+          const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
+            registroId, fileName, file.type || 'image/jpeg', 'registros/documentos'
+          );
+          await DataService.uploadFileToS3(uploadUrl, file, file.type || 'image/jpeg');
+
+          registro.idDocumentUrl = publicUrl;
+          registro.idDocumentKey = key;
+          registro.idDocumentName = file.name;
+          registro.hasIdDocument = true;
+        } catch (error) {
+          console.error('❌ Error subiendo documento ID a S3:', error);
+          throw new Error('Error al subir documento de identidad');
+        }
+      }
+
+      // Selfie de verificación - subir a S3
+      const selfieInput = document.getElementById('selfieUpload');
+      if (selfieInput?.files?.[0]) {
+        const file = selfieInput.files[0];
+        const fileName = `selfie_${registroId}.jpg`;
+
+        try {
+          // Comprimir selfie antes de subir
+          const compressedFile = await compressImageFile(file, 800, 800, 0.85);
+
+          const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
+            registroId, fileName, 'image/jpeg', 'registros/selfies'
+          );
+          await DataService.uploadFileToS3(uploadUrl, compressedFile, 'image/jpeg');
+
+          registro.verificationSelfieUrl = publicUrl;
+          registro.verificationSelfieKey = key;
+          registro.verificationSelfieName = file.name;
+          registro.hasVerificationSelfie = true;
+        } catch (error) {
+          console.error('❌ Error subiendo selfie a S3:', error);
+          throw new Error('Error al subir selfie de verificación');
+        }
+      }
+
+      // Fotos de perfil (verificación) - subir a S3
+      const photosFiles = accumulatedFiles['photosUpload'] || [];
+
+      if (photosFiles.length > 0) {
+        const photosArray = photosFiles.slice(0, 5);
+        registro.profilePhotosData = []; // Usar mismo nombre para compatibilidad
+        registro.profilePhotosKeys = [];
+
+        for (let i = 0; i < photosArray.length; i++) {
+          const file = photosArray[i];
+          const fileName = `photo_${registroId}_${i + 1}.jpg`;
+
+          try {
+            // Comprimir foto antes de subir
+            const compressedFile = await compressImageFile(file, 1200, 1200, 0.85);
+
+            const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
+              registroId, fileName, 'image/jpeg', 'registros/fotos'
+            );
+            await DataService.uploadFileToS3(uploadUrl, compressedFile, 'image/jpeg');
+
+            // Formato compatible: {url, name} - admin.js ya maneja photo.url || photo.base64
+            registro.profilePhotosData.push({ url: publicUrl, name: file.name });
+            registro.profilePhotosKeys.push(key);
+          } catch (error) {
+            console.error(`❌ Error subiendo foto ${i + 1} a S3:`, error);
+            throw new Error(`Error al subir foto ${i + 1}`);
+          }
+        }
+        registro.hasProfilePhotos = true;
+      }
+
+      // Comprobante de pago - subir a S3
+      const receiptInput = document.getElementById('transferReceipt');
+      if (receiptInput?.files?.[0]) {
+        const file = receiptInput.files[0];
+        const ext = file.name.split('.').pop() || 'jpg';
+        const fileName = `receipt_${registroId}.${ext}`;
+
+        try {
+          const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
+            registroId, fileName, file.type || 'image/jpeg', 'registros/comprobantes'
+          );
+          await DataService.uploadFileToS3(uploadUrl, file, file.type || 'image/jpeg');
+
+          registro.transferReceiptUrl = publicUrl;
+          registro.transferReceiptKey = key;
+          registro.transferReceiptName = file.name;
+          registro.hasTransferReceipt = true;
+        } catch (error) {
+          console.error('❌ Error subiendo comprobante a S3:', error);
+          throw new Error('Error al subir comprobante de pago');
+        }
+      }
+
+      // Restaurar botón antes de guardar
+      submitBtn.textContent = 'Guardando registro...';
+
+      // Guardar registro (ahora solo con URLs, no base64)
+      await saveRegistration(registro);
+
+    } catch (error) {
+      console.error('❌ Error final al procesar archivos:', error);
+      submitBtn.textContent = submitBtnText || 'Enviar Solicitud';
+      submitBtn.disabled = false;
+      alert(`Hubo un error al procesar los archivos: ${error.message}\n\nPor favor, verifica tu conexión a internet e intenta de nuevo.`);
     }
   });
   
   // Función para guardar el registro
   async function saveRegistration(registro) {
     try {
-      // Limpiar localStorage antes de intentar guardar
+      // Limpiar datos temporales antes de guardar
       await cleanupLocalStorage();
-      
-      // Verificar tamaño aproximado del registro
-      const registroSize = JSON.stringify(registro).length;
-      
-      if (registroSize > 2 * 1024 * 1024) { // 2MB
-        throw new Error('El registro es demasiado grande. Por favor, usa imágenes más pequeñas.');
-      }
-      
-      // Guardar directamente usando addPendingRegistro
+
+      // Guardar registro en DynamoDB (solo URLs, sin base64)
       await DataService.addPendingRegistro(registro);
-      
+
       showSuccessMessage();
-      
+
     } catch (error) {
       console.error('❌ Error al guardar registro:', error);
-      
-      if (error.name === 'QuotaExceededError') {
-        // Error específico de cuota excedida
-        alert(`❌ Error de almacenamiento\n\n` +
-          `El navegador no tiene suficiente espacio para guardar tu registro.\n\n` +
-          `Soluciones:\n` +
-          `• Usa imágenes más pequeñas (máximo 500KB cada una)\n` +
-          `• Comprime las imágenes antes de subirlas\n` +
-          `• Limpia la caché del navegador\n\n` +
-          `Si el problema persiste, contacta a soporte.`);
+
+      // Mensaje de error más claro
+      const errorMsg = error.message || 'Error desconocido';
+      if (errorMsg.includes('size') || errorMsg.includes('Item size')) {
+        alert(`❌ Error al guardar el registro\n\n` +
+          `El registro excede el tamaño permitido. Por favor contacta a soporte.\n\n` +
+          `Error técnico: ${errorMsg}`);
       } else {
-        alert(`❌ Error al guardar el registro: ${error.message}\n\nPor favor, intenta de nuevo.`);
+        alert(`❌ Error al guardar el registro: ${errorMsg}\n\nPor favor, intenta de nuevo.`);
       }
     }
   }
@@ -507,12 +520,72 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
       
       img.onerror = reject;
-      
+
       // Crear URL para la imagen
       img.src = URL.createObjectURL(file);
     });
   }
-  
+
+  // Función para comprimir imagen y devolver Blob (para subir a S3)
+  function compressImageFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+      // Si no es imagen, devolver el archivo original
+      if (!file.type.startsWith('image/')) {
+        resolve(file);
+        return;
+      }
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+
+      img.onload = () => {
+        // Liberar URL del objeto
+        URL.revokeObjectURL(img.src);
+
+        // Calcular nuevas dimensiones manteniendo proporción
+        let { width, height } = img;
+
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        // Dibujar imagen redimensionada
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convertir a Blob para subir a S3
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Error al comprimir imagen'));
+            }
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(img.src);
+        reject(new Error('Error al cargar imagen'));
+      };
+
+      // Crear URL para la imagen
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   // Función para limpiar datos antes de guardar
   async function cleanupLocalStorage() {
     try {
