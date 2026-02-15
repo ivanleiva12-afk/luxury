@@ -182,12 +182,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         isValid = false;
       }
       
-      const legalCheckboxes = ['ageConfirm', 'termsAccept', 'fraudDisclaimer', 'contentOwnership'];
+      const legalCheckboxes = ['ageConfirm', 'fraudDisclaimer', 'contentOwnership'];
       legalCheckboxes.forEach(id => {
         const checkbox = document.getElementById(id);
-        if (!checkbox.checked) {
+        if (checkbox && !checkbox.checked) {
           isValid = false;
-          checkbox.closest('.checkbox-legal').classList.add('error');
+          checkbox.closest('.checkbox-legal')?.classList.add('error');
         }
       });
       
@@ -327,9 +327,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Subir archivos a S3 en lugar de convertirlos a base64
     // Esto evita el límite de 400KB de DynamoDB
+    const submitBtnText = submitBtn.textContent; // Guardar texto original
     try {
       // Mostrar mensaje de progreso
-      const submitBtnText = submitBtn.textContent;
       submitBtn.textContent = 'Subiendo archivos...';
       submitBtn.disabled = true;
 
