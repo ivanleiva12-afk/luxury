@@ -356,7 +356,6 @@ const renderRegistros = () => {
         <span class="verification-item ${(reg.idDocumentUrl || reg.idDocumentData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.idDocumentUrl || reg.idDocumentData) ? 'pointer' : 'default'}; ${reg.hasIdDocument ? 'color: #10B981;' : 'color: var(--muted);'}" ${(reg.idDocumentUrl || reg.idDocumentData) ? `onclick="viewVerificationFiles('${reg.id}', 'document')"` : ''}>${reg.hasIdDocument ? '✓' : '○'} Documento ID ${(reg.idDocumentUrl || reg.idDocumentData) ? '👁️' : ''}</span>
         <span class="verification-item ${(reg.transferReceiptUrl || reg.transferReceiptData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.transferReceiptUrl || reg.transferReceiptData) ? 'pointer' : 'default'}; ${reg.hasTransferReceipt ? 'color: #10B981;' : 'color: var(--muted);'}" ${(reg.transferReceiptUrl || reg.transferReceiptData) ? `onclick="viewVerificationFiles('${reg.id}', 'receipt')"` : ''}>${reg.hasTransferReceipt ? '✓' : '○'} Comprobante pago ${(reg.transferReceiptUrl || reg.transferReceiptData) ? '👁️' : ''}</span>
         <span style="font-size: 12px; ${reg.ageConfirm ? 'color: #10B981;' : 'color: #DC2626;'}">${reg.ageConfirm ? '✓' : '✗'} Mayor de edad</span>
-        <span style="font-size: 12px; ${reg.termsAccept ? 'color: #10B981;' : 'color: #DC2626;'}">${reg.termsAccept ? '✓' : '✗'} Términos</span>
       </div>
 
       <!-- Actions -->

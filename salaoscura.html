@@ -2950,10 +2950,14 @@
         // Obtener perfiles aprobados desde AWS
         const approvedProfiles = await DataService.getApprovedProfiles();
         approvedProfiles.forEach(p => {
+          // Usar username como identificador único para menciones
+          const username = p.username || p.email?.split('@')[0] || `user_${p.id}`;
           users.push({
             id: p.id,
             email: p.email,
-            name: p.displayName || p.artisticName || p.name || 'Perfil',
+            username: username, // Username único para menciones
+            displayName: p.displayName || p.artisticName || p.name || 'Perfil', // Nombre para mostrar
+            name: p.displayName || p.artisticName || p.name || 'Perfil', // Mantener por compatibilidad
             type: 'perfil',
             avatar: p.avatar || null
           });
@@ -3003,29 +3007,32 @@
 
     async function showMentionAutocomplete(searchTerm, textarea, autocomplete) {
       mentionableUsers = await getMentionableUsers();
-      
-      const filtered = mentionableUsers.filter(u => 
-        u.name.toLowerCase().includes(searchTerm)
+
+      // Filtrar por username O displayName
+      const filtered = mentionableUsers.filter(u =>
+        u.username.toLowerCase().includes(searchTerm) ||
+        u.displayName.toLowerCase().includes(searchTerm)
       );
-      
+
       if (filtered.length === 0) {
         autocomplete.innerHTML = '<div class="mention-empty">No se encontraron usuarios</div>';
       } else {
         autocomplete.innerHTML = filtered.map((user, index) => `
-          <div class="mention-item ${index === 0 ? 'selected' : ''}" 
-               data-name="${escapeHtml(user.name)}" 
+          <div class="mention-item ${index === 0 ? 'selected' : ''}"
+               data-username="${escapeHtml(user.username)}"
+               data-displayname="${escapeHtml(user.displayName)}"
                data-email="${user.email}"
                data-id="${user.id}"
                onclick="selectMention(this, '${textarea.id}', '${autocomplete.id}')">
-            <div class="mention-item-avatar">${user.name.charAt(0).toUpperCase()}</div>
+            <div class="mention-item-avatar">${user.displayName.charAt(0).toUpperCase()}</div>
             <div class="mention-item-info">
-              <span class="mention-item-name">${escapeHtml(user.name)}</span>
-              <span class="mention-item-badge">${user.type === 'escort' ? '✨ Escort' : '👠 Clienta'}</span>
+              <span class="mention-item-name">${escapeHtml(user.displayName)}</span>
+              <span class="mention-item-badge" style="font-size: 10px; color: var(--muted);">@${escapeHtml(user.username)}</span>
             </div>
           </div>
         `).join('');
       }
-      
+
       // Posicionar autocomplete
       const rect = textarea.getBoundingClientRect();
       autocomplete.style.top = `${textarea.offsetHeight + 4}px`;
@@ -3075,25 +3082,27 @@
     function selectMention(element, textareaId, autocompleteId) {
       const textarea = document.getElementById(textareaId);
       const autocomplete = document.getElementById(autocompleteId);
-      const name = element.dataset.name;
-      
+      // Usar username (único) en lugar de displayName
+      const username = element.dataset.username;
+
       const value = textarea.value;
       const cursorPos = textarea.selectionStart;
       const textBeforeCursor = value.substring(0, cursorPos);
       const atIndex = textBeforeCursor.lastIndexOf('@');
-      
+
       if (atIndex !== -1) {
         const before = value.substring(0, atIndex);
         const after = value.substring(cursorPos);
-        
-        textarea.value = before + '@' + name + ' ' + after;
-        
-        // Mover cursor después del nombre
-        const newCursorPos = atIndex + name.length + 2;
+
+        // Insertar @username (único)
+        textarea.value = before + '@' + username + ' ' + after;
+
+        // Mover cursor después del username
+        const newCursorPos = atIndex + username.length + 2;
         textarea.setSelectionRange(newCursorPos, newCursorPos);
         textarea.focus();
       }
-      
+
       hideMentionAutocomplete(autocomplete);
     }
 
@@ -3101,31 +3110,43 @@
     function processMentions(text) {
       const users = _mentionableUsersCache || [];
       let processedText = escapeHtml(text);
-      
-      // Buscar todas las menciones @nombre
-      const mentionRegex = /@(\w+(?:\s\w+)*)/g;
-      
-      processedText = processedText.replace(mentionRegex, (match, name) => {
-        // Buscar usuario que coincida
-        const user = users.find(u => u.name.toLowerCase() === name.toLowerCase());
-        
+
+      // Buscar todas las menciones @username (username puede tener puntos y guiones bajos)
+      const mentionRegex = /@([\w._-]+)/g;
+
+      processedText = processedText.replace(mentionRegex, (match, username) => {
+        // Buscar usuario por username (único)
+        const user = users.find(u => u.username && u.username.toLowerCase() === username.toLowerCase());
+
         if (user) {
-          return `<a href="#" class="mention-link" onclick="goToProfile('${user.email}'); return false;">@${escapeHtml(user.name)}</a>`;
+          // Mostrar @username como link, abrir perfil con ID
+          return `<a href="#" class="mention-link" onclick="goToProfile('${user.id}'); return false;">@${escapeHtml(user.username)}</a>`;
         }
         return match;
       });
-      
+
       return processedText;
     }
 
-    // Navegar al perfil de la clienta mencionada
-    async function goToProfile(email) {
+    // Navegar al perfil de la escort mencionada
+    async function goToProfile(profileId) {
       try {
+        // Si es un ID de perfil, ir directamente
+        if (profileId && profileId.startsWith('profile-')) {
+          window.open(`home?profile=${profileId}`, '_blank');
+          return;
+        }
+
+        // Buscar perfil por ID o por otros campos
         const profiles = await DataService.getApprovedProfiles();
-        const user = profiles.find(u => u.email === email);
+        const user = profiles.find(u =>
+          u.id === profileId ||
+          u.id === `profile-${profileId}` ||
+          u.userId === profileId
+        );
 
         if (user && user.id) {
-          window.location.href = `home?profile=${user.id}`;
+          window.open(`home?profile=${user.id}`, '_blank');
         } else {
           alert('Perfil no encontrado');
         }
@@ -3137,19 +3158,22 @@
     // Extraer menciones de un texto y guardar notificaciones
     async function extractAndSaveMentions(text, postId, postTitle, autorNombre) {
       const users = await getMentionableUsers();
-      const mentionRegex = /@(\w+(?:\s\w+)*)/g;
+      // Usar regex que coincida con usernames (pueden tener puntos, guiones bajos)
+      const mentionRegex = /@([\w._-]+)/g;
       let match;
-      
+
       while ((match = mentionRegex.exec(text)) !== null) {
-        const name = match[1];
-        const user = users.find(u => u.name.toLowerCase() === name.toLowerCase());
-        
+        const username = match[1];
+        // Buscar por username (único)
+        const user = users.find(u => u.username && u.username.toLowerCase() === username.toLowerCase());
+
         if (user) {
-          // Guardar mención para el usuario
-          saveMention(user.email, {
+          // Guardar mención para el usuario usando su ID
+          saveMention(user.id, {
             postId,
             postTitle,
             mentionedBy: autorNombre,
+            mentionedByUsername: autorNombre,
             fecha: new Date().toISOString(),
             read: false
           });
@@ -3157,27 +3181,28 @@
       }
     }
 
-    // Guardar mención en AWS
-    async function saveMention(userEmail, mentionData) {
+    // Guardar mención en AWS (usa userId como key)
+    async function saveMention(userId, mentionData) {
       try {
         const mentions = await DataService.getForumMentions();
-        
-        if (!mentions[userEmail]) {
-          mentions[userEmail] = [];
+
+        if (!mentions[userId]) {
+          mentions[userId] = [];
         }
-        
-        mentions[userEmail].unshift(mentionData);
+
+        mentions[userId].unshift(mentionData);
         await DataService.saveForumMentions(mentions);
       } catch (error) {
         console.error('Error guardando mención:', error);
       }
     }
 
-    // Obtener menciones de un usuario desde AWS
-    async function getMentionsForUser(email) {
+    // Obtener menciones de un usuario desde AWS (por userId o email para compatibilidad)
+    async function getMentionsForUser(userIdOrEmail) {
       try {
         const mentions = await DataService.getForumMentions();
-        return mentions[email] || [];
+        // Buscar por ID o email para compatibilidad
+        return mentions[userIdOrEmail] || [];
       } catch (error) {
         console.error('Error obteniendo menciones:', error);
         return [];

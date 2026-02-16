@@ -3171,10 +3171,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Obtener menciones desde AWS (integración con foro Sala Oscura)
     const allMentions = await DataService.getForumMentions() || {};
-    
-    // Buscar menciones para el usuario actual por email
+
+    // Buscar menciones para el usuario actual por userId (nuevo) o email (legacy)
+    const userId = currentUser.id || '';
     const userEmail = currentUser.email || '';
-    const userMentions = allMentions[userEmail] || [];
+    const profileId = `profile-${userId}`;
+
+    // Determinar qué key usar (buscar cuál tiene menciones)
+    let mentionKey = userId;
+    let userMentions = [];
+
+    if (allMentions[userId] && allMentions[userId].length > 0) {
+      mentionKey = userId;
+      userMentions = allMentions[userId];
+    } else if (allMentions[profileId] && allMentions[profileId].length > 0) {
+      mentionKey = profileId;
+      userMentions = allMentions[profileId];
+    } else if (allMentions[userEmail] && allMentions[userEmail].length > 0) {
+      mentionKey = userEmail;
+      userMentions = allMentions[userEmail];
+    }
 
     if (userMentions.length === 0) {
       mencionesList.innerHTML = `
@@ -3214,7 +3230,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               Te mencionaron en: <strong style="color: #D4AF37;">"${mention.postTitle || 'Publicación'}"</strong>
             </div>
             <div style="display: flex; gap: 8px;">
-              <a href="salon?post=${mention.postId}" class="mencion-thread" style="display: inline-flex; align-items: center; gap: 6px; color: #D4AF37; text-decoration: none; font-size: 13px; font-weight: 600;" onclick="markMentionAsRead('${userEmail}', ${index})">
+              <a href="salon?post=${mention.postId}" class="mencion-thread" style="display: inline-flex; align-items: center; gap: 6px; color: #D4AF37; text-decoration: none; font-size: 13px; font-weight: 600;" onclick="markMentionAsRead('${mentionKey}', ${index})">
                 <span>Ver hilo completo</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </a>
@@ -3226,10 +3242,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Marcar mención como leída
-  window.markMentionAsRead = async function(email, index) {
+  window.markMentionAsRead = async function(userKey, index) {
     const allMentions = await DataService.getForumMentions() || {};
-    if (allMentions[email] && allMentions[email][index]) {
-      allMentions[email][index].read = true;
+    if (allMentions[userKey] && allMentions[userKey][index]) {
+      allMentions[userKey][index].read = true;
       await DataService.saveForumMentions(allMentions);
     }
   };

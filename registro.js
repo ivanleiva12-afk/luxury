@@ -320,7 +320,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       // Legal confirmations
       ageConfirm: data.ageConfirm === 'on',
-      termsAccept: data.termsAccept === 'on',
       privacyAccept: data.privacyAccept === 'on',
       contentResponsibility: data.contentResponsibility === 'on'
     };
@@ -356,20 +355,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
 
-      // Selfie de verificación - subir a S3
+      // Selfie de verificación - subir a S3 (sin compresión)
       const selfieInput = document.getElementById('selfieUpload');
       if (selfieInput?.files?.[0]) {
         const file = selfieInput.files[0];
-        const fileName = `selfie_${registroId}.jpg`;
+        const ext = file.name.split('.').pop() || 'jpg';
+        const fileName = `selfie_${registroId}.${ext}`;
 
         try {
-          // Comprimir selfie antes de subir
-          const compressedFile = await compressImageFile(file, 800, 800, 0.85);
-
           const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
-            registroId, fileName, 'image/jpeg', 'registros/selfies'
+            registroId, fileName, file.type || 'image/jpeg', 'registros/selfies'
           );
-          await DataService.uploadFileToS3(uploadUrl, compressedFile, 'image/jpeg');
+          await DataService.uploadFileToS3(uploadUrl, file, file.type || 'image/jpeg');
 
           registro.verificationSelfieUrl = publicUrl;
           registro.verificationSelfieKey = key;
@@ -381,7 +378,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
 
-      // Fotos de perfil (verificación) - subir a S3
+      // Fotos de perfil (verificación) - subir a S3 (sin compresión)
       const photosFiles = accumulatedFiles['photosUpload'] || [];
 
       if (photosFiles.length > 0) {
@@ -391,16 +388,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         for (let i = 0; i < photosArray.length; i++) {
           const file = photosArray[i];
-          const fileName = `photo_${registroId}_${i + 1}.jpg`;
+          const ext = file.name.split('.').pop() || 'jpg';
+          const fileName = `photo_${registroId}_${i + 1}.${ext}`;
 
           try {
-            // Comprimir foto antes de subir
-            const compressedFile = await compressImageFile(file, 1200, 1200, 0.85);
-
             const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
-              registroId, fileName, 'image/jpeg', 'registros/fotos'
+              registroId, fileName, file.type || 'image/jpeg', 'registros/fotos'
             );
-            await DataService.uploadFileToS3(uploadUrl, compressedFile, 'image/jpeg');
+            await DataService.uploadFileToS3(uploadUrl, file, file.type || 'image/jpeg');
 
             // Formato compatible: {url, name} - admin.js ya maneja photo.url || photo.base64
             registro.profilePhotosData.push({ url: publicUrl, name: file.name });
@@ -520,66 +515,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
       
       img.onerror = reject;
-
-      // Crear URL para la imagen
-      img.src = URL.createObjectURL(file);
-    });
-  }
-
-  // Función para comprimir imagen y devolver Blob (para subir a S3)
-  function compressImageFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.85) {
-    return new Promise((resolve, reject) => {
-      // Si no es imagen, devolver el archivo original
-      if (!file.type.startsWith('image/')) {
-        resolve(file);
-        return;
-      }
-
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-
-      img.onload = () => {
-        // Liberar URL del objeto
-        URL.revokeObjectURL(img.src);
-
-        // Calcular nuevas dimensiones manteniendo proporción
-        let { width, height } = img;
-
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-
-        if (height > maxHeight) {
-          width = (width * maxHeight) / height;
-          height = maxHeight;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        // Dibujar imagen redimensionada
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Convertir a Blob para subir a S3
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error('Error al comprimir imagen'));
-            }
-          },
-          'image/jpeg',
-          quality
-        );
-      };
-
-      img.onerror = () => {
-        URL.revokeObjectURL(img.src);
-        reject(new Error('Error al cargar imagen'));
-      };
 
       // Crear URL para la imagen
       img.src = URL.createObjectURL(file);
