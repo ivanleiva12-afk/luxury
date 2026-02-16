@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="refresh" content="0; url=../perfil-clienta.html">
   <link rel="canonical" href="../perfil-clienta.html">
   <title>Redirigiendo...</title>
   <style>
@@ -29,7 +28,9 @@
   <h1>Redirigiendo al Perfil...</h1>
   <div class="loader"></div>
   <script>
-    window.location.replace('../perfil-clienta.html');
+    // Preservar parámetros de URL al redireccionar
+    const queryString = window.location.search;
+    window.location.replace('../perfil-clienta.html' + queryString);
   </script>
 </body>
 </html>

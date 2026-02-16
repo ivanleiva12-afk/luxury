@@ -999,6 +999,12 @@
     font-size: 11px;
     line-height: 1.5;
   }
+
+  /* Interview fields - stack vertically on tablet */
+  .interview-fields-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1048,5 +1054,11 @@
   /* Plans */
   .plan-price {
     font-size: 24px;
+  }
+
+  /* Interview fields - stack vertically on mobile */
+  .interview-fields-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
   }
 }

@@ -327,121 +327,167 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Subir archivos a S3 en lugar de convertirlos a base64
     // Esto evita el límite de 400KB de DynamoDB
     const submitBtnText = submitBtn.textContent; // Guardar texto original
+
+    // Función helper para subir un archivo completo (get URL + upload) con timeout
+    const uploadFileToS3 = async (file, fileName, folder, timeoutMs = 90000) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        // Obtener URL pre-firmada
+        const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
+          registroId, fileName, file.type || 'image/jpeg', folder
+        );
+
+        // Subir archivo a S3
+        await DataService.uploadFileToS3(uploadUrl, file, file.type || 'image/jpeg');
+
+        clearTimeout(timeoutId);
+        return { publicUrl, key, name: file.name };
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('Tiempo de espera agotado');
+        }
+        throw error;
+      }
+    };
+
+    // Contador de progreso para uploads paralelos
+    let completedUploads = 0;
+    let totalUploads = 0;
+
+    const updateProgress = () => {
+      completedUploads++;
+      submitBtn.textContent = `Subiendo archivos... ${completedUploads}/${totalUploads}`;
+    };
+
     try {
-      // Mostrar mensaje de progreso
-      submitBtn.textContent = 'Subiendo archivos...';
+      submitBtn.textContent = 'Preparando archivos...';
       submitBtn.disabled = true;
 
-      // Documento ID - subir a S3
+      // Recopilar todos los archivos a subir
+      const uploadTasks = [];
+
+      // Documento ID
       const docInput = document.getElementById('docUpload');
       if (docInput?.files?.[0]) {
         const file = docInput.files[0];
         const ext = file.name.split('.').pop() || 'jpg';
         const fileName = `doc_${registroId}.${ext}`;
-
-        try {
-          const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
-            registroId, fileName, file.type || 'image/jpeg', 'registros/documentos'
-          );
-          await DataService.uploadFileToS3(uploadUrl, file, file.type || 'image/jpeg');
-
-          registro.idDocumentUrl = publicUrl;
-          registro.idDocumentKey = key;
-          registro.idDocumentName = file.name;
-          registro.hasIdDocument = true;
-        } catch (error) {
-          console.error('❌ Error subiendo documento ID a S3:', error);
-          throw new Error('Error al subir documento de identidad');
-        }
+        uploadTasks.push({
+          type: 'document',
+          promise: uploadFileToS3(file, fileName, 'registros/documentos')
+            .then(result => { updateProgress(); return { type: 'document', ...result }; })
+        });
       }
 
-      // Selfie de verificación - subir a S3 (sin compresión)
+      // Selfie de verificación
       const selfieInput = document.getElementById('selfieUpload');
       if (selfieInput?.files?.[0]) {
         const file = selfieInput.files[0];
         const ext = file.name.split('.').pop() || 'jpg';
         const fileName = `selfie_${registroId}.${ext}`;
-
-        try {
-          const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
-            registroId, fileName, file.type || 'image/jpeg', 'registros/selfies'
-          );
-          await DataService.uploadFileToS3(uploadUrl, file, file.type || 'image/jpeg');
-
-          registro.verificationSelfieUrl = publicUrl;
-          registro.verificationSelfieKey = key;
-          registro.verificationSelfieName = file.name;
-          registro.hasVerificationSelfie = true;
-        } catch (error) {
-          console.error('❌ Error subiendo selfie a S3:', error);
-          throw new Error('Error al subir selfie de verificación');
-        }
+        uploadTasks.push({
+          type: 'selfie',
+          promise: uploadFileToS3(file, fileName, 'registros/selfies')
+            .then(result => { updateProgress(); return { type: 'selfie', ...result }; })
+        });
       }
 
-      // Fotos de perfil (verificación) - subir a S3 (sin compresión)
+      // Fotos de perfil (verificación)
       const photosFiles = accumulatedFiles['photosUpload'] || [];
-
       if (photosFiles.length > 0) {
         const photosArray = photosFiles.slice(0, 5);
-        registro.profilePhotosData = []; // Usar mismo nombre para compatibilidad
-        registro.profilePhotosKeys = [];
-
-        for (let i = 0; i < photosArray.length; i++) {
-          const file = photosArray[i];
+        photosArray.forEach((file, i) => {
           const ext = file.name.split('.').pop() || 'jpg';
           const fileName = `photo_${registroId}_${i + 1}.${ext}`;
-
-          try {
-            const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
-              registroId, fileName, file.type || 'image/jpeg', 'registros/fotos'
-            );
-            await DataService.uploadFileToS3(uploadUrl, file, file.type || 'image/jpeg');
-
-            // Formato compatible: {url, name} - admin.js ya maneja photo.url || photo.base64
-            registro.profilePhotosData.push({ url: publicUrl, name: file.name });
-            registro.profilePhotosKeys.push(key);
-          } catch (error) {
-            console.error(`❌ Error subiendo foto ${i + 1} a S3:`, error);
-            throw new Error(`Error al subir foto ${i + 1}`);
-          }
-        }
-        registro.hasProfilePhotos = true;
+          uploadTasks.push({
+            type: 'photo',
+            index: i,
+            promise: uploadFileToS3(file, fileName, 'registros/fotos')
+              .then(result => { updateProgress(); return { type: 'photo', index: i, ...result }; })
+          });
+        });
       }
 
-      // Comprobante de pago - subir a S3
+      // Comprobante de pago
       const receiptInput = document.getElementById('transferReceipt');
       if (receiptInput?.files?.[0]) {
         const file = receiptInput.files[0];
         const ext = file.name.split('.').pop() || 'jpg';
         const fileName = `receipt_${registroId}.${ext}`;
+        uploadTasks.push({
+          type: 'receipt',
+          promise: uploadFileToS3(file, fileName, 'registros/comprobantes')
+            .then(result => { updateProgress(); return { type: 'receipt', ...result }; })
+        });
+      }
 
-        try {
-          const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
-            registroId, fileName, file.type || 'image/jpeg', 'registros/comprobantes'
-          );
-          await DataService.uploadFileToS3(uploadUrl, file, file.type || 'image/jpeg');
+      // Actualizar total y mostrar progreso
+      totalUploads = uploadTasks.length;
 
-          registro.transferReceiptUrl = publicUrl;
-          registro.transferReceiptKey = key;
-          registro.transferReceiptName = file.name;
-          registro.hasTransferReceipt = true;
-        } catch (error) {
-          console.error('❌ Error subiendo comprobante a S3:', error);
-          throw new Error('Error al subir comprobante de pago');
+      if (totalUploads === 0) {
+        submitBtn.textContent = 'Guardando registro...';
+      } else {
+        submitBtn.textContent = `Subiendo archivos... 0/${totalUploads}`;
+
+        // ⚡ SUBIR TODOS LOS ARCHIVOS EN PARALELO
+        const results = await Promise.all(uploadTasks.map(task => task.promise.catch(err => {
+          // Capturar errores individuales para dar mensaje específico
+          throw new Error(`Error al subir ${task.type === 'photo' ? `foto ${task.index + 1}` : task.type}: ${err.message}`);
+        })));
+
+        // Procesar resultados
+        results.forEach(result => {
+          switch (result.type) {
+            case 'document':
+              registro.idDocumentUrl = result.publicUrl;
+              registro.idDocumentKey = result.key;
+              registro.idDocumentName = result.name;
+              registro.hasIdDocument = true;
+              break;
+            case 'selfie':
+              registro.verificationSelfieUrl = result.publicUrl;
+              registro.verificationSelfieKey = result.key;
+              registro.verificationSelfieName = result.name;
+              registro.hasVerificationSelfie = true;
+              break;
+            case 'photo':
+              if (!registro.profilePhotosData) {
+                registro.profilePhotosData = [];
+                registro.profilePhotosKeys = [];
+              }
+              // Insertar en el índice correcto para mantener orden
+              registro.profilePhotosData[result.index] = { url: result.publicUrl, name: result.name };
+              registro.profilePhotosKeys[result.index] = result.key;
+              registro.hasProfilePhotos = true;
+              break;
+            case 'receipt':
+              registro.transferReceiptUrl = result.publicUrl;
+              registro.transferReceiptKey = result.key;
+              registro.transferReceiptName = result.name;
+              registro.hasTransferReceipt = true;
+              break;
+          }
+        });
+
+        // Limpiar arrays de fotos (quitar undefined si hay huecos)
+        if (registro.profilePhotosData) {
+          registro.profilePhotosData = registro.profilePhotosData.filter(Boolean);
+          registro.profilePhotosKeys = registro.profilePhotosKeys.filter(Boolean);
         }
       }
 
-      // Restaurar botón antes de guardar
+      // Guardar registro
       submitBtn.textContent = 'Guardando registro...';
-
-      // Guardar registro (ahora solo con URLs, no base64)
       await saveRegistration(registro);
 
     } catch (error) {
-      console.error('❌ Error final al procesar archivos:', error);
+      console.error('❌ Error al procesar archivos:', error);
       submitBtn.textContent = submitBtnText || 'Enviar Solicitud';
       submitBtn.disabled = false;
-      alert(`Hubo un error al procesar los archivos: ${error.message}\n\nPor favor, verifica tu conexión a internet e intenta de nuevo.`);
+      alert(`Hubo un error al procesar los archivos:\n\n${error.message}\n\nPor favor, verifica tu conexión a internet e intenta de nuevo.`);
     }
   });
   
@@ -468,6 +514,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else {
         alert(`❌ Error al guardar el registro: ${errorMsg}\n\nPor favor, intenta de nuevo.`);
       }
+
+      // Re-lanzar el error para que el handler principal pueda restaurar el botón
+      throw error;
     }
   }
   

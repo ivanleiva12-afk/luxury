@@ -843,26 +843,26 @@ const getProfileTypesWithPromotion = (profile) => {
 
 // ========== SISTEMA DE RECOMENDACIONES (Menciones en Sala Oscura) ==========
 // Cuenta cuántas veces un perfil fue mencionado en Sala Oscura
-const getMentionCount = async (profileName, profileEmail) => {
-  const posts = await DataService.getForoPosts() || [];
-  const searchName = profileName?.toLowerCase() || '';
-  const searchEmail = profileEmail?.toLowerCase() || '';
+// Ahora busca por @username (único) en lugar de @displayName
+const getMentionCount = async (username, profileId) => {
+  const posts = await DataService.getSalaOscuraThreads() || [];
+  const searchUsername = username?.toLowerCase() || '';
   let count = 0;
   let postIds = [];
-  
+
   posts.forEach(post => {
     const contentLower = (post.contenido || '').toLowerCase();
-    // Buscar menciones @nombre en el contenido
-    if (searchName && contentLower.includes(`@${searchName}`)) {
+    // Buscar menciones @username en el contenido
+    if (searchUsername && contentLower.includes(`@${searchUsername}`)) {
       count++;
       postIds.push(post.id);
     }
-    
+
     // También revisar respuestas
     if (post.respuestas) {
       post.respuestas.forEach(reply => {
         const replyLower = (reply.contenido || '').toLowerCase();
-        if (searchName && replyLower.includes(`@${searchName}`)) {
+        if (searchUsername && replyLower.includes(`@${searchUsername}`)) {
           if (!postIds.includes(post.id)) {
             count++;
             postIds.push(post.id);
@@ -871,23 +871,21 @@ const getMentionCount = async (profileName, profileEmail) => {
       });
     }
   });
-  
+
   return { count, postIds };
 };
 
 // Abre Sala Oscura filtrada por los hilos donde está mencionada la persona
-window.openMentionedThreads = async (profileName, profileEmail) => {
-  const { postIds } = await getMentionCount(profileName, profileEmail);
-  
-  if (postIds.length === 0) {
+window.openMentionedThreads = async (username, profileId) => {
+  const { count, postIds } = await getMentionCount(username, profileId);
+
+  if (postIds.length === 0 || count === 0) {
     alert('No se encontraron menciones para este perfil.');
     return;
   }
-  
-  // Guardar los IDs de posts a mostrar (temporal en localStorage para navegación)
-  localStorage.setItem('filterMentionPostIds', JSON.stringify(postIds));
-  localStorage.setItem('filterMentionName', profileName);
-  window.location.href = `salon?filter=mentions&name=${encodeURIComponent(profileName)}`;
+
+  // Ir a Sala Oscura con filtro de menciones por username
+  window.location.href = `salon?filter=mentions&name=${encodeURIComponent(username)}`;
 };
 
 // Obtener likes del usuario (guardados en AWS)
@@ -1617,9 +1615,9 @@ window.refreshCarouselsWithFilter = function(filters) {
                   <span class="stat-value">${profile.stats.views >= 1000 ? (profile.stats.views / 1000).toFixed(1) + 'K' : profile.stats.views}</span>
                   <span class="stat-label">Vistas</span>
                 </div>
-                <div class="modal-stat-item experiences-stat" onclick="openMentionedThreads('${profile.displayName}', '${profile.email}')" title="Ver experiencias en Sala Oscura">
+                <div class="modal-stat-item experiences-stat" onclick="openMentionedThreads('${profile.username || ''}', '${profile.id}')" title="Ver experiencias en Sala Oscura" style="cursor: pointer;">
                   <span class="stat-icon">✨</span>
-                  <span class="stat-value experiences-count">${getMentionCount(profile.displayName, profile.email).count}</span>
+                  <span class="stat-value experiences-count" data-username="${profile.username || ''}" data-profile-id="${profile.id}">0</span>
                   <span class="stat-label">Experiencias</span>
                 </div>
                 <div class="modal-stat-item">
@@ -1885,6 +1883,16 @@ window.refreshCarouselsWithFilter = function(filters) {
     // Insertar modal en el body
     document.body.insertAdjacentHTML('beforeend', modalHTML);
     document.body.style.overflow = 'hidden';
+
+    // Actualizar contador de experiencias (async)
+    const experiencesEl = document.querySelector('.experiences-count[data-username]');
+    if (experiencesEl && profile.username) {
+      getMentionCount(profile.username, profile.id).then(({ count }) => {
+        experiencesEl.textContent = count || 0;
+      }).catch(() => {
+        experiencesEl.textContent = '0';
+      });
+    }
 
     // Event listeners del modal
     const modal = document.getElementById('vip-modal');

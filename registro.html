@@ -617,7 +617,7 @@
                 <ul style="color: var(--muted); margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.8;">
                   <li><strong style="color: var(--text);">Sin editar:</strong> Las fotos deben ser originales, sin filtros ni retoques</li>
                   <li><strong style="color: var(--text);">Rostro visible:</strong> Tu cara debe aparecer claramente en ambas fotos</li>
-                  <li><strong style="color: #DC2626;">⚠️ Permanentes:</strong> Estas 2 fotos quedarán en tu perfil y <strong>no podrán ser eliminadas</strong>, solo podrás difuminar tu rostro desde tu panel</li>
+                  <li><strong style="color: #DC2626;">⚠️ Permanentes:</strong> Estas 2 fotos quedarán en tu perfil y <strong>no podrán ser eliminadas</strong></li>
                   <li><strong style="color: var(--gold);">✨ Más contenido:</strong> Podrás subir más fotos y videos desde tu perfil según el plan que elijas</li>
                 </ul>
               </div>
@@ -850,15 +850,15 @@
                 Selecciona el día y hora que mejor te acomode.
               </p>
               
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div class="interview-fields-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
                 <div class="form-group" style="margin-bottom: 0;">
                   <label for="interviewDate">Fecha de Entrevista *</label>
-                  <input type="date" id="interviewDate" name="interviewDate" required min="" />
+                  <input type="date" id="interviewDate" name="interviewDate" required min="" style="width: 100%; box-sizing: border-box;" />
                 </div>
-                
+
                 <div class="form-group" style="margin-bottom: 0;">
                   <label for="interviewTime">Hora de Entrevista *</label>
-                  <select id="interviewTime" name="interviewTime" required>
+                  <select id="interviewTime" name="interviewTime" required style="width: 100%; box-sizing: border-box;">
                     <option value="">Selecciona una hora</option>
                     <!-- Las opciones se cargan dinámicamente desde la configuración del admin -->
                   </select>
