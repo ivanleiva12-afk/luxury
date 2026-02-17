@@ -219,13 +219,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateNavigation();
   });
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    
-    if (!validateStep(currentStep)) {
+  // Variable para evitar doble submit
+  let isSubmitting = false;
+
+  // Función principal de submit (separada para poder llamarla desde click y submit)
+  async function handleFormSubmit() {
+    // Evitar doble submit
+    if (isSubmitting) {
+      console.log('⚠️ Ya hay un submit en progreso');
       return;
     }
+
+    console.log('📝 Iniciando proceso de registro...');
+
+    if (!validateStep(currentStep)) {
+      console.log('❌ Validación fallida en paso', currentStep);
+      return;
+    }
+
+    isSubmitting = true;
+    console.log('✅ Validación exitosa, procesando formulario...');
     
     
     // Collect all form data
@@ -487,7 +500,25 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.error('❌ Error al procesar archivos:', error);
       submitBtn.textContent = submitBtnText || 'Enviar Solicitud';
       submitBtn.disabled = false;
+      isSubmitting = false;
       alert(`Hubo un error al procesar los archivos:\n\n${error.message}\n\nPor favor, verifica tu conexión a internet e intenta de nuevo.`);
+    }
+  }
+
+  // Event listener para el formulario (submit normal)
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    console.log('📋 Evento submit del formulario disparado');
+    await handleFormSubmit();
+  });
+
+  // Event listener adicional para el botón (fallback para móvil)
+  submitBtn.addEventListener('click', async (e) => {
+    // Solo actuar si estamos en el último paso y el botón está visible
+    if (currentStep === totalSteps && submitBtn.style.display !== 'none') {
+      e.preventDefault();
+      console.log('📱 Click directo en botón submit detectado');
+      await handleFormSubmit();
     }
   });
   
