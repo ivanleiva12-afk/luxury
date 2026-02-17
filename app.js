@@ -3148,14 +3148,54 @@ function createSkeletonCard() {
     }
   });
 
-  // Touch events para móvil
+  // Touch events para móvil - navegación y pausa
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartTime = 0;
+
   viewer.addEventListener('touchstart', (e) => {
+    // Ignorar botones de control
     if (e.target === prevBtn || e.target === nextBtn || e.target === closeBtn || e.target === contactBtn) return;
+    if (e.target.closest('.stories-contact-btn') || e.target.closest('.stories-close')) return;
+
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartTime = Date.now();
+
+    // Pausar autoplay
     isPaused = true;
     stopAutoPlay();
   }, { passive: true });
 
-  viewer.addEventListener('touchend', () => {
+  viewer.addEventListener('touchend', (e) => {
+    // Ignorar botones de control
+    if (e.target === prevBtn || e.target === nextBtn || e.target === closeBtn || e.target === contactBtn) return;
+    if (e.target.closest('.stories-contact-btn') || e.target.closest('.stories-close')) return;
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const touchDuration = Date.now() - touchStartTime;
+
+    // Calcular distancia del toque
+    const deltaX = Math.abs(touchEndX - touchStartX);
+    const deltaY = Math.abs(touchEndY - touchStartY);
+
+    // Si fue un tap corto (menos de 300ms) y sin mucho movimiento
+    if (touchDuration < 300 && deltaX < 30 && deltaY < 30) {
+      const rect = viewer.getBoundingClientRect();
+      const x = touchEndX - rect.left;
+      const width = rect.width;
+      const tapZone = width / 3;
+
+      // Navegar según la zona tocada
+      if (x < tapZone) {
+        prevStory();
+      } else if (x > width - tapZone) {
+        nextStory();
+      }
+    }
+
+    // Reanudar autoplay
     isPaused = false;
     startAutoPlay();
   });
@@ -4269,13 +4309,15 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   
   function renderEstadoCard(estado) {
-    // Emojis para cada tipo de estado
-    const statusEmojis = {
-      'disponible': '🟢',
-      'novedad': '✨',
-      'promo': '🔥',
-      'ocupada': '⏸️'
+    // Configuración visual para cada tipo de estado
+    const statusConfig = {
+      'disponible': { emoji: '🟢', label: 'Disponible', color: '#22c55e' },
+      'novedad': { emoji: '✨', label: 'Novedad', color: '#a855f7' },
+      'promo': { emoji: '🔥', label: 'Promoción', color: '#f97316' },
+      'ocupada': { emoji: '⏸️', label: 'Ocupada', color: '#6b7280' }
     };
+
+    const config = statusConfig[estado.type] || { emoji: '📝', label: 'Estado', color: '#888' };
 
     const createdAt = new Date(estado.createdAt);
     const hoursAgo = Math.floor((new Date() - createdAt) / (1000 * 60 * 60));
@@ -4289,11 +4331,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
     return `
       <div class="estado-card ${estado.type} ${luxuryClass}" data-user-id="${estado.userId || ''}" data-username="${estado.username || ''}">
+        <span class="estado-type-badge" style="--badge-color: ${config.color}">${config.emoji} ${config.label}</span>
         <div class="estado-card-header">
-          <div class="estado-avatar-wrapper">
-            <img class="estado-avatar" src="${estado.userAvatar || estado.profilePhoto || defaultAvatar}" alt="${estado.userName}" onerror="this.src='${defaultAvatar}'" />
-            <span class="estado-type-emoji">${statusEmojis[estado.type] || '📝'}</span>
-          </div>
+          <img class="estado-avatar" src="${estado.userAvatar || estado.profilePhoto || defaultAvatar}" alt="${estado.userName}" onerror="this.src='${defaultAvatar}'" />
           <div class="estado-user-info">
             <div class="estado-user-name">${estado.userName}</div>
             <div class="estado-user-location">${estado.commune || estado.city || ''}</div>

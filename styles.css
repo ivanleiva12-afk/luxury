@@ -4247,17 +4247,27 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
 
 .estados-carousel-wrapper {
   position: relative;
+  overflow: hidden;
 }
 
-/* MOBILE-FIRST: Grid de 2 columnas por defecto */
+/* Scroll horizontal estilo Instagram */
 .estados-carousel {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
   gap: 12px;
-  padding: 8px 0;
+  padding: 8px 0 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.estados-carousel::-webkit-scrollbar {
+  display: none;
 }
 
 .estado-card {
+  flex: 0 0 260px;
+  scroll-snap-align: start;
   background: linear-gradient(145deg, rgba(26, 26, 26, 0.95), rgba(15, 15, 15, 0.98));
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 20px;
@@ -4287,30 +4297,15 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   opacity: 0.8;
 }
 
-/* DESKTOP: Cambiar a scroll horizontal */
+/* DESKTOP: Tarjetas más grandes */
 @media (min-width: 769px) {
-  .estados-carousel-wrapper {
-    overflow: hidden;
-  }
-
   .estados-carousel {
-    display: flex;
     gap: 16px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .estados-carousel::-webkit-scrollbar {
-    display: none;
   }
 
   .estado-card {
-    flex: 0 0 280px;
-    scroll-snap-align: start;
+    flex: 0 0 300px;
     padding: 20px;
-    gap: 12px;
   }
 }
 
@@ -4326,11 +4321,6 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   gap: 12px;
 }
 
-/* Avatar wrapper con emoji de estado */
-.estado-avatar-wrapper {
-  position: relative;
-  flex-shrink: 0;
-}
 
 .estado-avatar {
   width: 50px;
@@ -4340,15 +4330,41 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   border: 2px solid transparent;
 }
 
-.estado-type-emoji {
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  font-size: 16px;
-  background: #0A0A0A;
-  border-radius: 50%;
-  padding: 2px;
-  line-height: 1;
+.estado-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(var(--badge-color-rgb, 136, 136, 136), 0.15);
+  color: var(--badge-color, #888);
+  border: 1px solid color-mix(in srgb, var(--badge-color, #888) 30%, transparent);
+  margin-bottom: 10px;
+  width: fit-content;
+}
+
+.estado-card.disponible .estado-type-badge {
+  --badge-color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.estado-card.novedad .estado-type-badge {
+  --badge-color: #a855f7;
+  background: rgba(168, 85, 247, 0.12);
+}
+
+.estado-card.promo .estado-type-badge {
+  --badge-color: #f97316;
+  background: rgba(249, 115, 22, 0.12);
+}
+
+.estado-card.ocupada .estado-type-badge {
+  --badge-color: #6b7280;
+  background: rgba(107, 114, 128, 0.12);
 }
 
 .estado-card.disponible .estado-avatar {
@@ -4482,10 +4498,11 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
 
 @media (max-width: 480px) {
   .estados-carousel {
-    gap: 8px;
+    gap: 10px;
   }
 
   .estado-card {
+    flex: 0 0 220px;
     padding: 12px;
     gap: 10px;
     border-radius: 16px;
@@ -4500,8 +4517,10 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
     height: 40px;
   }
 
-  .estado-type-emoji {
-    font-size: 14px;
+  .estado-type-badge {
+    font-size: 10px;
+    padding: 3px 8px;
+    margin-bottom: 8px;
   }
 
   .estado-user-name {

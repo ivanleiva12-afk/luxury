@@ -710,8 +710,8 @@ window.approveRegistro = async (id) => {
       // Campos adicionales para compatibilidad con el modal
       avatar: reg.profilePhotosData && reg.profilePhotosData.length > 0 ?
         (reg.profilePhotosData[0].url || reg.profilePhotosData[0].base64) : null,
-      profileVisible: false, // Nace desactivado - la creadora lo activa desde su perfil
-      isActive: false, // Nace desactivado - no aparece en carruseles hasta que la creadora lo active
+      profileVisible: true, // Nace ACTIVADO - aparece en carruseles inmediatamente
+      isActive: true, // Nace ACTIVADO - visible en carruseles desde el momento de aprobación
       createdAt: Date.now()
     };
     
@@ -744,7 +744,7 @@ window.approveRegistro = async (id) => {
     renderRegistrosAprobados();
     updateRegistrosBadge();
     updateAprobadosBadge();
-    alert(`✓ Cuenta de "${reg.displayName}" aprobada exitosamente.\n\n📍 Perfil DESACTIVADO por defecto.\n✨ La creadora debe activar su perfil desde su panel.\n📂 El registro queda archivado por seguridad.`);
+    alert(`✓ Cuenta de "${reg.displayName}" aprobada exitosamente.\n\n📍 Perfil ACTIVADO y visible en carruseles.\n✨ La creadora puede gestionar su perfil desde su panel.\n📂 El registro queda archivado por seguridad.`);
   }
 };
 
