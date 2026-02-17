@@ -1,4 +1,99 @@
 // ========================================
+// BADGES DINÁMICOS SEGÚN PRECIO
+// ========================================
+// Cache para configuración de planes (se carga una vez)
+let _plansConfigCache = null;
+
+// Función global para calcular badges dinámicos según precio y carrusel
+window.getDynamicProfileBadges = async function(profile) {
+  // Cargar configuración de planes si no está en cache
+  if (!_plansConfigCache) {
+    _plansConfigCache = await DataService.getPlansConfig() || {};
+  }
+
+  const vipTarifaMin = _plansConfigCache.vip?.tarifaMin || 100000;
+  const premiumTarifaMin = _plansConfigCache.premium?.tarifaMin || 200000;
+
+  const badges = [];
+  const price = profile.price?.CLP || 0;
+  const carouselType = profile.carouselType || 'premium-select';
+
+  // Badge base según el carrusel/plan
+  if (carouselType === 'luxury') {
+    badges.push('luxury-exclusive');
+  } else if (carouselType === 'vip-black') {
+    badges.push('vip');
+  } else {
+    badges.push('premium');
+  }
+
+  // Badges adicionales según el precio (solo si no es el badge base)
+  if (price >= premiumTarifaMin && !badges.includes('premium')) {
+    badges.push('premium');
+  }
+  if (price >= vipTarifaMin && !badges.includes('vip')) {
+    badges.push('vip');
+  }
+
+  // Agregar badge "nuevo" si aplica (menos de 7 días)
+  if (profile.createdAt) {
+    const daysPassed = (Date.now() - profile.createdAt) / (1000 * 60 * 60 * 24);
+    if (daysPassed <= 7) {
+      badges.push('nuevo');
+    }
+  }
+
+  // Agregar badge "en-promocion" si aplica
+  if (profile.price?.originalCLP && profile.price.CLP < profile.price.originalCLP) {
+    badges.push('en-promocion');
+  }
+
+  return badges;
+};
+
+// Versión síncrona para usar cuando ya se cargó el cache
+window.getDynamicProfileBadgesSync = function(profile, plansConfig) {
+  const vipTarifaMin = plansConfig?.vip?.tarifaMin || 100000;
+  const premiumTarifaMin = plansConfig?.premium?.tarifaMin || 200000;
+
+  const badges = [];
+  const price = profile.price?.CLP || 0;
+  const carouselType = profile.carouselType || 'premium-select';
+
+  // Badge base según el carrusel/plan
+  if (carouselType === 'luxury') {
+    badges.push('luxury-exclusive');
+  } else if (carouselType === 'vip-black') {
+    badges.push('vip');
+  } else {
+    badges.push('premium');
+  }
+
+  // Badges adicionales según el precio
+  if (price >= premiumTarifaMin && !badges.includes('premium')) {
+    badges.push('premium');
+  }
+  if (price >= vipTarifaMin && !badges.includes('vip')) {
+    badges.push('vip');
+  }
+
+  // Badge "nuevo" si aplica
+  if (profile.createdAt) {
+    const daysPassed = (Date.now() - profile.createdAt) / (1000 * 60 * 60 * 24);
+    if (daysPassed <= 7) {
+      badges.push('nuevo');
+    }
+  }
+
+  // Badge "en-promocion" si aplica
+  if (profile.price?.originalCLP && profile.price.CLP < profile.price.originalCLP) {
+    badges.push('en-promocion');
+  }
+
+  return badges;
+};
+
+// ========================================
 // VERIFICAR Y DESACTIVAR PERFILES VENCIDOS
 // ========================================
 async function checkAndDeactivateExpiredProfiles() {
@@ -1352,6 +1447,13 @@ window.refreshCarouselsWithFilter = function(filters) {
   let autoplayInterval = null;
   const AUTOPLAY_DELAY = 5000; // 5 segundos
 
+  // Cargar configuración de planes para badges dinámicos
+  const plansConfig = await DataService.getPlansConfig() || {};
+  _plansConfigCache = plansConfig; // Guardar en cache global
+
+  // Función local que usa el cache ya cargado
+  const getDynamicBadges = (profile) => window.getDynamicProfileBadgesSync(profile, plansConfig);
+
   // Función para cargar perfiles Luxury & Exclusive aprobados
   const loadApprovedLuxuryProfiles = async () => {
     const approvedProfiles = await DataService.getApprovedProfiles() || [];
@@ -1476,15 +1578,8 @@ window.refreshCarouselsWithFilter = function(filters) {
       return badges[type] || badges['vip'];
     };
     
-    // Filtrar tipos de perfil válidos - eliminar undefined/null y "nuevo" si pasaron 7 días
-    const validProfileTypes = (profile.profileTypes || []).filter(type => {
-      if (!type) return false;
-      if (type === 'nuevo' && car.createdAt) {
-        const daysPassed = (Date.now() - car.createdAt) / (1000 * 60 * 60 * 24);
-        return daysPassed <= 7;
-      }
-      return true;
-    });
+    // Usar badges dinámicos según precio (usa el cache global)
+    const validProfileTypes = window.getDynamicProfileBadgesSync(profile, _plansConfigCache);
 
     // Crear modal HTML
     const serviceNames = {
@@ -2050,15 +2145,8 @@ window.refreshCarouselsWithFilter = function(filters) {
             
             <div class="vip-badge-container" style="position: absolute; top: 16px; left: 16px; z-index: 10; display: flex; flex-direction: column; gap: 6px; max-width: 200px;">
               ${(() => {
-                const types = car.profileTypes || [car.profileType] || ['vip'];
-                // Filtrar "nuevo" si han pasado más de 7 días
-                const validTypes = types.filter(type => {
-                  if (type === 'nuevo' && car.createdAt) {
-                    const daysPassed = (Date.now() - car.createdAt) / (1000 * 60 * 60 * 24);
-                    return daysPassed <= 7;
-                  }
-                  return true;
-                });
+                // Usar badges dinámicos según precio
+                const dynamicBadges = getDynamicBadges(car);
                 const badgeMap = {
                   'vip': { icon: '👑', text: 'VIP' },
                   'luxury-exclusive': { icon: '💎', text: 'Luxury & Exclusive' },
@@ -2066,7 +2154,7 @@ window.refreshCarouselsWithFilter = function(filters) {
                   'nuevo': { icon: '✨', text: 'Nuevo' },
                   'en-promocion': { icon: '🏷️', text: 'En Promoción' }
                 };
-                return validTypes.map(type => {
+                return dynamicBadges.map(type => {
                   const badge = badgeMap[type] || badgeMap['vip'];
                   const typeClass = type.replace('-', '');
                   return `<div class="vip-badge ${typeClass}-badge">
@@ -3210,9 +3298,7 @@ function createSkeletonCard() {
     name.className = 'creator-name';
     name.textContent = creator.name;
 
-    const title = document.createElement('p');
-    title.className = 'creator-title';
-    title.textContent = creator.title;
+    // Título removido - info redundante con los badges
 
     // Información adicional (edad, altura, nacionalidad)
     const infoLine = document.createElement('div');
@@ -3268,7 +3354,6 @@ function createSkeletonCard() {
 
     // Agregar elementos al contenido
     content.appendChild(name);
-    content.appendChild(title);
     content.appendChild(infoLine);
     content.appendChild(location);
     content.appendChild(stats);
@@ -3283,7 +3368,7 @@ function createSkeletonCard() {
     // Click handler para abrir modal
     card.addEventListener('click', () => {
       let fullProfile;
-      
+
       // Si es un perfil del admin, usar los datos completos
       if (creator.isAdminProfile && creator.fullProfile) {
         fullProfile = {
@@ -3493,9 +3578,7 @@ function createSkeletonCard() {
     name.className = 'premium-select-name';
     name.textContent = creator.name;
 
-    const title = document.createElement('p');
-    title.className = 'premium-select-title-desc';
-    title.textContent = creator.title;
+    // Título removido - info redundante con los badges
 
     // Información adicional (edad, altura, nacionalidad)
     const infoLine = document.createElement('div');
@@ -3551,7 +3634,6 @@ function createSkeletonCard() {
 
     // Agregar elementos al contenido
     content.appendChild(name);
-    content.appendChild(title);
     content.appendChild(infoLine);
     content.appendChild(location);
     content.appendChild(stats);
@@ -4073,16 +4155,19 @@ window.addEventListener('DOMContentLoaded', () => {
       return hoursAgo < estado.duration;
     });
 
-    // Resolver avatares faltantes desde approvedProfiles
+    // Resolver avatares y carouselType desde approvedProfiles
     const approvedProfilesForAvatars = await DataService.getApprovedProfiles() || [];
     for (const estado of activeEstados) {
-      if (!estado.userAvatar || estado.userAvatar === 'null' || estado.userAvatar === '') {
-        const userProfile = approvedProfilesForAvatars.find(p =>
-          p.id === `profile-${estado.userId}` || p.odooId === estado.userId
-        );
-        if (userProfile) {
+      const userProfile = approvedProfilesForAvatars.find(p =>
+        p.id === `profile-${estado.userId}` || p.odooId === estado.userId
+      );
+      if (userProfile) {
+        // Obtener avatar si falta
+        if (!estado.userAvatar || estado.userAvatar === 'null' || estado.userAvatar === '') {
           estado.userAvatar = userProfile.profilePhotosData?.[0]?.url || userProfile.profilePhoto || userProfile.avatar || null;
         }
+        // Agregar carouselType para saber si es Luxury (para borde dorado)
+        estado.carouselType = userProfile.carouselType || 'premium-select';
       }
     }
 
@@ -4184,39 +4269,44 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   
   function renderEstadoCard(estado) {
-    const statusLabels = {
-      'disponible': '🟢 Disponible',
-      'novedad': '✨ Novedad',
-      'promo': '🔥 Promo',
-      'ocupada': '🔴 Ocupada'
+    // Emojis para cada tipo de estado
+    const statusEmojis = {
+      'disponible': '🟢',
+      'novedad': '✨',
+      'promo': '🔥',
+      'ocupada': '⏸️'
     };
-    
+
     const createdAt = new Date(estado.createdAt);
     const hoursAgo = Math.floor((new Date() - createdAt) / (1000 * 60 * 60));
-    const timeText = hoursAgo === 0 ? 'Hace unos minutos' : `Hace ${hoursAgo}h`;
-    
+    const timeText = hoursAgo === 0 ? 'Ahora' : `${hoursAgo}h`;
+
+    // Clase extra para perfiles Luxury (borde dorado)
+    const isLuxury = estado.carouselType === 'luxury';
+    const luxuryClass = isLuxury ? 'luxury-estado' : '';
+
+    const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiMxYTFhMmUiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjYwIiBmaWxsPSIjMzMzMzRkIi8+PHBhdGggZD0iTTEwMCAzNTBDMTAwIDI4MCAxNDAgMjMwIDIwMCAyMzBDMjYwIDIzMCAzMDAgMjgwIDMwMCAzNTAiIGZpbGw9IiMzMzMzNGQiLz48L3N2Zz4=';
+
     return `
-      <div class="estado-card ${estado.type}" data-user-id="${estado.userId || ''}" data-username="${estado.username || ''}">
+      <div class="estado-card ${estado.type} ${luxuryClass}" data-user-id="${estado.userId || ''}" data-username="${estado.username || ''}">
         <div class="estado-card-header">
-          <img class="estado-avatar" src="${estado.userAvatar || estado.profilePhoto || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiMxYTFhMmUiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjYwIiBmaWxsPSIjMzMzMzRkIi8+PHBhdGggZD0iTTEwMCAzNTBDMTAwIDI4MCAxNDAgMjMwIDIwMCAyMzBDMjYwIDIzMCAzMDAgMjgwIDMwMCAzNTAiIGZpbGw9IiMzMzMzNGQiLz48L3N2Zz4='}" alt="${estado.userName}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiMxYTFhMmUiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjYwIiBmaWxsPSIjMzMzMzRkIi8+PHBhdGggZD0iTTEwMCAzNTBDMTAwIDI4MCAxNDAgMjMwIDIwMCAyMzBDMjYwIDIzMCAzMDAgMjgwIDMwMCAzNTAiIGZpbGw9IiMzMzMzNGQiLz48L3N2Zz4='" />
-          <div class="estado-user-info">
-            <div class="estado-user-name">
-              ${estado.userName}
-              <span class="estado-status-badge ${estado.type}">${statusLabels[estado.type] || estado.type}</span>
-            </div>
-            <div class="estado-user-location">${estado.commune || ''}, ${estado.city || ''}</div>
+          <div class="estado-avatar-wrapper">
+            <img class="estado-avatar" src="${estado.userAvatar || estado.profilePhoto || defaultAvatar}" alt="${estado.userName}" onerror="this.src='${defaultAvatar}'" />
+            <span class="estado-type-emoji">${statusEmojis[estado.type] || '📝'}</span>
           </div>
+          <div class="estado-user-info">
+            <div class="estado-user-name">${estado.userName}</div>
+            <div class="estado-user-location">${estado.commune || estado.city || ''}</div>
+          </div>
+          <span class="estado-time-badge">${timeText}</span>
         </div>
         <div class="estado-message">${estado.message}</div>
-        <div class="estado-card-footer">
-          <span class="estado-time">${timeText}</span>
-          ${estado.type !== 'ocupada' ? `
-            <button class="estado-contact-btn" data-whatsapp="${estado.whatsapp || ''}">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884z"/></svg>
-              Contactar
-            </button>
-          ` : ''}}
-        </div>
+        ${estado.type !== 'ocupada' ? `
+          <button class="estado-contact-btn" data-whatsapp="${estado.whatsapp || ''}">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884z"/></svg>
+            Contactar
+          </button>
+        ` : ''}
       </div>
     `;
   }

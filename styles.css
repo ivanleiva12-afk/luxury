@@ -1026,66 +1026,45 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
 .featured-carousel-wrapper,
 .vip-carousel-container {
   position: relative;
-  overflow: hidden; /* Ocultar scroll horizontal en el wrapper */
-  padding: 60px 20px 60px 20px;
+  padding: 40px 20px;
   width: 100%;
-  max-width: 1240px; /* Ancho para 3 tarjetas de 380px + gaps + padding */
+  max-width: 1240px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
 }
 
+/* GRID VERTICAL - 3 columnas en PC, scroll vertical como la página */
 .featured-carousel,
 .vip-carousel-track {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
-  overflow-x: auto;
-  overflow-y: visible;
-  scroll-behavior: smooth;
-  scroll-snap-type: x mandatory;
   padding: 20px 10px;
   width: 100%;
-  max-width: 1200px; /* Ancho máximo para 3 tarjetas + gaps */
+  max-width: 1200px;
   margin: 0 auto;
-  /* Alineación al inicio para permitir scroll */
-  justify-content: flex-start;
-  
-  /* Ocultar scrollbar */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.featured-carousel::-webkit-scrollbar,
-.vip-carousel-track::-webkit-scrollbar {
-  display: none;
 }
 
 .featured-card,
 .vip-card {
-  /* Tamaño unificado para carruseles */
-  min-width: 380px;
-  max-width: 380px;
-  width: 380px;
-  height: 570px;
-  flex-shrink: 0;
-  
+  /* Tamaño responsivo - ocupa toda la columna del grid */
+  width: 100%;
+  aspect-ratio: 2/3;
+  height: auto;
+
   /* Layout */
   position: relative;
   border-radius: 16px;
   cursor: pointer;
-  scroll-snap-align: start;
   background: #0A0A0A;
   overflow: hidden;
-  
+
   /* Animación de entrada */
   opacity: 0;
   animation: fadeInScale 600ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  
+
   /* Transición suave */
   transition: all 400ms cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   /* Asegurar que el contenido no se desborde */
   contain: layout style paint;
 }
@@ -4279,15 +4258,33 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
 }
 
 .estado-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 14px;
+  background: linear-gradient(145deg, rgba(26, 26, 26, 0.95), rgba(15, 15, 15, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
   transition: all 300ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Borde dorado premium para estados de perfiles Luxury */
+.estado-card.luxury-estado {
+  border: 1.5px solid rgba(212, 175, 55, 0.5);
+  background: linear-gradient(145deg, rgba(30, 28, 20, 0.98), rgba(15, 15, 15, 0.98));
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.1);
+}
+
+.estado-card.luxury-estado::before {
+  content: '💎';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 12px;
+  opacity: 0.8;
 }
 
 /* DESKTOP: Cambiar a scroll horizontal */
@@ -4329,12 +4326,29 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   gap: 12px;
 }
 
+/* Avatar wrapper con emoji de estado */
+.estado-avatar-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
 .estado-avatar {
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid transparent;
+}
+
+.estado-type-emoji {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  font-size: 16px;
+  background: #0A0A0A;
+  border-radius: 50%;
+  padding: 2px;
+  line-height: 1;
 }
 
 .estado-card.disponible .estado-avatar {
@@ -4353,98 +4367,82 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   border-color: #EF4444;
 }
 
+/* Borde especial para Luxury */
+.estado-card.luxury-estado .estado-avatar {
+  border-color: #D4AF37;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
 .estado-user-info {
   flex: 1;
+  min-width: 0;
 }
 
 .estado-user-name {
   font-weight: 600;
-  font-size: 15px;
+  font-size: 14px;
   color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.estado-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.estado-status-badge.disponible {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10B981;
-}
-
-.estado-status-badge.novedad {
-  background: rgba(168, 85, 247, 0.15);
-  color: #A855F7;
-}
-
-.estado-status-badge.promo {
-  background: rgba(245, 158, 11, 0.15);
-  color: #F59E0B;
-}
-
-.estado-status-badge.ocupada {
-  background: rgba(239, 68, 68, 0.15);
-  color: #EF4444;
+/* Badge de tiempo en esquina */
+.estado-time-badge {
+  font-size: 11px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
 }
 
 .estado-user-location {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
   margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .estado-message {
-  font-size: 14px;
-  color: var(--text);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
   line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.estado-card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.estado-time {
-  font-size: 11px;
-  color: var(--muted);
-}
-
+/* Botón de contacto - diseño premium */
 .estado-contact-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 6px 12px;
+  width: 100%;
+  padding: 10px 16px;
   background: linear-gradient(135deg, #25D366, #128C7E);
   color: white;
   border: none;
-  border-radius: 16px;
-  font-size: 12px;
+  border-radius: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 200ms ease;
+  margin-top: 4px;
 }
 
 .estado-contact-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(37, 211, 102, 0.4);
 }
 
 .estado-contact-btn svg {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 /* Empty state para estados */
@@ -4488,9 +4486,9 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   }
 
   .estado-card {
-    padding: 10px;
-    gap: 8px;
-    border-radius: 12px;
+    padding: 12px;
+    gap: 10px;
+    border-radius: 16px;
   }
 
   .estado-card-header {
@@ -4498,40 +4496,32 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   }
 
   .estado-avatar {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .estado-type-emoji {
+    font-size: 14px;
   }
 
   .estado-user-name {
     font-size: 12px;
   }
 
-  .estado-status-badge {
-    padding: 2px 6px;
-    font-size: 8px;
+  .estado-time-badge {
+    font-size: 10px;
+    padding: 3px 6px;
   }
 
   .estado-message {
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.4;
-    /* Limitar altura del mensaje */
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .estado-card-footer {
-    padding-top: 6px;
-  }
-
-  .estado-time {
-    font-size: 10px;
   }
 
   .estado-contact-btn {
-    padding: 6px 10px;
-    font-size: 10px;
+    padding: 8px 12px;
+    font-size: 11px;
+    border-radius: 10px;
   }
 }
 

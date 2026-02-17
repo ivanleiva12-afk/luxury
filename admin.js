@@ -373,8 +373,13 @@ const renderRegistros = () => {
 // VISUALIZADOR DE ARCHIVOS DE VERIFICACIÓN
 // ============================================
 window.viewVerificationFiles = (regId, type) => {
-  const reg = registros.find(r => r.id === regId);
-  if (!reg) return;
+  // Convertir a string para comparación correcta
+  const regIdStr = String(regId);
+  const reg = registros.find(r => String(r.id) === regIdStr);
+  if (!reg) {
+    console.warn('Registro no encontrado para visualización:', regIdStr);
+    return;
+  }
   
   let content = '';
   let title = '';
@@ -1756,9 +1761,9 @@ function renderRegistrosAprobadosFiltered(statusFilter, emailFilter) {
         <div style="width: 100%; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
           <div style="color: var(--gold); font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">📂 Datos de Verificación Archivados</div>
           <div style="display: flex; flex-wrap: wrap; gap: 12px;">
-            <span class="verification-item ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? 'pointer' : 'default'}; color: ${reg.hasVerificationSelfie ? '#10B981' : 'var(--muted)'};" onclick="${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? `viewArchivedFile(${reg.id}, 'selfie')` : ''}">${reg.hasVerificationSelfie ? '✓' : '○'} Selfie ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? '👁️' : ''}</span>
-            <span class="verification-item ${(reg.idDocumentUrl || reg.idDocumentData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.idDocumentUrl || reg.idDocumentData) ? 'pointer' : 'default'}; color: ${reg.hasIdDocument ? '#10B981' : 'var(--muted)'};" onclick="${(reg.idDocumentUrl || reg.idDocumentData) ? `viewArchivedFile(${reg.id}, 'document')` : ''}">${reg.hasIdDocument ? '✓' : '○'} Documento ID ${(reg.idDocumentUrl || reg.idDocumentData) ? '👁️' : ''}</span>
-            <span class="verification-item ${reg.profilePhotosData?.length > 0 ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.profilePhotosData?.length > 0 ? 'pointer' : 'default'}; color: ${reg.hasProfilePhotos ? '#10B981' : 'var(--muted)'};" onclick="${reg.profilePhotosData?.length > 0 ? `viewArchivedFile(${reg.id}, 'photos')` : ''}">${reg.hasProfilePhotos ? '✓' : '○'} Fotos (${reg.profilePhotosData?.length || 0}) ${reg.profilePhotosData?.length > 0 ? '👁️' : ''}</span>
+            <span class="verification-item ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? 'pointer' : 'default'}; color: ${reg.hasVerificationSelfie ? '#10B981' : 'var(--muted)'};" onclick="${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? `viewArchivedFile('${reg.id}', 'selfie')` : ''}">${reg.hasVerificationSelfie ? '✓' : '○'} Selfie ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? '👁️' : ''}</span>
+            <span class="verification-item ${(reg.idDocumentUrl || reg.idDocumentData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.idDocumentUrl || reg.idDocumentData) ? 'pointer' : 'default'}; color: ${reg.hasIdDocument ? '#10B981' : 'var(--muted)'};" onclick="${(reg.idDocumentUrl || reg.idDocumentData) ? `viewArchivedFile('${reg.id}', 'document')` : ''}">${reg.hasIdDocument ? '✓' : '○'} Documento ID ${(reg.idDocumentUrl || reg.idDocumentData) ? '👁️' : ''}</span>
+            <span class="verification-item ${reg.profilePhotosData?.length > 0 ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.profilePhotosData?.length > 0 ? 'pointer' : 'default'}; color: ${reg.hasProfilePhotos ? '#10B981' : 'var(--muted)'};" onclick="${reg.profilePhotosData?.length > 0 ? `viewArchivedFile('${reg.id}', 'photos')` : ''}">${reg.hasProfilePhotos ? '✓' : '○'} Fotos (${reg.profilePhotosData?.length || 0}) ${reg.profilePhotosData?.length > 0 ? '👁️' : ''}</span>
           </div>
         </div>
 
@@ -1857,9 +1862,9 @@ function renderRegistrosRechazados() {
         <div style="width: 100%; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
           <div style="color: var(--gold); font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">📂 Datos de Verificación Archivados (Legal)</div>
           <div style="display: flex; flex-wrap: wrap; gap: 12px;">
-            <span class="verification-item ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? 'pointer' : 'default'}; color: ${reg.hasVerificationSelfie ? '#10B981' : 'var(--muted)'};" onclick="${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? `viewArchivedFile(${reg.id}, 'selfie')` : ''}">${reg.hasVerificationSelfie ? '✓' : '○'} Selfie ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? '👁️' : ''}</span>
-            <span class="verification-item ${(reg.idDocumentUrl || reg.idDocumentData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.idDocumentUrl || reg.idDocumentData) ? 'pointer' : 'default'}; color: ${reg.hasIdDocument ? '#10B981' : 'var(--muted)'};" onclick="${(reg.idDocumentUrl || reg.idDocumentData) ? `viewArchivedFile(${reg.id}, 'document')` : ''}">${reg.hasIdDocument ? '✓' : '○'} Documento ID ${(reg.idDocumentUrl || reg.idDocumentData) ? '👁️' : ''}</span>
-            <span class="verification-item ${reg.profilePhotosData?.length > 0 ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.profilePhotosData?.length > 0 ? 'pointer' : 'default'}; color: ${reg.hasProfilePhotos ? '#10B981' : 'var(--muted)'};" onclick="${reg.profilePhotosData?.length > 0 ? `viewArchivedFile(${reg.id}, 'photos')` : ''}">${reg.hasProfilePhotos ? '✓' : '○'} Fotos (${reg.profilePhotosData?.length || 0}) ${reg.profilePhotosData?.length > 0 ? '👁️' : ''}</span>
+            <span class="verification-item ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? 'pointer' : 'default'}; color: ${reg.hasVerificationSelfie ? '#10B981' : 'var(--muted)'};" onclick="${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? `viewArchivedFile('${reg.id}', 'selfie')` : ''}">${reg.hasVerificationSelfie ? '✓' : '○'} Selfie ${(reg.verificationSelfieUrl || reg.verificationSelfieData) ? '👁️' : ''}</span>
+            <span class="verification-item ${(reg.idDocumentUrl || reg.idDocumentData) ? 'clickable' : ''}" style="font-size: 12px; cursor: ${(reg.idDocumentUrl || reg.idDocumentData) ? 'pointer' : 'default'}; color: ${reg.hasIdDocument ? '#10B981' : 'var(--muted)'};" onclick="${(reg.idDocumentUrl || reg.idDocumentData) ? `viewArchivedFile('${reg.id}', 'document')` : ''}">${reg.hasIdDocument ? '✓' : '○'} Documento ID ${(reg.idDocumentUrl || reg.idDocumentData) ? '👁️' : ''}</span>
+            <span class="verification-item ${reg.profilePhotosData?.length > 0 ? 'clickable' : ''}" style="font-size: 12px; cursor: ${reg.profilePhotosData?.length > 0 ? 'pointer' : 'default'}; color: ${reg.hasProfilePhotos ? '#10B981' : 'var(--muted)'};" onclick="${reg.profilePhotosData?.length > 0 ? `viewArchivedFile('${reg.id}', 'photos')` : ''}">${reg.hasProfilePhotos ? '✓' : '○'} Fotos (${reg.profilePhotosData?.length || 0}) ${reg.profilePhotosData?.length > 0 ? '👁️' : ''}</span>
           </div>
         </div>
         
@@ -1932,12 +1937,18 @@ window.deleteRejectedProfile = async (regId) => {
 
 // Función para ver archivos archivados
 window.viewArchivedFile = (regId, type) => {
-  // Usar variable global registros que se carga desde AWS
-  const reg = registros.find(r => r.id === regId);
-  if (!reg) return;
-  
+  // Convertir a string para comparación correcta
+  const regIdStr = String(regId);
+
+  // Buscar en todos los registros (pendientes, aprobados, rechazados)
+  const reg = registros.find(r => String(r.id) === regIdStr);
+  if (!reg) {
+    console.warn('Registro no encontrado:', regIdStr);
+    return;
+  }
+
   // Usar la misma función de visualización
-  viewVerificationFiles(regId, type);
+  viewVerificationFiles(regIdStr, type);
 };
 
 // ============================================
