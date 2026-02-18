@@ -183,11 +183,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       
       // Actualizar en approvedProfiles (para los carruseles)
+      // SOLO profileVisible cambia - isActive es controlado por admin y expiración de plan
       const approvedProfiles = await DataService.getApprovedProfiles() || [];
       const profileIndex = approvedProfiles.findIndex(p => p.id === `profile-${currentUser.id}`);
       if (profileIndex !== -1) {
         approvedProfiles[profileIndex].profileVisible = newState;
-        approvedProfiles[profileIndex].isActive = newState; // Activar/desactivar perfil en carruseles
         await DataService.saveApprovedProfiles(approvedProfiles);
       }
       

@@ -1278,86 +1278,85 @@ document.addEventListener('DOMContentLoaded', async () => {
     const planCards = document.querySelectorAll('.plan-card');
     const restrictionMessage = document.getElementById('planRestrictionMessage');
     const restrictionText = document.getElementById('planRestrictionText');
-    
-    // Reset all plans to visible and enabled
+
+    // Reset all plans
     planCards.forEach(card => {
-      card.style.display = '';
       card.style.opacity = '1';
       card.style.pointerEvents = 'auto';
       card.classList.remove('plan-disabled');
-      // Remove any disabled overlays
       const overlay = card.querySelector('.plan-disabled-overlay');
       if (overlay) overlay.remove();
     });
-    
+
     const vipCard = document.querySelector('.plan-card[data-plan="vip"]');
     const premiumCard = document.querySelector('.plan-card[data-plan="premium"]');
     const luxuryCard = document.querySelector('.plan-card[data-plan="luxury"]');
-    
-    // Get plan restrictions from config (configured by admin)
+
+    // Cargar config de planes del admin
     const plans = await DataService.getConfig('luxuryPlans') || {};
     const vipTarifaMin = plans.vip?.tarifaMin || 100000;
     const vipTarifaMax = plans.vip?.tarifaMax || 199999;
     const premiumTarifaMin = plans.premium?.tarifaMin || 200000;
     const premiumTarifaMax = plans.premium?.tarifaMax || 999999999;
-    
-    // Check if tariff is in VIP range (but not Premium range)
-    const canSelectVip = priceHour >= vipTarifaMin && priceHour <= vipTarifaMax;
-    // Check if tariff is in Premium range
-    const canSelectPremium = priceHour >= premiumTarifaMin && priceHour <= premiumTarifaMax;
-    // Luxury is always available for all tariffs >= 100000
-    const canSelectLuxury = priceHour >= 100000;
-    
-    // Apply restrictions based on price
-    if (priceHour >= 100000 && !canSelectPremium && canSelectVip) {
-      // Solo VIP Black o Luxury (Premium bloqueado)
-      if (premiumCard) {
-        premiumCard.style.opacity = '0.4';
-        premiumCard.style.pointerEvents = 'none';
-        premiumCard.classList.add('plan-disabled');
-        // Add disabled overlay
-        if (!premiumCard.querySelector('.plan-disabled-overlay')) {
-          const overlay = document.createElement('div');
-          overlay.className = 'plan-disabled-overlay';
-          overlay.style.cssText = 'position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; border-radius: 16px; z-index: 10;';
-          overlay.innerHTML = '<span style="color: #F87171; font-weight: 600; text-align: center; padding: 20px;">❌ No disponible para tu tarifa</span>';
-          premiumCard.style.position = 'relative';
-          premiumCard.appendChild(overlay);
-        }
+    const luxuryTarifaMin = plans.luxury?.tarifaMin || 100000;
+
+    // Verificar planes inactivos del admin
+    if (plans.vip?.active === false) disablePlanCard(vipCard, 'Plan no disponible');
+    if (plans.premium?.active === false) disablePlanCard(premiumCard, 'Plan no disponible');
+    if (plans.luxury?.active === false) disablePlanCard(luxuryCard, 'Plan no disponible');
+
+    // Verificar cupos de Luxury
+    if (plans.luxury?.active !== false && plans.luxury?.cupos) {
+      const approvedProfiles = await DataService.getApprovedProfiles() || [];
+      const luxuryCount = approvedProfiles.filter(p => p.carouselType === 'luxury' && p.isActive !== false).length;
+      if (luxuryCount >= plans.luxury.cupos) {
+        disablePlanCard(luxuryCard, `Cupos agotados (${luxuryCount}/${plans.luxury.cupos})`);
       }
-      
+    }
+
+    // Restricciones por tarifa
+    const canSelectVip = plans.vip?.active !== false && priceHour >= vipTarifaMin && priceHour <= vipTarifaMax;
+    const canSelectPremium = plans.premium?.active !== false && priceHour >= premiumTarifaMin && priceHour <= premiumTarifaMax;
+    const canSelectLuxury = plans.luxury?.active !== false && priceHour >= luxuryTarifaMin;
+
+    if (priceHour >= 100000 && !canSelectPremium && canSelectVip) {
+      if (premiumCard && plans.premium?.active !== false) {
+        disablePlanCard(premiumCard, 'No disponible para tu tarifa');
+      }
       if (restrictionMessage && restrictionText) {
         restrictionMessage.style.display = 'block';
         restrictionText.innerHTML = ' Con una tarifa de <strong>$' + priceHour.toLocaleString('es-CL') + '/hora</strong>, puedes elegir entre <strong>VIP Black</strong> o <strong>Luxury & Exclusive</strong>.';
       }
-      
     } else if (priceHour >= premiumTarifaMin && canSelectPremium) {
-      // Solo Premium Select o Luxury (VIP bloqueado)
-      if (vipCard) {
-        vipCard.style.opacity = '0.4';
-        vipCard.style.pointerEvents = 'none';
-        vipCard.classList.add('plan-disabled');
-        // Add disabled overlay
-        if (!vipCard.querySelector('.plan-disabled-overlay')) {
-          const overlay = document.createElement('div');
-          overlay.className = 'plan-disabled-overlay';
-          overlay.style.cssText = 'position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; border-radius: 16px; z-index: 10;';
-          overlay.innerHTML = '<span style="color: #F87171; font-weight: 600; text-align: center; padding: 20px;">❌ No disponible para tu tarifa</span>';
-          vipCard.style.position = 'relative';
-          vipCard.appendChild(overlay);
-        }
+      if (vipCard && plans.vip?.active !== false) {
+        disablePlanCard(vipCard, 'No disponible para tu tarifa');
       }
-      
       if (restrictionMessage && restrictionText) {
         restrictionMessage.style.display = 'block';
         restrictionText.innerHTML = ' Con una tarifa de <strong>$' + priceHour.toLocaleString('es-CL') + '/hora</strong> o superior, puedes elegir entre <strong>Premium Select</strong> o <strong>Luxury & Exclusive</strong>.';
       }
-      
     } else {
-      // No restrictions or price below minimum
-      if (restrictionMessage) {
-        restrictionMessage.style.display = 'none';
-      }
+      if (restrictionMessage) restrictionMessage.style.display = 'none';
+    }
+
+    // Si luxury no está disponible por tarifa
+    if (priceHour > 0 && priceHour < luxuryTarifaMin && luxuryCard && plans.luxury?.active !== false) {
+      disablePlanCard(luxuryCard, `Tarifa mínima: $${luxuryTarifaMin.toLocaleString('es-CL')}/hora`);
+    }
+  }
+
+  function disablePlanCard(card, reason) {
+    if (!card) return;
+    card.style.opacity = '0.4';
+    card.style.pointerEvents = 'none';
+    card.classList.add('plan-disabled');
+    if (!card.querySelector('.plan-disabled-overlay')) {
+      const overlay = document.createElement('div');
+      overlay.className = 'plan-disabled-overlay';
+      overlay.style.cssText = 'position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; border-radius: 16px; z-index: 10;';
+      overlay.innerHTML = `<span style="color: #F87171; font-weight: 600; text-align: center; padding: 20px;">❌ ${reason}</span>`;
+      card.style.position = 'relative';
+      card.appendChild(overlay);
     }
   }
 
