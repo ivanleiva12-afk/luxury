@@ -1452,15 +1452,6 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   color: #FFFFFF;
 }
 
-.vip-badge.enpromocion-badge {
-  background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
-  color: #FFFFFF;
-}
-
-.vip-badge.enpromocion-badge .vip-badge-text {
-  color: #FFFFFF;
-}
-
 .vip-badge.premium-badge {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: #FFFFFF;
@@ -1907,11 +1898,6 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
 .premium-select-profile-badge.vip-badge {
   background: linear-gradient(135deg, #D4AF37, #F4D03F);
   color: #0A0A0A;
-}
-
-.creator-profile-badge.enpromocion-badge,
-.premium-select-profile-badge.enpromocion-badge {
-  background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
 }
 
 .creator-profile-badge.premium-badge,
@@ -2381,6 +2367,47 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   letter-spacing: 4px !important;
 }
 
+.modal-image-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.photo-watermark-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: bold;
+  color: rgba(212, 175, 55, 0.15);
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 6px;
+  transform: rotate(-25deg);
+  overflow: hidden;
+}
+
+.photo-watermark-overlay::before {
+  content: 'SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra';
+  position: absolute;
+  white-space: nowrap;
+  font-size: 22px;
+  color: rgba(212, 175, 55, 0.12);
+  line-height: 3.5;
+  width: 300%;
+  height: 300%;
+  display: flex;
+  flex-wrap: wrap;
+  word-spacing: 40px;
+}
+
 /* Miniaturas */
 .modal-thumbnails {
   position: absolute;
@@ -2614,12 +2641,6 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   background: linear-gradient(135deg, #8B7355, #C19A6B);
   color: #FFFFFF;
   box-shadow: 0 2px 8px rgba(139, 115, 85, 0.4);
-}
-
-.modal-profile-badge.enpromocion-badge {
-  background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
-  color: #FFFFFF;
-  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
 }
 
 .modal-profile-badge.premium-badge {
@@ -3525,42 +3546,6 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   text-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
 }
 
-/* Estilos para precios en promoción */
-.promo-label {
-  background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
-  color: #FFFFFF;
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 700;
-  margin-left: 8px;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.pricing-item.has-promo {
-  background: rgba(255, 107, 107, 0.1);
-  border-color: rgba(255, 107, 107, 0.4);
-  position: relative;
-}
-
-.pricing-original {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 14px;
-  color: #888888;
-  text-decoration: line-through;
-  opacity: 0.7;
-}
-
-.pricing-amount.promo-price {
-  color: #FF6B6B;
-  font-size: 24px;
-  text-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
-}
 
 /* Availability Grid - Grid de disponibilidad */
 .availability-grid {

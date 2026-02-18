@@ -1519,62 +1519,6 @@
   margin: 0 0 12px;
 }
 
-.blur-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.tool-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  color: var(--text);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 200ms ease;
-}
-
-.tool-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.tool-btn.active {
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(212, 175, 55, 0.15));
-  border-color: var(--gold);
-  color: var(--gold);
-}
-
-.blur-size-control,
-.blur-intensity-control {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.blur-size-control label,
-.blur-intensity-control label {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.blur-size-control input[type="range"],
-.blur-intensity-control input[type="range"] {
-  width: 100%;
-  accent-color: var(--gold);
-}
-
-#blur-size-value,
-#blur-intensity-value {
-  font-size: 11px;
-  color: var(--gold);
-  text-align: right;
-}
-
 .watermark-toggle {
   display: flex;
   align-items: center;

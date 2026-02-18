@@ -20,15 +20,11 @@ window.getDynamicProfileBadges = async function(profile) {
 
   // Badge "nuevo" si aplica (menos de 7 días)
   if (profile.createdAt) {
-    const daysPassed = (Date.now() - profile.createdAt) / (1000 * 60 * 60 * 24);
-    if (daysPassed <= 7) {
+    const createdMs = typeof profile.createdAt === 'number' ? profile.createdAt : new Date(profile.createdAt).getTime();
+    const daysPassed = (Date.now() - createdMs) / (1000 * 60 * 60 * 24);
+    if (daysPassed >= 0 && daysPassed <= 7) {
       badges.push('nuevo');
     }
-  }
-
-  // Badge "en-promocion" si aplica
-  if (profile.price?.originalCLP && profile.price.CLP < profile.price.originalCLP) {
-    badges.push('en-promocion');
   }
 
   return badges;
@@ -50,15 +46,11 @@ window.getDynamicProfileBadgesSync = function(profile) {
 
   // Badge "nuevo" si aplica (menos de 7 días)
   if (profile.createdAt) {
-    const daysPassed = (Date.now() - profile.createdAt) / (1000 * 60 * 60 * 24);
-    if (daysPassed <= 7) {
+    const createdMs = typeof profile.createdAt === 'number' ? profile.createdAt : new Date(profile.createdAt).getTime();
+    const daysPassed = (Date.now() - createdMs) / (1000 * 60 * 60 * 24);
+    if (daysPassed >= 0 && daysPassed <= 7) {
       badges.push('nuevo');
     }
-  }
-
-  // Badge "en-promocion" si aplica
-  if (profile.price?.originalCLP && profile.price.CLP < profile.price.originalCLP) {
-    badges.push('en-promocion');
   }
 
   return badges;
@@ -877,36 +869,6 @@ const saveProfileStats = async (profileId, stats) => {
   }
 };
 
-// ========== SISTEMA DE PROMOCIONES ==========
-// Verifica si un perfil está en promoción (precio actual < precio original)
-const isInPromotion = (profile) => {
-  const currentPrice = parseInt(String(profile.priceHour || '0').replace(/[^0-9]/g, ''));
-  const originalPrice = parseInt(String(profile.originalPriceHour || profile.priceHour || '0').replace(/[^0-9]/g, ''));
-  
-  // Está en promoción si el precio actual es menor al original y ambos existen
-  return currentPrice > 0 && originalPrice > 0 && currentPrice < originalPrice;
-};
-
-// Obtiene los profileTypes incluyendo 'en-promocion' si corresponde
-const getProfileTypesWithPromotion = (profile) => {
-  let types = (profile.profileTypes && profile.profileTypes.length > 0)
-    ? profile.profileTypes
-    : (profile.profileType ? [profile.profileType] : (profile.selectedPlan ? [profile.selectedPlan] : ['premium']));
-  types = types.filter(t => t != null);
-  
-  // Si está en promoción, agregar badge
-  if (isInPromotion(profile)) {
-    if (!types.includes('en-promocion')) {
-      types = [...types, 'en-promocion'];
-    }
-  } else {
-    // Si no está en promoción, quitar el badge si existe
-    types = types.filter(t => t !== 'en-promocion');
-  }
-  
-  return types;
-};
-
 // ========== SISTEMA DE RECOMENDACIONES (Menciones en Sala Oscura) ==========
 // Cuenta cuántas veces un perfil fue mencionado en Sala Oscura
 // Ahora busca por @username (único) en lugar de @displayName
@@ -1468,9 +1430,7 @@ window.refreshCarouselsWithFilter = function(filters) {
       verified: car.verified !== undefined ? car.verified : true,
       carouselType: car.carouselType || car.fullProfile?.carouselType || 'premium-select',
       createdAt: car.createdAt || car.fullProfile?.createdAt || null,
-      profileTypes: getProfileTypesWithPromotion(car),
-      originalPriceHour: car.originalPriceHour || car.priceHour || null,
-      isInPromotion: isInPromotion(car),
+      profileTypes: window.getDynamicProfileBadgesSync({carouselType: car.carouselType || car.fullProfile?.carouselType || 'premium-select', createdAt: car.createdAt || car.fullProfile?.createdAt || null}),
       bio: car.bio || car.description || '',
       whatsapp: car.whatsapp || car.phone || '',
       physicalInfo: hasPhysicalInfo ? {
@@ -1545,8 +1505,7 @@ window.refreshCarouselsWithFilter = function(filters) {
         'vip': { icon: '👑', text: 'VIP', color: '#0A0A0A' },
         'luxury-exclusive': { icon: '💎', text: 'Luxury & Exclusive', color: '#FFFFFF' },
         'premium': { icon: '⭐', text: 'Premium', color: '#FFFFFF' },
-        'nuevo': { icon: '✨', text: 'Nuevo', color: '#FFFFFF' },
-        'en-promocion': { icon: '🏷️', text: 'En Promoción', color: '#FFFFFF' }
+        'nuevo': { icon: '✨', text: 'Nuevo', color: '#FFFFFF' }
       };
       return badges[type] || badges['vip'];
     };
@@ -1606,7 +1565,10 @@ window.refreshCarouselsWithFilter = function(filters) {
           <div class="vip-modal-inner">
             <!-- Galería Izquierda -->
             <div class="modal-gallery-section">
-              <img class="modal-main-image" src="${profile.profilePhotosData && profile.profilePhotosData.length > 0 ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) : (profile.profilePhoto || profile.avatar || '')}" alt="${profile.displayName}" id="modal-main-img" />
+              <div class="modal-image-container" id="modal-image-container" style="position:relative;">
+                <img class="modal-main-image" src="${profile.profilePhotosData && profile.profilePhotosData.length > 0 ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) : (profile.profilePhoto || profile.avatar || '')}" alt="${profile.displayName}" id="modal-main-img" />
+                <div class="photo-watermark-overlay">SalaNegra</div>
+              </div>
               <div class="modal-video-container" id="modal-video-container" style="display:none;">
                 <video class="modal-main-video" id="modal-main-video" controls playsinline></video>
                 <div class="video-watermark">SALA NEGRA</div>
@@ -1834,16 +1796,13 @@ window.refreshCarouselsWithFilter = function(filters) {
               <div class="modal-section pricing-section">
                 <h4 class="modal-section-title">
                   <span class="section-icon">💰</span>
-                  Tarifas ${profile.isInPromotion ? '<span class="promo-label">🏷️ EN PROMOCIÓN</span>' : ''}
+                  Tarifas
                 </h4>
                 <div class="pricing-grid">
                   ${profile.prices.hour?.CLP ? `
-                  <div class="pricing-item ${profile.isInPromotion ? 'has-promo' : ''}">
+                  <div class="pricing-item">
                     <span class="pricing-duration">1 Hora</span>
-                    ${profile.isInPromotion && profile.originalPriceHour ? `
-                    <span class="pricing-original">$${parseInt(String(profile.originalPriceHour).replace(/[^0-9]/g, '')).toLocaleString('es-CL')} CLP</span>
-                    ` : ''}
-                    <span class="pricing-amount ${profile.isInPromotion ? 'promo-price' : ''}">$${profile.prices.hour.CLP.toLocaleString('es-CL')} CLP</span>
+                    <span class="pricing-amount">$${profile.prices.hour.CLP.toLocaleString('es-CL')} CLP</span>
                   </div>` : ''}
                   ${profile.prices.twoHours?.CLP ? `
                   <div class="pricing-item">
@@ -2124,8 +2083,7 @@ window.refreshCarouselsWithFilter = function(filters) {
                   'vip': { icon: '👑', text: 'VIP' },
                   'luxury-exclusive': { icon: '💎', text: 'Luxury & Exclusive' },
                   'premium': { icon: '⭐', text: 'Premium' },
-                  'nuevo': { icon: '✨', text: 'Nuevo' },
-                  'en-promocion': { icon: '🏷️', text: 'En Promoción' }
+                  'nuevo': { icon: '✨', text: 'Nuevo' }
                 };
                 return dynamicBadges.map(type => {
                   const badge = badgeMap[type] || badgeMap['vip'];
@@ -2472,8 +2430,7 @@ window.refreshCarouselsWithFilter = function(filters) {
       'vip': { icon: '👑', text: 'VIP' },
       'luxury-exclusive': { icon: '💎', text: 'Luxury & Exclusive' },
       'premium': { icon: '⭐', text: 'Premium' },
-      'nuevo': { icon: '✨', text: 'Nuevo' },
-      'en-promocion': { icon: '🏷️', text: 'En Promoción' }
+      'nuevo': { icon: '✨', text: 'Nuevo' }
     };
 
     validTypes.forEach(type => {
@@ -2543,17 +2500,31 @@ window.refreshCarouselsWithFilter = function(filters) {
     const item = currentMedia[currentMediaIndex];
     if (!item) return;
     if (item.type === 'image') {
+      const container = document.createElement('div');
+      container.style.position = 'relative';
       const img = document.createElement('img');
       img.src = item.src;
       img.alt = 'media';
-      detailMain.appendChild(img);
+      const wm = document.createElement('div');
+      wm.className = 'photo-watermark-overlay';
+      wm.textContent = 'SalaNegra';
+      container.appendChild(img);
+      container.appendChild(wm);
+      detailMain.appendChild(container);
     } else {
+      const container = document.createElement('div');
+      container.style.position = 'relative';
       const video = document.createElement('video');
       video.src = item.src;
       video.controls = true;
       video.autoplay = true;
       video.muted = true;
-      detailMain.appendChild(video);
+      const wm = document.createElement('div');
+      wm.className = 'video-watermark';
+      wm.textContent = 'SALA NEGRA';
+      container.appendChild(video);
+      container.appendChild(wm);
+      detailMain.appendChild(container);
     }
     if (detailCounter) detailCounter.textContent = `${currentMediaIndex + 1}/${currentMedia.length}`;
     if (detailThumbs) {
@@ -2730,8 +2701,7 @@ function createSkeletonCard() {
     'vip': 2,
     'premium': 3,
     'nuevo': 4,
-    'en-promocion': 5,
-    'verified': 6,
+    'verified': 5,
     'none': 999
   };
   
@@ -2817,7 +2787,6 @@ function createSkeletonCard() {
         'vip': '👑',
         'premium': '⭐',
         'nuevo': '✨',
-        'en-promocion': '🏷️',
         'verified': '✓'
       };
       
@@ -3256,8 +3225,7 @@ function createSkeletonCard() {
       'vip': { icon: '👑', text: 'VIP', color: '#FFFFFF' },
       'luxury-exclusive': { icon: '💎', text: 'Luxury & Exclusive', color: '#FFFFFF' },
       'premium': { icon: '⭐', text: 'Premium', color: '#FFFFFF' },
-      'nuevo': { icon: '✨', text: 'Nuevo', color: '#FFFFFF' },
-      'en-promocion': { icon: '🏷️', text: 'En Promoción', color: '#FFFFFF' }
+      'nuevo': { icon: '✨', text: 'Nuevo', color: '#FFFFFF' }
     };
     return badges[type] || badges['vip'];
   };
@@ -3535,8 +3503,7 @@ function createSkeletonCard() {
       'vip': { icon: '👑', text: 'VIP', color: '#FFFFFF' },
       'luxury-exclusive': { icon: '💎', text: 'Luxury & Exclusive', color: '#FFFFFF' },
       'premium': { icon: '⭐', text: 'Premium', color: '#FFFFFF' },
-      'nuevo': { icon: '✨', text: 'Nuevo', color: '#FFFFFF' },
-      'en-promocion': { icon: '🏷️', text: 'En Promoción', color: '#FFFFFF' }
+      'nuevo': { icon: '✨', text: 'Nuevo', color: '#FFFFFF' }
     };
     return badges[type] || badges['premium'];
   };

@@ -620,6 +620,8 @@ window.approveRegistro = async (id) => {
       registrationDate: reg.date,
       approvedAt: reg.approvedAt,
       status: 'aprobado',
+      profileVisible: true, // Nace visible
+      isActive: true, // Nace activo
       profilePhotosData: reg.profilePhotosData || [], // Fotos del perfil
       paymentHistory: [{ // Historial de pago real
         date: reg.approvedAt,

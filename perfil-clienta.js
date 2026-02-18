@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         ...currentUser,
         status: 'aprobado',
         approvedAt: latestUserData.approvedAt,
-        profileVisible: latestUserData.profileVisible || currentUser.profileVisible || false,
+        profileVisible: latestUserData.profileVisible !== undefined ? latestUserData.profileVisible : (currentUser.profileVisible !== undefined ? currentUser.profileVisible : true),
         // Sincronizar fecha de vencimiento si fue actualizada por renovación
         planExpiry: latestUserData.planExpiry || currentUser.planExpiry,
         lastRenewalDate: latestUserData.lastRenewalDate || currentUser.lastRenewalDate
@@ -1440,10 +1440,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   let editorCanvas = null;
   let editorCtx = null;
   let originalImageData = null;
-  let isBlurToolActive = false;
-  let blurAreas = [];
-  let isDrawing = false;
-
   // Cargar fotos/videos existentes y límites
   let mediaAlreadyLoaded = false;
   await loadSavedMedia(); // Primero cargar fotos/videos (modifica localStorage)
@@ -1745,7 +1741,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           const spacing = Math.max(180, Math.round(w / 3));
           for (let y = -h; y < h * 2; y += spacing) {
             for (let x = -w; x < w * 2; x += spacing * 1.8) {
-              ctx.fillText('SalaOscura', x, y);
+              ctx.fillText('SalaNegra', x, y);
             }
           }
           ctx.restore();
@@ -1968,69 +1964,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   const closeModalEditor = document.getElementById('close-modal-editor');
   const resetEditorBtn = document.getElementById('reset-editor');
   const saveEditorBtn = document.getElementById('save-editor');
-  const blurToolBtn = document.getElementById('blur-tool');
-  const blurSizeInput = document.getElementById('blur-size');
-  const blurIntensityInput = document.getElementById('blur-intensity');
   const previewWatermarkCheckbox = document.getElementById('preview-watermark');
 
   function openImageEditor(imageData, photoId = null) {
     currentEditingImage = imageData;
     currentEditingPhotoId = photoId;
-    blurAreas = [];
-    isBlurToolActive = false;
-    
+
     if (!modalEditor) {
       console.error('Modal del editor de imágenes no encontrado');
       return;
     }
-    
+
     modalEditor.style.display = 'flex';
-    
+
     // Inicializar canvas
     editorCanvas = document.getElementById('editor-canvas');
     if (!editorCanvas) {
       console.error('Canvas del editor no encontrado');
       return;
     }
-    
+
     editorCtx = editorCanvas.getContext('2d', { willReadFrequently: true });
 
-    // Agregar event listeners de canvas para blur drawing
-    const handleMouseDown = (e) => {
-      if (!isBlurToolActive) return;
-      isDrawing = true;
-      applyBlurAt(e);
-    };
-
-    const handleMouseMove = (e) => {
-      if (!isDrawing || !isBlurToolActive) return;
-      applyBlurAt(e);
-    };
-
-    const handleMouseUp = () => {
-      isDrawing = false;
-    };
-
-    // Remover listeners previos si existen
-    editorCanvas.removeEventListener('mousedown', handleMouseDown);
-    editorCanvas.removeEventListener('mousemove', handleMouseMove);
-    editorCanvas.removeEventListener('mouseup', handleMouseUp);
-    editorCanvas.removeEventListener('mouseleave', handleMouseUp);
-
-    // Agregar nuevos listeners
-    editorCanvas.addEventListener('mousedown', handleMouseDown);
-    editorCanvas.addEventListener('mousemove', handleMouseMove);
-    editorCanvas.addEventListener('mouseup', handleMouseUp);
-    editorCanvas.addEventListener('mouseleave', handleMouseUp);
-    
     const img = new Image();
     img.onload = () => {
-      // Ajustar tamaño del canvas
       const maxWidth = 600;
       const maxHeight = 500;
       let width = img.width;
       let height = img.height;
-      
+
       if (width > maxWidth) {
         height = (maxWidth / width) * height;
         width = maxWidth;
@@ -2039,31 +2001,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         width = (maxHeight / height) * width;
         height = maxHeight;
       }
-      
+
       editorCanvas.width = width;
       editorCanvas.height = height;
-
-      // Dibujar imagen
       editorCtx.drawImage(img, 0, 0, width, height);
 
-      // Intentar obtener datos de imagen (puede fallar por CORS en imágenes de S3)
       try {
         originalImageData = editorCtx.getImageData(0, 0, width, height);
-        // Habilitar herramienta de difuminado
-        if (blurToolBtn) {
-          blurToolBtn.disabled = false;
-          blurToolBtn.style.opacity = '1';
-          blurToolBtn.title = 'Difuminar';
-        }
       } catch (e) {
-        console.warn('No se puede acceder a datos de imagen (CORS). Difuminado deshabilitado.');
+        console.warn('No se puede acceder a datos de imagen (CORS).');
         originalImageData = null;
-        // Deshabilitar herramienta de difuminado
-        if (blurToolBtn) {
-          blurToolBtn.disabled = true;
-          blurToolBtn.style.opacity = '0.5';
-          blurToolBtn.title = 'Difuminado no disponible para imágenes de servidor';
-        }
       }
 
       // Aplicar marca de agua si está activada
@@ -2079,8 +2026,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       modalEditor.style.display = 'none';
     };
 
-    // NO usar crossOrigin para S3 ya que no tiene CORS configurado
-    // Esto permite cargar la imagen pero sin acceso a datos de pixeles
     img.src = imageData;
   }
 
@@ -2088,15 +2033,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     modalEditor.style.display = 'none';
     currentEditingImage = null;
     currentEditingPhotoId = null;
-    blurAreas = [];
-    isBlurToolActive = false;
-    if (blurToolBtn) blurToolBtn.classList.remove('active');
   });
 
   resetEditorBtn?.addEventListener('click', () => {
     if (originalImageData && editorCtx) {
       editorCtx.putImageData(originalImageData, 0, 0);
-      blurAreas = [];
       if (previewWatermarkCheckbox?.checked) {
         drawWatermark();
       }
@@ -2104,120 +2045,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  blurToolBtn?.addEventListener('click', () => {
-    // Verificar si hay datos de imagen disponibles
-    if (!originalImageData) {
-      showToast('Difuminado no disponible para esta imagen');
-      return;
-    }
-    isBlurToolActive = !isBlurToolActive;
-    blurToolBtn.classList.toggle('active', isBlurToolActive);
-    if (editorCanvas) {
-      editorCanvas.style.cursor = isBlurToolActive ? 'crosshair' : 'default';
-    }
-  });
-
-  blurSizeInput?.addEventListener('input', () => {
-    document.getElementById('blur-size-value').textContent = blurSizeInput.value + 'px';
-  });
-
-  blurIntensityInput?.addEventListener('input', () => {
-    document.getElementById('blur-intensity-value').textContent = blurIntensityInput.value;
-  });
-
   previewWatermarkCheckbox?.addEventListener('change', () => {
-    redrawCanvas();
-  });
-
-  function applyBlurAt(e) {
-    if (!editorCanvas) return;
-    const rect = editorCanvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const size = parseInt(blurSizeInput?.value || 50);
-    const intensity = parseInt(blurIntensityInput?.value || 15);
-    
-    blurAreas.push({ x, y, size, intensity });
-    redrawCanvas();
-  }
-
-  function redrawCanvas() {
     if (!editorCtx || !originalImageData) return;
-    
-    // Restaurar imagen original
     editorCtx.putImageData(originalImageData, 0, 0);
-    
-    // Aplicar blur a las áreas marcadas
-    blurAreas.forEach(area => {
-      applyBlurEffect(area.x, area.y, area.size, area.intensity);
-    });
-    
-    // Aplicar marca de agua si está activada
     if (previewWatermarkCheckbox?.checked) {
       drawWatermark();
     }
-  }
-
-  function applyBlurEffect(centerX, centerY, size, intensity) {
-    if (!editorCtx || !editorCanvas) return;
-    
-    const radius = size / 2;
-    
-    // Obtener el área que vamos a difuminar
-    const startX = Math.max(0, Math.floor(centerX - radius));
-    const startY = Math.max(0, Math.floor(centerY - radius));
-    const endX = Math.min(editorCanvas.width, Math.ceil(centerX + radius));
-    const endY = Math.min(editorCanvas.height, Math.ceil(centerY + radius));
-    const areaWidth = endX - startX;
-    const areaHeight = endY - startY;
-    
-    if (areaWidth <= 0 || areaHeight <= 0) return;
-    
-    // Crear canvas temporal para el blur
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = areaWidth;
-    tempCanvas.height = areaHeight;
-    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
-    
-    // Copiar el área al canvas temporal
-    tempCtx.drawImage(editorCanvas, startX, startY, areaWidth, areaHeight, 0, 0, areaWidth, areaHeight);
-    
-    // Aplicar blur al canvas temporal
-    tempCtx.filter = `blur(${intensity}px)`;
-    tempCtx.drawImage(tempCanvas, 0, 0);
-    tempCtx.filter = 'none';
-    
-    // Obtener los datos de imagen difuminados
-    const blurredData = tempCtx.getImageData(0, 0, areaWidth, areaHeight);
-    const originalData = editorCtx.getImageData(startX, startY, areaWidth, areaHeight);
-    
-    // Mezclar con máscara circular
-    for (let y = 0; y < areaHeight; y++) {
-      for (let x = 0; x < areaWidth; x++) {
-        const globalX = startX + x;
-        const globalY = startY + y;
-        
-        // Calcular distancia al centro
-        const dx = globalX - centerX;
-        const dy = globalY - centerY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance < radius) {
-          // Dentro del círculo - aplicar blur con gradiente suave
-          const factor = 1 - (distance / radius) * 0.3; // Gradiente suave
-          const i = (y * areaWidth + x) * 4;
-          
-          originalData.data[i] = blurredData.data[i];     // R
-          originalData.data[i + 1] = blurredData.data[i + 1]; // G
-          originalData.data[i + 2] = blurredData.data[i + 2]; // B
-          // Mantener alpha original
-        }
-      }
-    }
-    
-    // Poner los datos de vuelta
-    editorCtx.putImageData(originalData, startX, startY);
-  }
+  });
 
   function drawWatermark() {
     if (!editorCtx || !editorCanvas) return;
@@ -2240,7 +2074,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     editorCtx.translate(width / 2, height / 2);
     editorCtx.rotate(-Math.PI / 6);
 
-    const text = 'SalaOscura';
+    const text = 'SalaNegra';
     const spacing = 180;
 
     for (let y = -height; y < height * 2; y += spacing) {
@@ -2334,7 +2168,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     modalEditor.style.display = 'none';
     currentEditingImage = null;
     currentEditingPhotoId = null;
-    blurAreas = [];
   });
 
   async function addPhotoToGrid(imageData, photoId, _unused, isVerificationPhoto = false) {
@@ -2360,7 +2193,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     photoSlot.innerHTML = `
       <img src="${imageData}" alt="Foto" />
       <div class="photo-overlay">
-        <button class="photo-edit" title="Editar (difuminar)">✏️</button>
+        <button class="photo-edit" title="Editar">✏️</button>
         ${deleteButtonHTML}
       </div>
       <div class="photo-overlay-center">
@@ -2516,7 +2349,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     videoSlot.innerHTML = `
       <video src="${videoData}" muted></video>
       <div class="video-play-icon">▶</div>
-      <div class="video-watermark">SalaOscura</div>
+      <div class="video-watermark">SalaNegra</div>
       <div class="video-overlay">
         <button class="video-delete" title="Eliminar">×</button>
       </div>
@@ -2568,7 +2401,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div class="video-modal-content">
         <button class="video-modal-close">&times;</button>
         <video src="${videoData}" controls autoplay></video>
-        <div class="video-watermark-overlay">SalaOscura</div>
+        <div class="video-watermark-overlay">SalaNegra</div>
       </div>
     `;
     
