@@ -4288,15 +4288,6 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   box-shadow: 0 4px 20px rgba(212, 175, 55, 0.1);
 }
 
-.estado-card.luxury-estado::before {
-  content: '💎';
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  font-size: 12px;
-  opacity: 0.8;
-}
-
 /* DESKTOP: Tarjetas más grandes */
 @media (min-width: 769px) {
   .estados-carousel {
@@ -4333,38 +4324,38 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
 .estado-type-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 4px 10px;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 5px 12px;
   border-radius: 20px;
-  background: rgba(var(--badge-color-rgb, 136, 136, 136), 0.15);
-  color: var(--badge-color, #888);
-  border: 1px solid color-mix(in srgb, var(--badge-color, #888) 30%, transparent);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   width: fit-content;
 }
 
 .estado-card.disponible .estado-type-badge {
-  --badge-color: #22c55e;
-  background: rgba(34, 197, 94, 0.12);
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.4);
 }
 
 .estado-card.novedad .estado-type-badge {
-  --badge-color: #a855f7;
-  background: rgba(168, 85, 247, 0.12);
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.4);
 }
 
 .estado-card.promo .estado-type-badge {
-  --badge-color: #f97316;
-  background: rgba(249, 115, 22, 0.12);
+  background: rgba(249, 115, 22, 0.2);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.4);
 }
 
 .estado-card.ocupada .estado-type-badge {
-  --badge-color: #6b7280;
-  background: rgba(107, 114, 128, 0.12);
+  background: rgba(107, 114, 128, 0.2);
+  color: #9ca3af;
+  border: 1px solid rgba(107, 114, 128, 0.4);
 }
 
 .estado-card.disponible .estado-avatar {

@@ -4,21 +4,12 @@
 // Cache para configuración de planes (se carga una vez)
 let _plansConfigCache = null;
 
-// Función global para calcular badges dinámicos según precio y carrusel
+// Función global para calcular badges dinámicos según carrusel asignado
 window.getDynamicProfileBadges = async function(profile) {
-  // Cargar configuración de planes si no está en cache
-  if (!_plansConfigCache) {
-    _plansConfigCache = await DataService.getPlansConfig() || {};
-  }
-
-  const vipTarifaMin = _plansConfigCache.vip?.tarifaMin || 100000;
-  const premiumTarifaMin = _plansConfigCache.premium?.tarifaMin || 200000;
-
   const badges = [];
-  const price = profile.price?.CLP || 0;
   const carouselType = profile.carouselType || 'premium-select';
 
-  // Badge base según el carrusel/plan
+  // Badge base según el carrusel/plan asignado (1 badge por tipo)
   if (carouselType === 'luxury') {
     badges.push('luxury-exclusive');
   } else if (carouselType === 'vip-black') {
@@ -27,15 +18,7 @@ window.getDynamicProfileBadges = async function(profile) {
     badges.push('premium');
   }
 
-  // Badges adicionales según el precio (solo si no es el badge base)
-  if (price >= premiumTarifaMin && !badges.includes('premium')) {
-    badges.push('premium');
-  }
-  if (price >= vipTarifaMin && !badges.includes('vip')) {
-    badges.push('vip');
-  }
-
-  // Agregar badge "nuevo" si aplica (menos de 7 días)
+  // Badge "nuevo" si aplica (menos de 7 días)
   if (profile.createdAt) {
     const daysPassed = (Date.now() - profile.createdAt) / (1000 * 60 * 60 * 24);
     if (daysPassed <= 7) {
@@ -43,7 +26,7 @@ window.getDynamicProfileBadges = async function(profile) {
     }
   }
 
-  // Agregar badge "en-promocion" si aplica
+  // Badge "en-promocion" si aplica
   if (profile.price?.originalCLP && profile.price.CLP < profile.price.originalCLP) {
     badges.push('en-promocion');
   }
@@ -52,15 +35,11 @@ window.getDynamicProfileBadges = async function(profile) {
 };
 
 // Versión síncrona para usar cuando ya se cargó el cache
-window.getDynamicProfileBadgesSync = function(profile, plansConfig) {
-  const vipTarifaMin = plansConfig?.vip?.tarifaMin || 100000;
-  const premiumTarifaMin = plansConfig?.premium?.tarifaMin || 200000;
-
+window.getDynamicProfileBadgesSync = function(profile) {
   const badges = [];
-  const price = profile.price?.CLP || 0;
   const carouselType = profile.carouselType || 'premium-select';
 
-  // Badge base según el carrusel/plan
+  // Badge base según el carrusel/plan asignado (1 badge por tipo)
   if (carouselType === 'luxury') {
     badges.push('luxury-exclusive');
   } else if (carouselType === 'vip-black') {
@@ -69,15 +48,7 @@ window.getDynamicProfileBadgesSync = function(profile, plansConfig) {
     badges.push('premium');
   }
 
-  // Badges adicionales según el precio
-  if (price >= premiumTarifaMin && !badges.includes('premium')) {
-    badges.push('premium');
-  }
-  if (price >= vipTarifaMin && !badges.includes('vip')) {
-    badges.push('vip');
-  }
-
-  // Badge "nuevo" si aplica
+  // Badge "nuevo" si aplica (menos de 7 días)
   if (profile.createdAt) {
     const daysPassed = (Date.now() - profile.createdAt) / (1000 * 60 * 60 * 24);
     if (daysPassed <= 7) {
@@ -1452,7 +1423,7 @@ window.refreshCarouselsWithFilter = function(filters) {
   _plansConfigCache = plansConfig; // Guardar en cache global
 
   // Función local que usa el cache ya cargado
-  const getDynamicBadges = (profile) => window.getDynamicProfileBadgesSync(profile, plansConfig);
+  const getDynamicBadges = (profile) => window.getDynamicProfileBadgesSync(profile);
 
   // Función para cargar perfiles Luxury & Exclusive aprobados
   const loadApprovedLuxuryProfiles = async () => {
@@ -1579,7 +1550,7 @@ window.refreshCarouselsWithFilter = function(filters) {
     };
     
     // Usar badges dinámicos según precio (usa el cache global)
-    const validProfileTypes = window.getDynamicProfileBadgesSync(profile, _plansConfigCache);
+    const validProfileTypes = window.getDynamicProfileBadgesSync(profile);
 
     // Crear modal HTML
     const serviceNames = {
@@ -2333,13 +2304,13 @@ window.refreshCarouselsWithFilter = function(filters) {
   window.addEventListener('beforeunload', stopAutoplay);
   
   // Event listener para refrescar el carrusel Luxury (con filtros)
-  document.addEventListener('refreshLuxury', () => {
+  document.addEventListener('refreshLuxury', async () => {
     // Recargar perfiles con filtros aplicados
-    const newFeaturedCars = getAllLuxuryProfiles();
+    const newFeaturedCars = await getAllLuxuryProfiles();
     // Actualizar referencia local
     featuredProfiles.length = 0;
     featuredProfiles.push(...newFeaturedCars);
-    
+
     // Si no hay resultados, ocultar sección
     const section = document.getElementById('featured-section');
     if (featuredProfiles.length === 0) {
@@ -2488,17 +2459,8 @@ window.refreshCarouselsWithFilter = function(filters) {
     badgeEl.className = 'experiencias-status-badge';
     badgeEl.textContent = '✓ Verificado';
 
-    // Badge de tipo de perfil (VIP o Luxury & Exclusive)
-    const profileTypes = car.profileTypes || [car.profileType] || ['vip'];
-
-    // Filtrar "nuevo" si han pasado más de 7 días
-    const validTypes = profileTypes.filter(type => {
-      if (type === 'nuevo' && car.createdAt) {
-        const daysPassed = (Date.now() - car.createdAt) / (1000 * 60 * 60 * 24);
-        return daysPassed <= 7;
-      }
-      return true;
-    });
+    // Badge de tipo de perfil - usar badges dinámicos
+    const validTypes = window.getDynamicProfileBadgesSync(car);
 
     // Crear contenedor para múltiples badges
     const badgesContainer = document.createElement('div');
@@ -3263,12 +3225,11 @@ function createSkeletonCard() {
       id: profile.id,
       name: profile.displayName,
       title: 'VIP Black Member',
-      avatar: (profile.profilePhotosData && profile.profilePhotosData.length > 0) 
-        ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) 
+      avatar: (profile.profilePhotosData && profile.profilePhotosData.length > 0)
+        ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0])
         : (profile.avatar || profile.profilePhoto || null),
-      profileTypes: profile.profileTypes,
+      profileTypes: window.getDynamicProfileBadgesSync(profile),
       price: profile.price?.CLP || profile.prices?.hour?.CLP || (profile.originalRegistro?.priceHour ? parseInt(profile.originalRegistro.priceHour) : null),
-      // Añadir datos físicos para mostrar en tarjeta
       age: profile.physicalInfo?.age || profile.age || profile.originalRegistro?.age || null,
       height: profile.physicalInfo?.height || profile.height || profile.originalRegistro?.altura || null,
       nationality: profile.physicalInfo?.ethnicity || profile.nationality || profile.originalRegistro?.nacionalidad || null,
@@ -3281,7 +3242,6 @@ function createSkeletonCard() {
       fullProfile: profile
     }));
 
-    // Solo retornar perfiles reales del admin
     return adminCreators;
   };
 
@@ -3545,9 +3505,8 @@ function createSkeletonCard() {
       avatar: (profile.profilePhotosData && profile.profilePhotosData.length > 0) 
         ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) 
         : (profile.avatar || profile.profilePhoto || null),
-      profileTypes: profile.profileTypes,
+      profileTypes: window.getDynamicProfileBadgesSync(profile),
       price: profile.price?.CLP || profile.prices?.hour?.CLP || (profile.originalRegistro?.priceHour ? parseInt(profile.originalRegistro.priceHour) : null),
-      // Añadir datos físicos para mostrar en tarjeta
       age: profile.physicalInfo?.age || profile.age || profile.originalRegistro?.age || null,
       height: profile.physicalInfo?.height || profile.height || profile.originalRegistro?.altura || null,
       nationality: profile.physicalInfo?.ethnicity || profile.nationality || profile.originalRegistro?.nacionalidad || null,

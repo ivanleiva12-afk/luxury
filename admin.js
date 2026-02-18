@@ -564,10 +564,10 @@ window.approveRegistro = async (id) => {
     };
     reg.carouselType = planToCarousel[reg.selectedPlan] || 'premium-select';
     
-    // Determinar profileTypes según el plan
+    // Determinar profileTypes según el plan (1 badge por carrusel)
     const planToProfileTypes = {
-      'luxury': ['luxury-exclusive', 'premium', 'vip'],
-      'vip': ['vip', 'premium'],
+      'luxury': ['luxury-exclusive'],
+      'vip': ['vip'],
       'premium': ['premium']
     };
     reg.profileTypes = planToProfileTypes[reg.selectedPlan] || ['premium'];
@@ -1551,11 +1551,11 @@ window.approvePlanRequest = async function(requestId) {
         'premium': 'premium-select'
       };
 
-      // Mapear plan a tipos de perfil permitidos
+      // Mapear plan a tipos de perfil (1 badge por carrusel)
       const planToProfileTypes = {
-        'luxury': ['luxury-exclusive', 'premium', 'vip'],
-        'luxury-exclusive': ['luxury-exclusive', 'premium', 'vip'],
-        'vip': ['vip', 'premium'],
+        'luxury': ['luxury-exclusive'],
+        'luxury-exclusive': ['luxury-exclusive'],
+        'vip': ['vip'],
         'premium': ['premium']
       };
 
