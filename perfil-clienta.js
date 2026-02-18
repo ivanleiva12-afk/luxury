@@ -1176,8 +1176,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const estadoAvatar = estadoLocalPhotos[0]?.url || currentUser.avatar || null;
 
     // Guardar estado en AWS
+    // IMPORTANTE: statusType guarda el subtipo (disponible, promo, novedad, ocupada)
+    // type: 'estado' es para diferenciar de instantes en la DB
     await DataService.addStory({
       ...estado,
+      statusType: estado.type,
       type: 'estado',
       userId: currentUser.id,
       userName: currentUser.displayName,

@@ -1466,6 +1466,8 @@ window.refreshCarouselsWithFilter = function(filters) {
       username: car.username || '',
       email: car.email || '',
       verified: car.verified !== undefined ? car.verified : true,
+      carouselType: car.carouselType || car.fullProfile?.carouselType || 'premium-select',
+      createdAt: car.createdAt || car.fullProfile?.createdAt || null,
       profileTypes: getProfileTypesWithPromotion(car),
       originalPriceHour: car.originalPriceHour || car.priceHour || null,
       isInPromotion: isInPromotion(car),
@@ -2679,12 +2681,16 @@ function createSkeletonCard() {
           currentWhatsapp = userProfile.whatsapp;
         }
 
+        // Resolver badge desde carouselType del perfil aprobado
+        const carouselToStoryBadge = { 'luxury': 'luxury-exclusive', 'vip-black': 'vip', 'premium-select': 'premium' };
+        const resolvedBadge = userProfile ? (carouselToStoryBadge[userProfile.carouselType] || 'premium') : (instante.userBadge || 'premium');
+
         userInstantesMap[instante.userId] = {
           id: `clienta-${instante.userId}`,
           name: instante.userName,
           avatar: avatarSrc,
           whatsapp: currentWhatsapp,
-          badge: instante.userBadge || 'premium',
+          badge: resolvedBadge,
           stories: [],
           latestStoryTime: instante.createdAt
         };
@@ -4170,10 +4176,12 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Ordenar: disponible primero, luego por fecha
+    // Ordenar: luxury primero, luego vip, luego premium; dentro del mismo nivel, por fecha
+    const carouselPriority = { 'luxury': 1, 'vip-black': 2, 'premium-select': 3 };
     activeEstados.sort((a, b) => {
-      if (a.type === 'disponible' && b.type !== 'disponible') return -1;
-      if (b.type === 'disponible' && a.type !== 'disponible') return 1;
+      const priorityA = carouselPriority[a.carouselType] || 3;
+      const priorityB = carouselPriority[b.carouselType] || 3;
+      if (priorityA !== priorityB) return priorityA - priorityB;
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
@@ -4276,7 +4284,9 @@ window.addEventListener('DOMContentLoaded', () => {
       'ocupada': { emoji: '⏸️', label: 'Ocupada', color: '#6b7280' }
     };
 
-    const config = statusConfig[estado.type] || { emoji: '📝', label: 'Estado', color: '#888' };
+    // statusType es el campo correcto, type puede ser 'estado' (usado para filtrar en DB)
+    const realType = estado.statusType || (estado.type !== 'estado' ? estado.type : 'disponible');
+    const config = statusConfig[realType] || { emoji: '📝', label: 'Estado', color: '#888' };
 
     const createdAt = new Date(estado.createdAt);
     const hoursAgo = Math.floor((new Date() - createdAt) / (1000 * 60 * 60));
@@ -4289,8 +4299,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiMxYTFhMmUiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSIxNTAiIHI9IjYwIiBmaWxsPSIjMzMzMzRkIi8+PHBhdGggZD0iTTEwMCAzNTBDMTAwIDI4MCAxNDAgMjMwIDIwMCAyMzBDMjYwIDIzMCAzMDAgMjgwIDMwMCAzNTAiIGZpbGw9IiMzMzMzNGQiLz48L3N2Zz4=';
 
     return `
-      <div class="estado-card ${estado.type} ${luxuryClass}" data-user-id="${estado.userId || ''}" data-username="${estado.username || ''}">
-        <span class="estado-type-badge" style="--badge-color: ${config.color}">${config.emoji} ${config.label}</span>
+      <div class="estado-card ${realType} ${luxuryClass}" data-user-id="${estado.userId || ''}" data-username="${estado.username || ''}">
+        <span class="estado-type-badge">${config.emoji} ${config.label}</span>
         <div class="estado-card-header">
           <img class="estado-avatar" src="${estado.userAvatar || estado.profilePhoto || defaultAvatar}" alt="${estado.userName}" onerror="this.src='${defaultAvatar}'" />
           <div class="estado-user-info">
