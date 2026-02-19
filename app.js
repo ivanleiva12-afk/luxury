@@ -1565,13 +1565,13 @@ window.refreshCarouselsWithFilter = function(filters) {
           <div class="vip-modal-inner">
             <!-- Galería Izquierda -->
             <div class="modal-gallery-section">
-              <div class="modal-image-container" id="modal-image-container" style="position:relative;">
+              <div style="position:relative;" id="modal-image-container">
                 <img class="modal-main-image" src="${profile.profilePhotosData && profile.profilePhotosData.length > 0 ? (profile.profilePhotosData[0].url || profile.profilePhotosData[0].base64 || profile.profilePhotosData[0]) : (profile.profilePhoto || profile.avatar || '')}" alt="${profile.displayName}" id="modal-main-img" />
-                <div class="photo-watermark-overlay">SalaNegra</div>
+                <div class="media-watermark"></div>
               </div>
               <div class="modal-video-container" id="modal-video-container" style="display:none;">
                 <video class="modal-main-video" id="modal-main-video" controls playsinline></video>
-                <div class="video-watermark">SALA NEGRA</div>
+                <div class="media-watermark"></div>
               </div>
 
               <div class="modal-media-counter">
@@ -2499,33 +2499,25 @@ window.refreshCarouselsWithFilter = function(filters) {
     detailMain.innerHTML = '';
     const item = currentMedia[currentMediaIndex];
     if (!item) return;
+    const container = document.createElement('div');
+    container.style.position = 'relative';
     if (item.type === 'image') {
-      const container = document.createElement('div');
-      container.style.position = 'relative';
       const img = document.createElement('img');
       img.src = item.src;
       img.alt = 'media';
-      const wm = document.createElement('div');
-      wm.className = 'photo-watermark-overlay';
-      wm.textContent = 'SalaNegra';
       container.appendChild(img);
-      container.appendChild(wm);
-      detailMain.appendChild(container);
     } else {
-      const container = document.createElement('div');
-      container.style.position = 'relative';
       const video = document.createElement('video');
       video.src = item.src;
       video.controls = true;
       video.autoplay = true;
       video.muted = true;
-      const wm = document.createElement('div');
-      wm.className = 'video-watermark';
-      wm.textContent = 'SALA NEGRA';
       container.appendChild(video);
-      container.appendChild(wm);
-      detailMain.appendChild(container);
     }
+    const wm = document.createElement('div');
+    wm.className = 'media-watermark';
+    container.appendChild(wm);
+    detailMain.appendChild(container);
     if (detailCounter) detailCounter.textContent = `${currentMediaIndex + 1}/${currentMedia.length}`;
     if (detailThumbs) {
       detailThumbs.querySelectorAll('.detail-thumb').forEach((t, idx) => {
@@ -2860,10 +2852,8 @@ function createSkeletonCard() {
       img.src = story.src;
       img.alt = 'Story';
       contentDiv.appendChild(img);
-      // Marca de agua CSS para imágenes
       const wmOverlay = document.createElement('div');
-      wmOverlay.className = 'story-watermark-overlay';
-      wmOverlay.innerHTML = '<span>SalaOscura</span>';
+      wmOverlay.className = 'media-watermark';
       contentDiv.appendChild(wmOverlay);
     } else if (story.src && story.type === 'video') {
       const video = document.createElement('video');
@@ -2880,10 +2870,8 @@ function createSkeletonCard() {
         video.muted = true;
         video.play().catch(() => {});
       });
-      // Marca de agua CSS para videos
       const wmOverlay = document.createElement('div');
-      wmOverlay.className = 'story-watermark-overlay';
-      wmOverlay.innerHTML = '<span>SalaOscura</span>';
+      wmOverlay.className = 'media-watermark';
       contentDiv.appendChild(wmOverlay);
       // Botón de sonido
       const soundBtn = document.createElement('button');

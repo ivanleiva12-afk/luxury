@@ -2351,61 +2351,36 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
   height: 100%;
 }
 
-.video-watermark {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
-  pointer-events: none !important;
-  z-index: 100 !important;
-  font-family: 'Playfair Display', serif !important;
-  font-size: 32px !important;
-  font-weight: bold !important;
-  color: rgba(212, 175, 55, 0.6) !important;
-  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8), -1px -1px 4px rgba(0, 0, 0, 0.5) !important;
-  white-space: nowrap !important;
-  letter-spacing: 4px !important;
-}
-
-.modal-image-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.photo-watermark-overlay {
+/* Marca de agua unificada - overlay CSS para fotos y videos */
+.media-watermark {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   pointer-events: none;
   z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Playfair Display', serif;
-  font-size: 28px;
-  font-weight: bold;
-  color: rgba(212, 175, 55, 0.15);
-  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.3);
-  letter-spacing: 6px;
-  transform: rotate(-25deg);
   overflow: hidden;
 }
 
-.photo-watermark-overlay::before {
-  content: 'SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra  SalaNegra';
+.media-watermark::before {
+  content: 'SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra   SalaNegra';
   position: absolute;
-  white-space: nowrap;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  font-family: 'Playfair Display', serif;
   font-size: 22px;
-  color: rgba(212, 175, 55, 0.12);
-  line-height: 3.5;
-  width: 300%;
-  height: 300%;
+  font-weight: bold;
+  font-style: italic;
+  color: rgba(212, 175, 55, 0.25);
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+  letter-spacing: 4px;
+  word-spacing: 50px;
+  line-height: 3.2;
+  white-space: normal;
+  transform: rotate(-25deg);
   display: flex;
   flex-wrap: wrap;
-  word-spacing: 40px;
+  align-content: center;
 }
 
 /* Miniaturas */
@@ -2969,27 +2944,6 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
 .stories-content video { width: 100%; height: 100%; object-fit: contain; }
 .stories-content { position: relative; }
 
-/* Marca de agua overlay para stories/instantes */
-.story-watermark-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  z-index: 5;
-}
-.story-watermark-overlay span {
-  font-family: 'Playfair Display', serif;
-  font-size: 28px;
-  font-weight: bold;
-  font-style: italic;
-  color: rgba(255, 255, 255, 0.06);
-  text-shadow: none;
-  transform: rotate(-25deg);
-  letter-spacing: 4px;
-  user-select: none;
-}
 
 /* Botón de sonido en stories de video */
 .story-sound-toggle {
@@ -3816,12 +3770,6 @@ input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shad
     object-fit: contain !important;
     position: relative !important;
     z-index: 1 !important;
-  }
-
-  /* Marca de agua de video en móvil */
-  .video-watermark {
-    font-size: 24px !important;
-    letter-spacing: 2px !important;
   }
 
   .modal-thumbnails {

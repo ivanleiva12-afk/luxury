@@ -997,10 +997,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       const instanteId = Date.now().toString();
       const ext = selectedInstanteFile.name.split('.').pop() || 'jpg';
 
-      // Aplicar marca de agua si es imagen, luego subir a S3
+      // Subir archivo a S3 (marca de agua se aplica por CSS al visualizar)
       const isImage = selectedInstanteFile.type?.startsWith('image/');
-      const fileToUpload = isImage ? await applyWatermarkToFile(selectedInstanteFile) : selectedInstanteFile;
-      const uploadType = isImage ? 'image/jpeg' : (selectedInstanteFile.type || 'video/mp4');
+      const fileToUpload = selectedInstanteFile;
+      const uploadType = selectedInstanteFile.type || (isImage ? 'image/jpeg' : 'video/mp4');
       const uploadExt = isImage ? 'jpg' : ext;
 
       const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
@@ -1434,12 +1434,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const videoUpload = document.getElementById('video-upload');
   const videosGrid = document.getElementById('profile-videos-grid');
   
-  // Variables para el editor
-  let currentEditingImage = null;
-  let currentEditingPhotoId = null;
-  let editorCanvas = null;
-  let editorCtx = null;
-  let originalImageData = null;
   // Cargar fotos/videos existentes y límites
   let mediaAlreadyLoaded = false;
   await loadSavedMedia(); // Primero cargar fotos/videos (modifica localStorage)
@@ -1711,69 +1705,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Función compartida para aplicar marca de agua a una imagen antes de subir
-  function applyWatermarkToFile(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0);
-
-          const w = canvas.width;
-          const h = canvas.height;
-
-          // Marca de agua diagonal repetitiva (dorada sutil)
-          ctx.save();
-          ctx.globalAlpha = 0.15;
-          ctx.font = `bold ${Math.max(20, Math.round(w / 25))}px "Playfair Display", serif`;
-          ctx.fillStyle = '#D4AF37';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-          ctx.shadowBlur = 2;
-          ctx.translate(w / 2, h / 2);
-          ctx.rotate(-Math.PI / 6);
-          const spacing = Math.max(180, Math.round(w / 3));
-          for (let y = -h; y < h * 2; y += spacing) {
-            for (let x = -w; x < w * 2; x += spacing * 1.8) {
-              ctx.fillText('SalaNegra', x, y);
-            }
-          }
-          ctx.restore();
-
-          canvas.toBlob(blob => {
-            if (blob) resolve(blob);
-            else reject(new Error('Error generando imagen con marca de agua'));
-          }, 'image/jpeg', 0.92);
-        };
-        img.onerror = reject;
-        img.src = e.target.result;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // Aplicar marca de agua a una imagen desde URL (para fotos de verificación existentes)
-  // NOTA: Sin CORS en S3, no podemos procesar imágenes de S3 con canvas
-  // Las fotos nuevas se procesan localmente antes de subir
-  function applyWatermarkToUrl(imageUrl) {
-    // Si la imagen ya tiene marca de agua (_wm en el nombre), devolver null para usar URL original
-    if (imageUrl && (imageUrl.includes('_wm.') || imageUrl.includes('_wm_'))) {
-      return Promise.resolve(null);
-    }
-    // Para URLs de S3 sin CORS, no podemos aplicar watermark - devolver null
-    if (imageUrl && imageUrl.includes('s3.') && imageUrl.includes('amazonaws.com')) {
-      return Promise.resolve(null);
-    }
-    // Solo procesar data URLs o URLs locales
-    return Promise.resolve(null);
-  }
 
   addPhotoBtn?.addEventListener('click', async () => {
     // VERIFICAR SI EL PLAN ESTÁ ACTIVO
@@ -1861,18 +1792,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         const photoId = Date.now().toString() + Math.random().toString(36).slice(2, 6);
 
-        // 1. Aplicar marca de agua a la imagen
-        const watermarkedBlob = await applyWatermarkToFile(file);
-
-        // 2. Obtener URL pre-firmada de S3
+        // Obtener URL pre-firmada de S3
         const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
           currentUser.id,
           `${photoId}.jpg`,
-          'image/jpeg'
+          file.type || 'image/jpeg'
         );
 
-        // 3. Subir imagen con marca de agua a S3
-        await DataService.uploadFileToS3(uploadUrl, watermarkedBlob, 'image/jpeg');
+        // Subir imagen a S3 (marca de agua se aplica por CSS al visualizar)
+        await DataService.uploadFileToS3(uploadUrl, file, file.type || 'image/jpeg');
 
         // 4. Guardar referencia (URL, no base64) en localStorage
         userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
@@ -1959,217 +1887,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     videoUpload.value = '';
   });
 
-  // ========== EDITOR DE IMAGEN ==========
-  const modalEditor = document.getElementById('modal-editor');
-  const closeModalEditor = document.getElementById('close-modal-editor');
-  const resetEditorBtn = document.getElementById('reset-editor');
-  const saveEditorBtn = document.getElementById('save-editor');
-  const previewWatermarkCheckbox = document.getElementById('preview-watermark');
-
-  function openImageEditor(imageData, photoId = null) {
-    currentEditingImage = imageData;
-    currentEditingPhotoId = photoId;
-
-    if (!modalEditor) {
-      console.error('Modal del editor de imágenes no encontrado');
-      return;
-    }
-
-    modalEditor.style.display = 'flex';
-
-    // Inicializar canvas
-    editorCanvas = document.getElementById('editor-canvas');
-    if (!editorCanvas) {
-      console.error('Canvas del editor no encontrado');
-      return;
-    }
-
-    editorCtx = editorCanvas.getContext('2d', { willReadFrequently: true });
-
-    const img = new Image();
-    img.onload = () => {
-      const maxWidth = 600;
-      const maxHeight = 500;
-      let width = img.width;
-      let height = img.height;
-
-      if (width > maxWidth) {
-        height = (maxWidth / width) * height;
-        width = maxWidth;
-      }
-      if (height > maxHeight) {
-        width = (maxHeight / height) * width;
-        height = maxHeight;
-      }
-
-      editorCanvas.width = width;
-      editorCanvas.height = height;
-      editorCtx.drawImage(img, 0, 0, width, height);
-
-      try {
-        originalImageData = editorCtx.getImageData(0, 0, width, height);
-      } catch (e) {
-        console.warn('No se puede acceder a datos de imagen (CORS).');
-        originalImageData = null;
-      }
-
-      // Aplicar marca de agua si está activada
-      const previewWatermarkCheckbox = document.getElementById('preview-watermark');
-      if (previewWatermarkCheckbox?.checked) {
-        drawWatermark();
-      }
-    };
-
-    img.onerror = () => {
-      console.error('Error al cargar la imagen en el editor');
-      showToast('Error al cargar la imagen');
-      modalEditor.style.display = 'none';
-    };
-
-    img.src = imageData;
-  }
-
-  closeModalEditor?.addEventListener('click', () => {
-    modalEditor.style.display = 'none';
-    currentEditingImage = null;
-    currentEditingPhotoId = null;
-  });
-
-  resetEditorBtn?.addEventListener('click', () => {
-    if (originalImageData && editorCtx) {
-      editorCtx.putImageData(originalImageData, 0, 0);
-      if (previewWatermarkCheckbox?.checked) {
-        drawWatermark();
-      }
-      showToast('Imagen reiniciada');
-    }
-  });
-
-  previewWatermarkCheckbox?.addEventListener('change', () => {
-    if (!editorCtx || !originalImageData) return;
-    editorCtx.putImageData(originalImageData, 0, 0);
-    if (previewWatermarkCheckbox?.checked) {
-      drawWatermark();
-    }
-  });
-
-  function drawWatermark() {
-    if (!editorCtx || !editorCanvas) return;
-
-    const width = editorCanvas.width;
-    const height = editorCanvas.height;
-
-    editorCtx.save();
-
-    // Marca de agua diagonal dorada
-    editorCtx.globalAlpha = 0.15;
-    editorCtx.font = 'bold 24px "Playfair Display", serif';
-    editorCtx.fillStyle = '#D4AF37';
-    editorCtx.textAlign = 'center';
-    editorCtx.textBaseline = 'middle';
-    editorCtx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-    editorCtx.shadowBlur = 2;
-
-    // Rotación diagonal
-    editorCtx.translate(width / 2, height / 2);
-    editorCtx.rotate(-Math.PI / 6);
-
-    const text = 'SalaNegra';
-    const spacing = 180;
-
-    for (let y = -height; y < height * 2; y += spacing) {
-      for (let x = -width; x < width * 2; x += spacing * 1.8) {
-        editorCtx.fillText(text, x, y);
-      }
-    }
-
-    editorCtx.restore();
-  }
-
-  saveEditorBtn?.addEventListener('click', async () => {
-    if (!editorCanvas) return;
-
-    // Asegurar que la marca de agua esté aplicada
-    if (!previewWatermarkCheckbox?.checked) {
-      drawWatermark();
-    }
-
-    // Mostrar indicador de carga
-    showUploadOverlay('Guardando imagen...');
-
-    try {
-      // Convertir canvas a blob para subir a S3
-      const blob = await new Promise(resolve => editorCanvas.toBlob(resolve, 'image/jpeg', 0.92));
-
-      const userPhotos = JSON.parse(localStorage.getItem(`photos_${currentUser.id}`) || '[]');
-
-      // Si estamos editando una foto existente
-      if (currentEditingPhotoId) {
-        const existingPhotoIndex = userPhotos.findIndex(p => p.id === currentEditingPhotoId);
-        if (existingPhotoIndex !== -1) {
-          // Eliminar versión anterior de S3
-          if (userPhotos[existingPhotoIndex].key) {
-            DataService.deleteMedia(userPhotos[existingPhotoIndex].key).catch(() => {});
-          }
-
-          // Subir nueva versión a S3
-          const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
-            currentUser.id, `${currentEditingPhotoId}.jpg`, 'image/jpeg'
-          );
-          await DataService.uploadFileToS3(uploadUrl, blob, 'image/jpeg');
-
-          // Actualizar referencia
-          userPhotos[existingPhotoIndex].url = publicUrl;
-          userPhotos[existingPhotoIndex].key = key;
-          userPhotos[existingPhotoIndex].editedAt = new Date().toISOString();
-          delete userPhotos[existingPhotoIndex].data; // Eliminar base64 legacy
-          localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
-
-          // Actualizar imagen en el grid
-          const photoSlot = document.querySelector(`.photo-slot[data-id="${currentEditingPhotoId}"]`);
-          if (photoSlot) {
-            photoSlot.querySelector('img').src = publicUrl;
-          }
-
-          // Sincronizar cambios
-          await syncPhotoToProfiles();
-
-          showToast('¡Foto actualizada con éxito!');
-        }
-      } else {
-        // Guardar como foto nueva
-        const photoId = Date.now().toString();
-
-        // Subir a S3
-        const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
-          currentUser.id, `${photoId}.jpg`, 'image/jpeg'
-        );
-        await DataService.uploadFileToS3(uploadUrl, blob, 'image/jpeg');
-
-        userPhotos.push({ id: photoId, url: publicUrl, key, createdAt: new Date().toISOString() });
-        localStorage.setItem(`photos_${currentUser.id}`, JSON.stringify(userPhotos));
-
-        // Añadir al grid
-        await addPhotoToGrid(publicUrl, photoId, true);
-
-        // Actualizar límites
-        await loadMediaLimits();
-
-        showToast('¡Foto guardada con marca de agua!');
-      }
-    } catch (err) {
-      console.error('Error guardando foto editada:', err);
-      showToast('Error al guardar la foto.');
-    } finally {
-      hideUploadOverlay();
-    }
-
-    // Cerrar modal
-    modalEditor.style.display = 'none';
-    currentEditingImage = null;
-    currentEditingPhotoId = null;
-  });
-
   async function addPhotoToGrid(imageData, photoId, _unused, isVerificationPhoto = false) {
     const photoSlot = document.createElement('div');
     photoSlot.className = 'photo-slot';
@@ -2193,7 +1910,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     photoSlot.innerHTML = `
       <img src="${imageData}" alt="Foto" />
       <div class="photo-overlay">
-        <button class="photo-edit" title="Editar">✏️</button>
         ${deleteButtonHTML}
       </div>
       <div class="photo-overlay-center">
@@ -2211,10 +1927,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         photoSlot.remove();
       });
     }
-    
-    photoSlot.querySelector('.photo-edit').addEventListener('click', () => {
-      openImageEditor(imageData, photoId);
-    });
     
     photoSlot.querySelector('.photo-profile').addEventListener('click', async () => {
       await setAsProfilePhoto(imageData, photoId);
@@ -2349,7 +2061,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     videoSlot.innerHTML = `
       <video src="${videoData}" muted></video>
       <div class="video-play-icon">▶</div>
-      <div class="video-watermark">SalaNegra</div>
+      <div class="media-watermark"></div>
       <div class="video-overlay">
         <button class="video-delete" title="Eliminar">×</button>
       </div>
@@ -2401,7 +2113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div class="video-modal-content">
         <button class="video-modal-close">&times;</button>
         <video src="${videoData}" controls autoplay></video>
-        <div class="video-watermark-overlay">SalaNegra</div>
+        <div class="media-watermark"></div>
       </div>
     `;
     

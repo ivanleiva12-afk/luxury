@@ -1190,17 +1190,6 @@
   transform: translate(-50%, -50%) scale(1.1);
 }
 
-.video-watermark {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  font-size: 11px;
-  font-style: italic;
-  color: rgba(255, 255, 255, 0.25);
-  font-family: "Playfair Display", serif;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  pointer-events: none;
-}
 
 .video-overlay {
   position: absolute;
@@ -1301,7 +1290,6 @@
   opacity: 1;
 }
 
-.photo-edit,
 .photo-delete {
   width: 28px;
   height: 28px;
@@ -1329,16 +1317,6 @@
   background: rgba(59, 130, 246, 0.95);
   color: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.photo-edit {
-  background: rgba(212, 175, 55, 0.9);
-  color: #0A0A0A;
-}
-
-.photo-edit:hover {
-  background: var(--gold);
-  transform: scale(1.1);
 }
 
 .photo-profile {
@@ -1449,104 +1427,6 @@
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* ========== IMAGE EDITOR MODAL ========== */
-.modal-editor-content {
-  max-width: 900px;
-  width: 95%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.editor-workspace {
-  display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 24px;
-  margin-top: 20px;
-}
-
-.editor-canvas-container {
-  position: relative;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-}
-
-#editor-canvas {
-  max-width: 100%;
-  border-radius: 8px;
-}
-
-.editor-tools {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 20px;
-}
-
-.editor-tools h4 {
-  color: var(--gold);
-  font-size: 16px;
-  margin: 0 0 20px;
-  font-family: "Playfair Display", serif;
-}
-
-.tool-section {
-  margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.tool-section:last-of-type {
-  border-bottom: none;
-  margin-bottom: 20px;
-}
-
-.tool-label {
-  display: block;
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.tool-description {
-  color: var(--muted);
-  font-size: 12px;
-  margin: 0 0 12px;
-}
-
-.watermark-toggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--text);
-}
-
-.watermark-toggle input[type="checkbox"] {
-  accent-color: var(--gold);
-  width: 16px;
-  height: 16px;
-}
-
-.editor-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.editor-actions .btn-secondary,
-.editor-actions .btn-primary {
-  flex: 1;
-  justify-content: center;
-  padding: 12px;
-  font-size: 13px;
-}
-
 /* ========== VIDEO FULLSCREEN MODAL ========== */
 .video-fullscreen-modal {
   position: fixed;
@@ -1587,17 +1467,6 @@
   transform: scale(1.1);
 }
 
-.video-watermark-overlay {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  font-size: 18px;
-  font-style: italic;
-  color: rgba(255, 255, 255, 0.25);
-  font-family: "Playfair Display", serif;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-  pointer-events: none;
-}
 
 /* ========== RESPONSIVE ========== */
 @media (max-width: 1024px) {
@@ -1609,13 +1478,6 @@
     grid-template-columns: repeat(2, 1fr);
   }
   
-  .editor-workspace {
-    grid-template-columns: 1fr;
-  }
-  
-  .editor-tools {
-    order: -1;
-  }
 }
 
 @media (max-width: 768px) {

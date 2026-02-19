@@ -9,12 +9,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="perfil-clienta.css?v=20260218b" />
+  <link rel="stylesheet" href="perfil-clienta.css?v=20260218d" />
   <link rel="icon" href="assets/logo-premium.png" type="image/png" />
   <script src="config.js"></script>
   <script src="api.js?v=20260130i"></script>
   <script src="url-handler.js"></script>
-  <script defer src="perfil-clienta.js?v=20260218b"></script>
+  <script defer src="perfil-clienta.js?v=20260218d"></script>
 </head>
 <body>
   <header class="site-header">
@@ -416,7 +416,7 @@
           </div>
 
           <p class="media-info-note">
-            <span class="watermark-note">🔒 Todas tus fotos y videos llevarán marca de agua "SalaOscura" sutil</span>
+            <span class="watermark-note">🔒 Todas tus fotos y videos llevarán marca de agua "SalaNegra" al visualizarse</span>
           </p>
         </div>
 
@@ -859,39 +859,6 @@
         
         <button type="submit" class="btn-primary" style="width: 100%;">Enviar Solicitud de Mejora</button>
       </form>
-    </div>
-  </div>
-
-  <!-- Modal Editor de Imagen (fuera del grid para mejor visualización) -->
-  <div class="modal-overlay" id="modal-editor" style="display: none;">
-    <div class="modal-content modal-editor-content">
-      <button class="modal-close" id="close-modal-editor">&times;</button>
-      <h3 class="modal-title">✨ Editor de Imagen</h3>
-      
-      <div class="editor-workspace">
-        <!-- Canvas para edición -->
-        <div class="editor-canvas-container">
-          <canvas id="editor-canvas"></canvas>
-        </div>
-        
-        <!-- Herramientas -->
-        <div class="editor-tools">
-          <h4>🛠️ Herramientas</h4>
-          
-          <div class="tool-section">
-            <label class="tool-label">Marca de agua</label>
-            <label class="watermark-toggle">
-              <input type="checkbox" id="preview-watermark" checked />
-              <span>Vista previa marca de agua</span>
-            </label>
-          </div>
-          
-          <div class="editor-actions">
-            <button type="button" class="btn-secondary" id="reset-editor">🔄 Reiniciar</button>
-            <button type="button" class="btn-primary" id="save-editor">💾 Guardar Imagen</button>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 
