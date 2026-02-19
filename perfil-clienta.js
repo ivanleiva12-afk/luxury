@@ -989,6 +989,39 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    const isImage = selectedInstanteFile.type?.startsWith('image/');
+
+    // Validar duración máxima de 60 segundos para videos
+    let mediaDurationSec = 15; // Fotos: 15 segundos fijo
+    if (!isImage) {
+      showUploadOverlay('Verificando video...');
+      try {
+        mediaDurationSec = await new Promise((resolve, reject) => {
+          const tempVideo = document.createElement('video');
+          tempVideo.preload = 'metadata';
+          tempVideo.onloadedmetadata = () => {
+            URL.revokeObjectURL(tempVideo.src);
+            resolve(tempVideo.duration);
+          };
+          tempVideo.onerror = () => {
+            URL.revokeObjectURL(tempVideo.src);
+            reject(new Error('No se pudo leer el video'));
+          };
+          tempVideo.src = URL.createObjectURL(selectedInstanteFile);
+        });
+
+        if (mediaDurationSec > 60) {
+          hideUploadOverlay();
+          showToast('El video del instante no puede durar más de 60 segundos.');
+          return;
+        }
+      } catch (err) {
+        hideUploadOverlay();
+        showToast('No se pudo verificar la duración del video.');
+        return;
+      }
+    }
+
     showUploadOverlay('Subiendo instante...');
 
     try {
@@ -998,7 +1031,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       const ext = selectedInstanteFile.name.split('.').pop() || 'jpg';
 
       // Subir archivo a S3 (marca de agua se aplica por CSS al visualizar)
-      const isImage = selectedInstanteFile.type?.startsWith('image/');
       const fileToUpload = selectedInstanteFile;
       const uploadType = selectedInstanteFile.type || (isImage ? 'image/jpeg' : 'video/mp4');
       const uploadExt = isImage ? 'jpg' : ext;
@@ -1023,6 +1055,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         duration: restrictions.instantesDuracion,
         type: 'instante',
         mediaType: isImage ? 'image' : 'video',
+        mediaDuration: Math.round(mediaDurationSec),
         userName: currentUser.displayName,
         userAvatar: currentAvatar,
         whatsapp: currentUser.whatsapp,
@@ -1843,8 +1876,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    if (file.size > 50 * 1024 * 1024) {
-      showToast('Video muy grande. Máximo 50MB.');
+    if (file.size > 20 * 1024 * 1024) {
+      showToast('Video muy grande. Máximo 20MB.');
       videoUpload.value = '';
       return;
     }
@@ -1856,17 +1889,48 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    // Validar duración máxima de 3 minutos
+    showUploadOverlay('Verificando video...');
+    try {
+      const duration = await new Promise((resolve, reject) => {
+        const tempVideo = document.createElement('video');
+        tempVideo.preload = 'metadata';
+        tempVideo.onloadedmetadata = () => {
+          URL.revokeObjectURL(tempVideo.src);
+          resolve(tempVideo.duration);
+        };
+        tempVideo.onerror = () => {
+          URL.revokeObjectURL(tempVideo.src);
+          reject(new Error('No se pudo leer el video'));
+        };
+        tempVideo.src = URL.createObjectURL(file);
+      });
+
+      if (duration > 180) {
+        hideUploadOverlay();
+        showToast('El video no puede durar más de 3 minutos.');
+        videoUpload.value = '';
+        return;
+      }
+    } catch (err) {
+      hideUploadOverlay();
+      showToast('No se pudo verificar la duración del video.');
+      videoUpload.value = '';
+      return;
+    }
+
     showUploadOverlay('Subiendo video...');
 
     try {
       const videoId = Date.now().toString();
-      const ext = file.name.split('.').pop() || 'mp4';
+      // Siempre usar mp4 como extensión para compatibilidad
+      const contentType = 'video/mp4';
 
       // Subir a S3
       const { uploadUrl, publicUrl, key } = await DataService.getUploadUrl(
-        currentUser.id, `${videoId}.${ext}`, file.type || 'video/mp4', 'videos'
+        currentUser.id, `${videoId}.mp4`, contentType, 'videos'
       );
-      await DataService.uploadFileToS3(uploadUrl, file, file.type || 'video/mp4');
+      await DataService.uploadFileToS3(uploadUrl, file, contentType);
 
       // Guardar referencia en localStorage
       const updatedVideos = JSON.parse(localStorage.getItem(`videos_${currentUser.id}`) || '[]');

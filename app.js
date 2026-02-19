@@ -1562,7 +1562,7 @@ window.refreshCarouselsWithFilter = function(filters) {
                 <div class="media-watermark"></div>
               </div>
               <div class="modal-video-container" id="modal-video-container" style="display:none;">
-                <video class="modal-main-video" id="modal-main-video" controls playsinline></video>
+                <video class="modal-main-video" id="modal-main-video" controls playsinline crossorigin="anonymous" preload="metadata"></video>
                 <div class="media-watermark"></div>
               </div>
 
@@ -1592,7 +1592,7 @@ window.refreshCarouselsWithFilter = function(filters) {
                   ? profile.profileVideosData.map((video, i) => `
                     <div class="modal-thumbnail" data-index="${(profile.profilePhotosData?.length || 0) + i}" data-type="video">
                       <div class="modal-thumbnail-video">
-                        <video src="${video.url || video.data}" muted preload="metadata" onloadeddata="this.currentTime=0.5"></video>
+                        <video src="${video.url || video.data}" muted preload="metadata" crossorigin="anonymous" onloadeddata="this.currentTime=0.5"></video>
                         <div class="modal-thumbnail-video-overlay">
                           <div class="modal-thumbnail-video-play">▶</div>
                         </div>
@@ -1955,30 +1955,22 @@ window.refreshCarouselsWithFilter = function(filters) {
 
     // Navegación de galería con soporte para fotos y videos
     const videoContainer = document.getElementById('modal-video-container');
+    const imageContainer = document.getElementById('modal-image-container');
     const updateGallery = (index) => {
       currentIndex = (index + totalMedia) % totalMedia;
       const media = allMedia[currentIndex];
 
       if (media.type === 'video') {
-        // Usar setProperty con priority para sobrescribir CSS !important
-        mainImg.style.setProperty('display', 'none', 'important');
-        if (videoContainer) {
-          videoContainer.style.setProperty('display', 'block', 'important');
-          videoContainer.style.setProperty('position', 'absolute', 'important');
-          videoContainer.style.setProperty('top', '0', 'important');
-          videoContainer.style.setProperty('left', '0', 'important');
-          videoContainer.style.setProperty('width', '100%', 'important');
-          videoContainer.style.setProperty('height', '100%', 'important');
-          videoContainer.style.setProperty('z-index', '5', 'important');
-        }
+        if (imageContainer) imageContainer.style.setProperty('display', 'none', 'important');
+        if (videoContainer) videoContainer.style.setProperty('display', 'block', 'important');
         mainVideo.src = media.src;
         mainVideo.load();
-        // Auto-reproducir el video al navegar hacia él
         mainVideo.play().catch(e => console.log('Auto-play bloqueado:', e));
       } else {
         mainVideo.pause();
+        mainVideo.removeAttribute('src');
         if (videoContainer) videoContainer.style.setProperty('display', 'none', 'important');
-        mainImg.style.setProperty('display', 'block', 'important');
+        if (imageContainer) imageContainer.style.setProperty('display', 'block', 'important');
         mainImg.src = media.src;
       }
 
@@ -2533,10 +2525,16 @@ function createSkeletonCard() {
         userInstantesMap[instante.userId].latestStoryTime = instante.createdAt;
       }
 
-      // Duración: 5 segundos para imágenes, 15 segundos máximo para videos
-      // mediaType distingue imagen/video; type puede ser 'instante'
+      // Duración: fotos 15s fijo, videos usan duración real (máx 60s)
       const resolvedMediaType = instante.mediaType || ((instante.type === 'video') ? 'video' : 'image');
-      const duration = (resolvedMediaType === 'video') ? 15000 : 5000;
+      let duration;
+      if (resolvedMediaType === 'video') {
+        // Usar duración guardada del video, o 15s como fallback para instantes viejos
+        const savedDuration = instante.mediaDuration ? instante.mediaDuration * 1000 : 15000;
+        duration = Math.min(savedDuration, 60000);
+      } else {
+        duration = 5000; // Fotos: 5 segundos
+      }
 
       const mediaType = resolvedMediaType;
       // La URL puede estar en .image, .media, o .src
