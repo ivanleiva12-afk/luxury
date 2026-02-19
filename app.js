@@ -1370,15 +1370,7 @@ window.refreshCarouselsWithFilter = function(filters) {
 // Featured Carousel / Destacados VIP
 (async function setupFeaturedCarousel() {
   const carousel = document.getElementById('featured-carousel');
-  const dotsContainer = document.getElementById('featured-dots');
-  const prevBtn = document.getElementById('featured-prev');
-  const nextBtn = document.getElementById('featured-next');
-
   if (!carousel) return;
-
-  let currentSlide = 0;
-  let autoplayInterval = null;
-  const AUTOPLAY_DELAY = 5000; // 5 segundos
 
   // Cargar configuración de planes para badges dinámicos
   const plansConfig = await DataService.getPlansConfig() || {};
@@ -2138,130 +2130,8 @@ window.refreshCarouselsWithFilter = function(filters) {
     });
   };
 
-  // Renderizar dots
-  const renderDots = () => {
-    if (!dotsContainer) return;
-    
-    // Limpiar dots existentes
-    dotsContainer.innerHTML = '';
-    
-    // Crear un dot por cada perfil aprobado
-    featuredProfiles.forEach((_, index) => {
-      const dot = document.createElement('button');
-      dot.className = `featured-dot ${index === 0 ? 'active' : ''}`;
-      dot.setAttribute('data-index', index);
-      dot.setAttribute('aria-label', `Ir a slide ${index + 1}`);
-      dot.addEventListener('click', () => {
-        goToSlide(parseInt(dot.dataset.index));
-      });
-      dotsContainer.appendChild(dot);
-    });
-  };
-
-  // Navegar a slide específico
-  const goToSlide = (index) => {
-    currentSlide = index;
-    
-    // Obtener la primera tarjeta para calcular el ancho
-    const card = carousel.querySelector('.featured-card');
-    if (!card) return;
-    
-    // Calcular el ancho de una tarjeta incluyendo el gap
-    const cardWidth = card.offsetWidth;
-    const gap = 20; // Gap definido en CSS
-    const scrollPosition = index * (cardWidth + gap);
-    
-    // Usar scroll suave para navegar
-    carousel.scrollTo({
-      left: scrollPosition,
-      behavior: 'smooth'
-    });
-
-    // Actualizar dots
-    if (dotsContainer) {
-      dotsContainer.querySelectorAll('.featured-dot').forEach((dot, i) => {
-        dot.classList.toggle('active', i === index);
-      });
-    }
-
-    // Reiniciar autoplay
-    resetAutoplay();
-  };
-
-  // Siguiente slide
-  const nextSlide = () => {
-    currentSlide = (currentSlide + 1) % featuredProfiles.length;
-    goToSlide(currentSlide);
-  };
-
-  // Slide anterior
-  const prevSlide = () => {
-    currentSlide = (currentSlide - 1 + featuredProfiles.length) % featuredProfiles.length;
-    goToSlide(currentSlide);
-  };
-
-  // Autoplay
-  const startAutoplay = () => {
-    autoplayInterval = setInterval(nextSlide, AUTOPLAY_DELAY);
-  };
-
-  const stopAutoplay = () => {
-    if (autoplayInterval) {
-      clearInterval(autoplayInterval);
-      autoplayInterval = null;
-    }
-  };
-
-  const resetAutoplay = () => {
-    stopAutoplay();
-    startAutoplay();
-  };
-
-  // Event listeners
-  if (prevBtn) prevBtn.addEventListener('click', prevSlide);
-  if (nextBtn) nextBtn.addEventListener('click', nextSlide);
-
-  // Pausar en hover
-  carousel.addEventListener('mouseenter', stopAutoplay);
-  carousel.addEventListener('mouseleave', startAutoplay);
-
-  // Touch/swipe support
-  let touchStartX = 0;
-  let touchEndX = 0;
-
-  carousel.addEventListener('touchstart', (e) => {
-    touchStartX = e.changedTouches[0].screenX;
-    stopAutoplay();
-  });
-
-  carousel.addEventListener('touchend', (e) => {
-    touchEndX = e.changedTouches[0].screenX;
-    handleSwipe();
-    startAutoplay();
-  });
-
-  const handleSwipe = () => {
-    const swipeThreshold = 50;
-    if (touchStartX - touchEndX > swipeThreshold) {
-      nextSlide();
-    } else if (touchEndX - touchStartX > swipeThreshold) {
-      prevSlide();
-    }
-  };
-
-  // Keyboard navigation
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft') prevSlide();
-    if (e.key === 'ArrowRight') nextSlide();
-  });
-
   // Inicializar
   renderCards();
-  renderDots();
-  startAutoplay();
-
-  // Limpiar al salir
-  window.addEventListener('beforeunload', stopAutoplay);
   
   // Event listener para refrescar el carrusel Luxury (con filtros)
   document.addEventListener('refreshLuxury', async () => {
@@ -2809,14 +2679,14 @@ function createSkeletonCard() {
     currentUserIndex = userIndex;
     currentStoryIndex = storyIndex;
     modal.classList.add('open');
-    modal.setAttribute('aria-hidden', 'false');
+    modal.removeAttribute('inert');
     renderStory();
     startAutoPlay();
   }
 
   function closeStories() {
     modal.classList.remove('open');
-    modal.setAttribute('aria-hidden', 'true');
+    modal.setAttribute('inert', '');
     stopAutoPlay();
     contentDiv.innerHTML = '';
   }

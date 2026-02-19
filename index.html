@@ -8,12 +8,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260218c" />
+  <link rel="stylesheet" href="styles.css?v=20260218d" />
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
   <script src="config.js"></script>
   <script src="api.js?v=20260217b"></script>
   <script src="url-handler.js"></script>
-  <script defer src="app.js?v=20260218c"></script>
+  <script defer src="app.js?v=20260218d"></script>
 </head>
 <body>
   <!-- Age Gate -->
@@ -151,17 +151,6 @@
           <div class="featured-carousel" id="featured-carousel">
             <!-- Las tarjetas destacadas se cargarán aquí vía JavaScript -->
           </div>
-          
-          <button class="featured-nav featured-nav-prev" id="featured-prev" aria-label="Anterior">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-          </button>
-          <button class="featured-nav featured-nav-next" id="featured-next" aria-label="Siguiente">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-          </button>
-          
-          <div class="featured-dots" id="featured-dots">
-            <!-- Los dots se generarán vía JavaScript -->
-          </div>
         </div>
       </div>
     </section>
@@ -192,7 +181,7 @@
     </section>
 
     <!-- Stories Viewer Modal -->
-    <div id="stories-modal" class="stories-modal" role="dialog" aria-hidden="true">
+    <div id="stories-modal" class="stories-modal" role="dialog" inert>
       <div class="stories-overlay"></div>
       <div class="stories-viewer">
         <!-- Header con info del usuario -->
