@@ -992,22 +992,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isImage = selectedInstanteFile.type?.startsWith('image/');
 
     // Validar duración máxima de 60 segundos para videos
-    let mediaDurationSec = 15; // Fotos: 15 segundos fijo
+    let mediaDurationSec = 5; // Fotos: 5 segundos fijo
     if (!isImage) {
       showUploadOverlay('Verificando video...');
       try {
         mediaDurationSec = await new Promise((resolve, reject) => {
           const tempVideo = document.createElement('video');
           tempVideo.preload = 'metadata';
+          const blobUrl = URL.createObjectURL(selectedInstanteFile);
+          const timeout = setTimeout(() => {
+            URL.revokeObjectURL(blobUrl);
+            tempVideo.onloadedmetadata = null;
+            tempVideo.onerror = null;
+            reject(new Error('Timeout al leer metadata del video'));
+          }, 10000);
           tempVideo.onloadedmetadata = () => {
-            URL.revokeObjectURL(tempVideo.src);
+            clearTimeout(timeout);
+            URL.revokeObjectURL(blobUrl);
             resolve(tempVideo.duration);
           };
           tempVideo.onerror = () => {
-            URL.revokeObjectURL(tempVideo.src);
+            clearTimeout(timeout);
+            URL.revokeObjectURL(blobUrl);
             reject(new Error('No se pudo leer el video'));
           };
-          tempVideo.src = URL.createObjectURL(selectedInstanteFile);
+          tempVideo.src = blobUrl;
         });
 
         if (mediaDurationSec > 60) {
@@ -1017,7 +1026,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       } catch (err) {
         hideUploadOverlay();
-        showToast('No se pudo verificar la duración del video.');
+        showToast('No se pudo verificar la duración del video. Intenta con otro formato (MP4).');
         return;
       }
     }
@@ -1876,12 +1885,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    if (file.size > 20 * 1024 * 1024) {
-      showToast('Video muy grande. Máximo 20MB.');
-      videoUpload.value = '';
-      return;
-    }
-
     const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-m4v'];
     if (!validTypes.includes(file.type) && !file.name.match(/\.(mp4|webm|mov|m4v)$/i)) {
       showToast('Formato no válido. Usa MP4, WebM o MOV.');
@@ -1895,15 +1898,24 @@ document.addEventListener('DOMContentLoaded', async () => {
       const duration = await new Promise((resolve, reject) => {
         const tempVideo = document.createElement('video');
         tempVideo.preload = 'metadata';
+        const blobUrl = URL.createObjectURL(file);
+        const timeout = setTimeout(() => {
+          URL.revokeObjectURL(blobUrl);
+          tempVideo.onloadedmetadata = null;
+          tempVideo.onerror = null;
+          reject(new Error('Timeout al leer metadata del video'));
+        }, 10000);
         tempVideo.onloadedmetadata = () => {
-          URL.revokeObjectURL(tempVideo.src);
+          clearTimeout(timeout);
+          URL.revokeObjectURL(blobUrl);
           resolve(tempVideo.duration);
         };
         tempVideo.onerror = () => {
-          URL.revokeObjectURL(tempVideo.src);
+          clearTimeout(timeout);
+          URL.revokeObjectURL(blobUrl);
           reject(new Error('No se pudo leer el video'));
         };
-        tempVideo.src = URL.createObjectURL(file);
+        tempVideo.src = blobUrl;
       });
 
       if (duration > 180) {
@@ -2414,21 +2426,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  formRenewPlan?.addEventListener('submit', (e) => {
+  formRenewPlan?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const receiptInput = document.getElementById('renew-receipt');
     const receiptFile = receiptInput?.files[0];
     const selectedDuration = parseInt(document.querySelector('input[name="renew-duration"]:checked')?.value || 30);
-    
+
     if (!receiptFile) {
       showNotification('Por favor adjunta el comprobante de pago', 'error');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      // Calcular fecha de vencimiento actual (misma lógica que updateRenewPlanInfo)
+    showUploadOverlay('Enviando solicitud...');
+
+    try {
+      // Subir comprobante a S3
+      const receiptId = `receipt_${Date.now()}`;
+      const ext = receiptFile.name.split('.').pop() || 'jpg';
+      const { uploadUrl, publicUrl } = await DataService.getUploadUrl(
+        currentUser.id, `${receiptId}.${ext}`, receiptFile.type || 'image/jpeg', 'receipts'
+      );
+      await DataService.uploadFileToS3(uploadUrl, receiptFile, receiptFile.type || 'image/jpeg');
+
+      // Calcular fecha de vencimiento actual
       let currentExpiry;
       if (currentUser.planExpiry) {
         currentExpiry = new Date(currentUser.planExpiry);
@@ -2441,15 +2462,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentExpiry = new Date();
         currentExpiry.setDate(currentExpiry.getDate() + 30);
       }
-      
+
       if (isNaN(currentExpiry.getTime())) {
         currentExpiry = new Date();
         currentExpiry.setDate(currentExpiry.getDate() + 30);
       }
-      
+
       const newExpiry = new Date(currentExpiry);
       newExpiry.setDate(newExpiry.getDate() + selectedDuration);
-      
+
       // Obtener precio dinámico
       const planPrices = await getPlanPrices();
       const price = planPrices[currentUser.selectedPlan]?.[selectedDuration] || 0;
@@ -2465,7 +2486,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         newExpiry: newExpiry.toISOString(),
         duration: selectedDuration,
         price: price,
-        receiptData: e.target.result,
+        receiptUrl: publicUrl,
         receiptName: receiptFile.name,
         requestDate: new Date().toISOString(),
         status: 'pending',
@@ -2480,9 +2501,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       showNotification('✅ Solicitud de renovación enviada. Te notificaremos cuando sea aprobada.', 'success');
       modalRenewPlan.style.display = 'none';
       formRenewPlan.reset();
-    };
-    
-    reader.readAsDataURL(receiptFile);
+    } catch (err) {
+      showNotification('Error al enviar solicitud. Intenta de nuevo.', 'error');
+    } finally {
+      hideUploadOverlay();
+    }
   });
 
   // ========== MODAL MEJORA DE PLAN ==========
@@ -2716,12 +2739,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     selectedUpgradePlan = null;
   });
 
-  formUpgradePlan?.addEventListener('submit', (e) => {
+  formUpgradePlan?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const receiptInput = document.getElementById('upgrade-receipt');
     const receiptFile = receiptInput?.files[0];
-    
+
     if (!receiptFile) {
       showNotification('Por favor adjunta el comprobante de pago', 'error');
       return;
@@ -2739,8 +2762,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const newExpiry = new Date(startDate);
     newExpiry.setDate(newExpiry.getDate() + duration);
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
+    showUploadOverlay('Enviando solicitud...');
+
+    try {
+      // Subir comprobante a S3
+      const receiptId = `receipt_upgrade_${Date.now()}`;
+      const ext = receiptFile.name.split('.').pop() || 'jpg';
+      const { uploadUrl, publicUrl } = await DataService.getUploadUrl(
+        currentUser.id, `${receiptId}.${ext}`, receiptFile.type || 'image/jpeg', 'receipts'
+      );
+      await DataService.uploadFileToS3(uploadUrl, receiptFile, receiptFile.type || 'image/jpeg');
+
       const upgradeRequest = {
         id: `upgrade_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         userId: currentUser.id,
@@ -2753,7 +2785,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         duration: duration,
         price: price,
         newExpiry: newExpiry.toISOString(),
-        receiptData: e.target.result,
+        receiptUrl: publicUrl,
         receiptName: receiptFile.name,
         requestDate: new Date().toISOString(),
         status: 'pending',
@@ -2771,9 +2803,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       upgradeStep2.style.display = 'none';
       formUpgradePlan.reset();
       selectedUpgradePlan = null;
-    };
-    
-    reader.readAsDataURL(receiptFile);
+    } catch (err) {
+      showNotification('Error al enviar solicitud. Intenta de nuevo.', 'error');
+    } finally {
+      hideUploadOverlay();
+    }
   });
 
   // ========== MENCIONES DEL FORO ==========

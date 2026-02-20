@@ -1447,9 +1447,9 @@ async function renderRenovaciones() {
         <!-- Comprobante -->
         <div style="width: 100%;">
           <div style="color: var(--muted); font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">📎 Comprobante de Pago</div>
-          ${req.receiptData ? `
+          ${(req.receiptUrl || req.receiptData) ? `
             <div style="display: flex; gap: 12px; align-items: center;">
-              <img src="${req.receiptData}" alt="Comprobante" style="max-width: 150px; max-height: 100px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(255,255,255,0.1);" onclick="window.open('${req.receiptData}', '_blank')"/>
+              <img src="${req.receiptUrl || req.receiptData}" alt="Comprobante" style="max-width: 150px; max-height: 100px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(255,255,255,0.1);" onclick="window.open('${req.receiptUrl || req.receiptData}', '_blank')"/>
               <span style="color: var(--muted); font-size: 12px;">${req.receiptName || 'comprobante.jpg'}</span>
             </div>
           ` : '<span style="color: var(--muted); font-size: 12px;">Sin comprobante</span>'}

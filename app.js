@@ -822,22 +822,46 @@ document.querySelectorAll('a[href="#login-modal"]').forEach((btn) => {
     
     // URL de recuperación
     const recoveryUrl = `${window.location.origin}/reset?token=${recoveryToken}&email=${encodeURIComponent(email)}`;
-    
-    // Intentar enviar email usando AWS SES
-    const emailConfig = await DataService.getEmailConfig() || {};
-    
-    if (emailConfig.active && emailConfig.provider) {
-      // Simular envío de email (en producción usarías un backend)
-      console.log('📧 Enviando correo de recuperación a:', email);
-      console.log('🔗 Link de recuperación:', recoveryUrl);
-      
-      // Mostrar el enlace al usuario (en producción esto se enviaría por email)
-      alert(`✅ Se ha enviado un enlace de recuperación a ${email}.\n\n⚠️ MODO DESARROLLO:\nComo no hay servidor de correo configurado, copia este enlace:\n\n${recoveryUrl}\n\nEste enlace expira en 24 horas.`);
-    } else {
-      // No hay configuración de correo, mostrar enlace directamente
-      alert(`⚠️ El servidor de correo no está configurado.\n\n📧 Para configurarlo, ve al Panel Admin → Configuración → Correo.\n\n🔗 Enlace de recuperación (cópialo):\n\n${recoveryUrl}\n\nEste enlace expira en 24 horas.`);
+
+    // Template HTML del email
+    const htmlEmail = `
+      <div style="max-width:520px;margin:0 auto;font-family:'Helvetica Neue',Arial,sans-serif;background:#0a0a0a;border:1px solid rgba(212,175,55,0.3);border-radius:16px;overflow:hidden;">
+        <div style="background:linear-gradient(135deg,#1a1a2e,#0a0a0a);padding:40px 32px;text-align:center;">
+          <h1 style="color:#D4AF37;font-size:28px;margin:0 0 8px;">SalaNegra</h1>
+          <p style="color:#888;font-size:13px;margin:0;">Recuperar contraseña</p>
+        </div>
+        <div style="padding:32px;">
+          <p style="color:#ccc;font-size:15px;line-height:1.6;margin:0 0 24px;">
+            Hola, recibimos una solicitud para restablecer la contraseña de tu cuenta asociada a <strong style="color:#fff;">${email}</strong>.
+          </p>
+          <div style="text-align:center;margin:32px 0;">
+            <a href="${recoveryUrl}" style="display:inline-block;background:linear-gradient(135deg,#D4AF37,#B8860B);color:#000;text-decoration:none;padding:14px 40px;border-radius:8px;font-weight:bold;font-size:15px;">Restablecer Contraseña</a>
+          </div>
+          <p style="color:#666;font-size:12px;line-height:1.5;margin:24px 0 0;">
+            Este enlace expira en 24 horas. Si no solicitaste este cambio, ignora este correo.
+          </p>
+        </div>
+        <div style="border-top:1px solid rgba(255,255,255,0.05);padding:20px 32px;text-align:center;">
+          <p style="color:#444;font-size:11px;margin:0;">SalaNegra - Este es un correo automático, no respondas a este mensaje.</p>
+        </div>
+      </div>
+    `;
+
+    // Enviar email via AWS SES
+    try {
+      await DataService.sendEmail(
+        email,
+        'Recupera tu contraseña - SalaNegra',
+        `Recupera tu contraseña visitando: ${recoveryUrl} - Este enlace expira en 24 horas.`,
+        htmlEmail
+      );
+      alert('Se ha enviado un enlace de recuperación a tu correo. Revisa tu bandeja de entrada y spam.');
+    } catch (err) {
+      console.error('Error enviando email de recuperación:', err);
+      // Fallback: mostrar enlace directamente
+      alert(`No se pudo enviar el correo. Copia este enlace para restablecer tu contraseña:\n\n${recoveryUrl}\n\nEste enlace expira en 24 horas.`);
     }
-    
+
     closeRecoveryModal();
   });
 })();
@@ -2864,15 +2888,20 @@ function createSkeletonCard() {
     const user = storiesData[currentUserIndex];
     if (!user) return;
 
+    // Capturar datos del usuario ANTES de cualquier operación async
+    const storyUserId = user.id.replace('clienta-', '');
+
     // Cerrar el modal de stories
     closeStories();
 
     // Buscar el perfil completo del usuario desde AWS
     const approvedProfiles = await DataService.getApprovedProfiles() || [];
 
-    // Extraer el userId del id del usuario en stories (format: "clienta-XXX")
-    const userId = user.id.replace('clienta-', '');
-    const profile = approvedProfiles.find(p => p.id === `profile-${userId}` || p.originalRegistro?.id === userId);
+    // Buscar primero por ID exacto, luego por originalRegistro como fallback
+    let profile = approvedProfiles.find(p => p.id === `profile-${storyUserId}`);
+    if (!profile) {
+      profile = approvedProfiles.find(p => p.originalRegistro?.id === storyUserId);
+    }
 
     if (profile && typeof window.openVIPModal === 'function') {
       // Asegurar que el perfil tenga todos los campos necesarios para el modal
@@ -2925,6 +2954,7 @@ function createSkeletonCard() {
   
   viewer.addEventListener('mousedown', (e) => {
     if (e.target === prevBtn || e.target === nextBtn || e.target === closeBtn || e.target === contactBtn) return;
+    if (e.target.closest('.stories-user-info')) return;
     isPaused = true;
     stopAutoPlay();
   });
@@ -2947,9 +2977,10 @@ function createSkeletonCard() {
   let touchStartTime = 0;
 
   viewer.addEventListener('touchstart', (e) => {
-    // Ignorar botones de control
+    // Ignorar botones de control y zona de usuario
     if (e.target === prevBtn || e.target === nextBtn || e.target === closeBtn || e.target === contactBtn) return;
     if (e.target.closest('.stories-contact-btn') || e.target.closest('.stories-close')) return;
+    if (e.target.closest('.stories-user-info')) return;
 
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
@@ -2961,9 +2992,10 @@ function createSkeletonCard() {
   }, { passive: true });
 
   viewer.addEventListener('touchend', (e) => {
-    // Ignorar botones de control
+    // Ignorar botones de control y zona de usuario
     if (e.target === prevBtn || e.target === nextBtn || e.target === closeBtn || e.target === contactBtn) return;
     if (e.target.closest('.stories-contact-btn') || e.target.closest('.stories-close')) return;
+    if (e.target.closest('.stories-user-info')) return;
 
     const touchEndX = e.changedTouches[0].clientX;
     const touchEndY = e.changedTouches[0].clientY;

@@ -608,7 +608,15 @@ if (typeof DataService === 'undefined') {
   },
   
   async savePlanRequests(requests) {
-    return await this.setConfig('planRequests', requests);
+    // Limpiar base64 de receiptData para evitar exceder límite de DynamoDB (400KB)
+    const cleanRequests = requests.map(req => {
+      if (req.receiptData && req.receiptData.startsWith('data:')) {
+        const { receiptData, ...rest } = req;
+        return rest;
+      }
+      return req;
+    });
+    return await this.setConfig('planRequests', cleanRequests);
   },
   
   async getSalaOscuraThreads() {
